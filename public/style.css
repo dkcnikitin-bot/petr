@@ -1,0 +1,2889 @@
+/* CSS Дизайн-система "Императорский шик" (XVIII век) */
+
+/* Импорт красивых исторических шрифтов с кириллицей: сказочный Alice, царский Cormorant Garamond, рукописный Marck Script, уставной Ruslan Display и книжный Old Standard TT */
+@import url('https://fonts.googleapis.com/css2?family=Alice&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Marck+Script&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Ruslan+Display&display=swap');
+
+:root {
+  --bg-velvet: radial-gradient(circle, #0a1c36 0%, #030814 100%); /* Глубокий синий бархат Ордена св. Андрея Первозванного */
+  --gold-bright: #ffd700;
+  --gold-antique: #c39b52;
+  --gold-glow: rgba(255, 215, 0, 0.4);
+  --parchment: #fdf5e6;
+  --navy: #081224;
+  --text-dark: #081224;
+  --text-light: #fdf5e6;
+  --transition-smooth: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+/* Общие стили */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Cormorant Garamond', serif;
+  background: #030814;
+  color: var(--text-light);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ========================================== */
+/* СТИЛИ КАРТЫ (map.html)                     */
+/* ========================================== */
+
+#map-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3; /* Above skyline and matrix canvas, but below header UI */
+  mix-blend-mode: screen;
+  opacity: 0.88;
+}
+
+/* Стилизация оффлайн карты Leaflet под темно-золотую голограмму в стиле заставки */
+.vintage-map .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) sepia(1) saturate(5.5) hue-rotate(12deg) brightness(0.65) contrast(1.35) drop-shadow(0 0 1px rgba(255,215,0,0.35));
+  transition: filter 1s ease-in-out;
+}
+
+.vintage-map {
+  background-color: transparent !important;
+  position: relative;
+}
+
+.vintage-map::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
+    linear-gradient(rgba(255, 215, 0, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 215, 0, 0.02) 1px, transparent 1px);
+  background-size: 55px 55px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.leaflet-container {
+  background: transparent !important;
+}
+
+/* Фоновые оверлеи волн Невы (из файла волны.png) с эффектом параллакса */
+.hologram-waves-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-repeat: repeat-x;
+  background-position: bottom center;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hologram-waves-overlay.wave-layer-1 {
+  background-image: url('волны.png');
+  background-size: 1600px auto;
+  opacity: 0.05;
+  animation: wavesMoveRight 35s linear infinite, wavesFlicker1 6s infinite ease-in-out;
+}
+
+.hologram-waves-overlay.wave-layer-2 {
+  background-image: url('волны.png');
+  background-size: 2200px auto;
+  opacity: 0.03;
+  animation: wavesMoveLeft 50s linear infinite, wavesFlicker2 8s infinite ease-in-out;
+}
+
+@keyframes wavesMoveRight {
+  from { background-position-x: 0; }
+  to { background-position-x: 1600px; }
+}
+
+@keyframes wavesMoveLeft {
+  from { background-position-x: 0; }
+  to { background-position-x: -2200px; }
+}
+
+@keyframes wavesFlicker1 {
+  0%, 100% { opacity: 0.04; filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.25)); }
+  50% { opacity: 0.07; filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4)); }
+}
+
+@keyframes wavesFlicker2 {
+  0%, 100% { opacity: 0.02; filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.15)); }
+  50% { opacity: 0.04; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3)); }
+}
+
+/* Силуэт Санкт-Петербурга в стиле заставки */
+.hologram-skyline-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('крепость.png') no-repeat bottom center;
+  background-size: contain;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+  clip-path: inset(100% 0 0 0);
+  transition: transform 1.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  mask-image: linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 6%, #000 94%, transparent 100%);
+  --hologram-shift-x: 0vw;
+  --hologram-shift-y: 0vh;
+  --hologram-scale-x: 1;
+  --hologram-scale-y: 1;
+  --hologram-scale: 1;
+  --hologram-rotate: 0deg;
+  --hologram-glow-color: #ffd700;
+  --hologram-base-transform: translate(var(--hologram-shift-x, 0), var(--hologram-shift-y, 0)) scale(var(--hologram-scale-x, 1), var(--hologram-scale-y, 1)) scale(var(--hologram-scale, 1)) rotate(var(--hologram-rotate, 0deg));
+  transform: var(--hologram-base-transform);
+}
+
+
+/* Голограмма Петра Первого */
+.hologram-peter-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('петр.png') no-repeat bottom center;
+  background-size: auto 68%;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 1;
+  mix-blend-mode: screen;
+  transition: transform 1.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+  mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  --hologram-shift-x: 0vw;
+  --hologram-shift-y: 0vh;
+  --hologram-scale-x: 1;
+  --hologram-scale-y: 1;
+  --hologram-scale: 1;
+  --hologram-rotate: 0deg;
+  --hologram-glow-color: #ffd700;
+  --hologram-base-transform: translate(var(--hologram-shift-x, 0), var(--hologram-shift-y, 0)) scale(var(--hologram-scale-x, 1), var(--hologram-scale-y, 1)) scale(var(--hologram-scale, 1)) rotate(var(--hologram-rotate, 0deg));
+  transform: var(--hologram-base-transform);
+}
+
+
+/* === ЭФФЕКТЫ ПРОЯВЛЕНИЯ ГОЛОГРАММ === */
+
+/* Эффект 1: Сканирование снизу вверх */
+.effect-scan-up {
+  animation: revealScanUp var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes revealScanUp {
+  0% { opacity: 0; clip-path: inset(100% 0 0 0); }
+  15% { opacity: 0.25; }
+  100% { opacity: 0.25; clip-path: inset(0 0 0 0); }
+}
+
+/* Эффект 2: Сканирование сверху вниз */
+.effect-scan-down {
+  animation: revealScanDown var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes revealScanDown {
+  0% { opacity: 0; clip-path: inset(0 0 100% 0); }
+  15% { opacity: 0.25; }
+  100% { opacity: 0.25; clip-path: inset(0 0 0 0); }
+}
+
+/* Эффект 3: Радиальное расширение из центра */
+.effect-radial {
+  animation: revealRadial var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes revealRadial {
+  0% { opacity: 0; clip-path: circle(0% at 50% 50%); }
+  20% { opacity: 0.25; }
+  100% { opacity: 0.25; clip-path: circle(100% at 50% 50%); }
+}
+
+/* Эффект 4: Цифровой глитч-сбой */
+.effect-glitch-reveal {
+  animation: revealGlitch var(--hologram-duration, 4.5s) ease-in-out forwards;
+}
+@keyframes revealGlitch {
+  0% { opacity: 0; transform: var(--hologram-base-transform) translateY(10px) scale(0.97) skewX(5deg); filter: drop-shadow(0 0 20px var(--hologram-glow-color, #ffd700)); }
+  5% { opacity: 0.25; transform: var(--hologram-base-transform) translateY(-5px) skewX(-5deg); }
+  10% { opacity: 0.05; transform: var(--hologram-base-transform) translateY(2px) skewX(2deg); }
+  15% { opacity: 0.25; transform: var(--hologram-base-transform) skewX(0); }
+  20% { opacity: 0.12; transform: var(--hologram-base-transform) skewX(-1deg); }
+  25%, 100% { opacity: 0.25; transform: var(--hologram-base-transform); filter: none; clip-path: inset(0 0 0 0); }
+}
+
+/* Эффект 5: Сканирование слева направо */
+.effect-scan-right {
+  animation: revealScanRight var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes revealScanRight {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  15% { opacity: 0.25; }
+  100% { opacity: 0.25; clip-path: inset(0 0 0 0); }
+}
+
+/* Эффект 6: Сканирование справа налево */
+.effect-scan-left {
+  animation: revealScanLeft var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes revealScanLeft {
+  0% { opacity: 0; clip-path: inset(0 0 0 100%); }
+  15% { opacity: 0.25; }
+  100% { opacity: 0.25; clip-path: inset(0 0 0 0); }
+}
+
+/* Эффект 7: Раскрытие "занавесом" из центра */
+.effect-curtain-reveal {
+  animation: revealCurtain var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes revealCurtain {
+  0% { opacity: 0; clip-path: inset(0 50% 0 50%); }
+  15% { opacity: 0.25; }
+  100% { opacity: 0.25; clip-path: inset(0 0 0 0); }
+}
+
+/* Эффект 8: Стробоскопический глитч */
+.effect-glitch-strobe {
+  animation: revealGlitchStrobe var(--hologram-duration, 4.5s) ease-in-out forwards;
+}
+@keyframes revealGlitchStrobe {
+  0%, 8%, 15%, 23%, 31%, 40% { opacity: 0; transform: var(--hologram-base-transform) translateY(5px) skewX(8deg) scale(0.95); filter: drop-shadow(0 0 30px var(--hologram-glow-color, #ffd700)); }
+  4%, 12%, 19%, 27%, 35% { opacity: 0.35; transform: var(--hologram-base-transform) translateY(-5px) skewX(-8deg) scale(1.05); filter: drop-shadow(0 0 15px var(--hologram-glow-color, #ffd700)); }
+  45% { opacity: 0.08; transform: var(--hologram-base-transform) translateY(-10px) skewX(18deg); }
+  50% { opacity: 0.38; transform: var(--hologram-base-transform) translateY(4px) skewX(-14deg); }
+  55% { opacity: 0.12; transform: var(--hologram-base-transform) skewX(4deg); }
+  60%, 100% { opacity: 0.25; transform: var(--hologram-base-transform); filter: none; clip-path: inset(0 0 0 0); }
+}
+
+/* Постоянное мерцание после появления: Крепость */
+.effect-idle-flicker-fortress {
+  opacity: 0.15;
+  clip-path: inset(0 0 0 0);
+  transform: var(--hologram-base-transform);
+  animation: idleFlickerFortress 6s infinite ease-in-out;
+}
+@keyframes idleFlickerFortress {
+  0%, 100% { opacity: 0.15; filter: drop-shadow(0 0 8px var(--hologram-glow-color, #ffd700)); }
+  45% { opacity: 0.15; }
+  46% { opacity: 0.08; transform: var(--hologram-base-transform) skewX(0.5deg); }
+  47% { opacity: 0.15; }
+  48% { opacity: 0.15; }
+  72% { opacity: 0.15; }
+  73% { opacity: 0.10; transform: var(--hologram-base-transform) skewX(-0.5deg); }
+  74% { opacity: 0.15; }
+}
+
+/* Постоянное мерцание после появления: Петр I */
+.effect-idle-flicker-peter {
+  opacity: 0.18;
+  clip-path: inset(0 0 0 0);
+  transform: var(--hologram-base-transform);
+  animation: idleFlickerPeter 6s infinite ease-in-out;
+}
+@keyframes idleFlickerPeter {
+  0%, 100% { opacity: 0.18; filter: drop-shadow(0 0 12px var(--hologram-glow-color, #ffd700)); }
+  45% { opacity: 0.18; }
+  46% { opacity: 0.10; transform: var(--hologram-base-transform) skewX(0.5deg); }
+  47% { opacity: 0.18; }
+  48% { opacity: 0.18; }
+  72% { opacity: 0.18; }
+  73% { opacity: 0.12; transform: var(--hologram-base-transform) skewX(-0.5deg); }
+  74% { opacity: 0.18; }
+}
+
+/* Эффект затухания голограмм */
+.effect-fade-out {
+  animation: hologramFadeOut 1.5s ease-in-out forwards;
+}
+@keyframes hologramFadeOut {
+  0% { opacity: 0.25; transform: var(--hologram-base-transform); filter: none; }
+  20% { opacity: 0.12; transform: var(--hologram-base-transform) skewX(2deg) scale(1.02); filter: drop-shadow(0 0 10px var(--hologram-glow-color, #ffd700)); }
+  40% { opacity: 0.25; transform: var(--hologram-base-transform) skewX(-2deg); }
+  60% { opacity: 0.05; transform: var(--hologram-base-transform) scaleX(0.95); }
+  100% { opacity: 0; transform: var(--hologram-base-transform) translateY(20px); }
+}
+
+@keyframes skylineGlow {
+  0%, 100% { opacity: 0.22; filter: drop-shadow(0 0 15px var(--hologram-glow-color, rgba(255,215,0,0.35))); }
+  50% { opacity: 0.32; filter: drop-shadow(0 0 28px var(--hologram-glow-color, rgba(255,215,0,0.6))); }
+}
+
+/* Сканирующий луч для сборки крепости */
+.hologram-scanline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(to right, transparent, var(--hologram-glow-color, #ffd700) 20%, #ffffff 50%, var(--hologram-glow-color, #ffd700) 80%, transparent);
+  box-shadow: 0 0 15px var(--hologram-glow-color, #ffd700), 0 0 35px var(--hologram-glow-color, #ffd700), 0 0 50px var(--hologram-glow-color, rgba(255, 215, 0, 0.5));
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* Проход луча снизу вверх */
+.scan-line-up {
+  animation: scanlineUp var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes scanlineUp {
+  0% { bottom: 0; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { bottom: 100%; opacity: 0; }
+}
+
+/* Проход луча сверху вниз */
+.scan-line-down {
+  animation: scanlineDown var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes scanlineDown {
+  0% { top: 0; bottom: auto; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { top: 100%; bottom: auto; opacity: 0; }
+}
+
+/* Круговое сканирование (радиальное расширение) */
+.scan-line-radial {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  transform: translate(-50%, -50%) !important;
+  width: 0 !important;
+  height: 0 !important;
+  background: transparent !important;
+  border: 3px solid var(--hologram-glow-color, #ffd700) !important;
+  border-radius: 50% !important;
+  box-shadow: 0 0 25px var(--hologram-glow-color, #ffd700), inset 0 0 25px var(--hologram-glow-color, #ffd700) !important;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  animation: scanlineRadial var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes scanlineRadial {
+  0% { width: 0; height: 0; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { width: 150vmax; height: 150vmax; opacity: 0; }
+}
+
+/* Горизонтальный проход слева направо */
+.scan-line-right {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, var(--hologram-glow-color, #ffd700) 20%, #ffffff 50%, var(--hologram-glow-color, #ffd700) 80%, transparent);
+  box-shadow: 0 0 15px var(--hologram-glow-color, #ffd700), 0 0 35px var(--hologram-glow-color, #ffd700);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  animation: scanlineRight var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes scanlineRight {
+  0% { left: 0; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
+
+/* Горизонтальный проход справа налево */
+.scan-line-left {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, var(--hologram-glow-color, #ffd700) 20%, #ffffff 50%, var(--hologram-glow-color, #ffd700) 80%, transparent);
+  box-shadow: 0 0 15px var(--hologram-glow-color, #ffd700), 0 0 35px var(--hologram-glow-color, #ffd700);
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  animation: scanlineLeft var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes scanlineLeft {
+  0% { right: 0; opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { right: 100%; opacity: 0; }
+}
+
+/* Двойное раскрытие из центра по бокам */
+.scan-line-curtain {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  animation: scanlineCurtainOuter var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+.scan-line-curtain::before, .scan-line-curtain::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 5px;
+  height: 100%;
+  background: linear-gradient(to bottom, transparent, var(--hologram-glow-color, #ffd700) 20%, #ffffff 50%, var(--hologram-glow-color, #ffd700) 80%, transparent);
+  box-shadow: 0 0 15px var(--hologram-glow-color, #ffd700), 0 0 35px var(--hologram-glow-color, #ffd700);
+}
+.scan-line-curtain::before {
+  left: 50%;
+  transform: translateX(-50%);
+  animation: scanlineCurtainLeft var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+.scan-line-curtain::after {
+  right: 50%;
+  transform: translateX(50%);
+  animation: scanlineCurtainRight var(--hologram-duration, 4.5s) cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+@keyframes scanlineCurtainOuter {
+  0% { opacity: 0; }
+  5% { opacity: 1; }
+  95% { opacity: 1; }
+  100% { opacity: 0; }
+}
+@keyframes scanlineCurtainLeft {
+  0% { left: 50%; }
+  100% { left: 0%; }
+}
+@keyframes scanlineCurtainRight {
+  0% { right: 50%; }
+  100% { right: 0%; }
+}
+
+@keyframes hologramFlicker {
+  0%, 100% { opacity: 0.35; transform: scale(1) translateY(0); filter: drop-shadow(0 0 20px rgba(255,215,0,0.45)); }
+  48% { opacity: 0.33; }
+  50% { opacity: 0.15; transform: scale(0.99) skewX(1deg); filter: drop-shadow(0 0 6px rgba(255,215,0,0.2)); }
+  52% { opacity: 0.38; transform: scale(1.02); filter: drop-shadow(0 0 24px rgba(255,215,0,0.6)); }
+  54% { opacity: 0.35; transform: scale(1); }
+  75% { opacity: 0.35; transform: translateY(-5px); }
+  77% { opacity: 0.30; }
+  79% { opacity: 0.36; }
+}
+
+/* Скрыть водяной знак Leaflet */
+.leaflet-control-attribution {
+  display: none !important;
+}
+
+/* Задний бархатный фон для карты */
+.map-bg-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--bg-velvet);
+  opacity: 0.25;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Полноэкранная голограмма названия */
+.hologram-title-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('название.png') no-repeat top center;
+  background-size: 55% auto;
+  pointer-events: none;
+  z-index: 10;
+  animation: titleHologram 7s infinite ease-in-out;
+}
+
+@keyframes titleHologram {
+  0%, 100% {
+    opacity: 0.95;
+    transform: none;
+    filter: drop-shadow(0 0 12px rgba(255,215,0,0.85)) drop-shadow(0 0 28px rgba(255,140,0,0.45));
+  }
+  45% { opacity: 0.95; transform: none; }
+  46% { opacity: 0.3; transform: skewX(-0.5deg) scaleY(0.99); }
+  47% { opacity: 0.95; transform: none; }
+  48% { opacity: 0.95; transform: none; }
+  82% { opacity: 0.95; transform: none; }
+  83% { opacity: 0.5; transform: skewX(0.5deg) scaleY(1.01); }
+  84% { opacity: 0.95; transform: none; }
+}
+
+/* Шапка с названием на карте — стиль заставки (без подложки, парящие золотые буквы) */
+.map-header {
+  position: absolute;
+  top: 8vh; /* Размещаем ровно под золотыми буквами полноэкранного названия */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  text-align: center;
+  pointer-events: none;
+  background: transparent;
+  border: none;
+  padding: 0;
+  box-shadow: none;
+  overflow: visible;
+  animation: headerTextHologram 7s infinite ease-in-out;
+}
+
+@keyframes headerTextHologram {
+  0%, 100% {
+    opacity: 0.85;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 0 8px rgba(255,215,0,0.7));
+  }
+  45% { opacity: 0.85; transform: translateX(-50%); }
+  46% { opacity: 0.3; transform: translateX(-50%) skewX(-0.5deg); }
+  47% { opacity: 0.85; transform: translateX(-50%); }
+  48% { opacity: 0.85; transform: translateX(-50%); }
+  82% { opacity: 0.85; transform: translateX(-50%); }
+  83% { opacity: 0.4; transform: translateX(-50%) skewX(0.5deg); }
+  84% { opacity: 0.85; transform: translateX(-50%); }
+}
+
+.map-header-ornament {
+  display: none !important;
+}
+
+.map-header h1 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 4.2rem;
+  font-weight: 300;
+  color: #ffffff;
+  text-shadow:
+    0 0 8px rgba(255, 215, 0, 0.85),
+    0 0 20px rgba(255, 215, 0, 0.55),
+    0 0 40px rgba(255, 140, 0, 0.35);
+  letter-spacing: 14px;
+  line-height: 1.1;
+  margin: 0;
+  text-transform: uppercase;
+  animation: titleGoldPulse 4s infinite ease-in-out;
+}
+@keyframes titleGoldPulse {
+  0%, 100% {
+    text-shadow:
+      0 0 8px rgba(255, 215, 0, 0.85),
+      0 0 20px rgba(255, 215, 0, 0.55),
+      0 0 40px rgba(255, 140, 0, 0.35);
+    transform: scale(1.0);
+  }
+  50% {
+    text-shadow:
+      0 0 16px rgba(255, 215, 0, 0.95),
+      0 0 32px rgba(255, 215, 0, 0.75),
+      0 0 60px rgba(255, 140, 0, 0.55);
+    transform: scale(1.02);
+  }
+}
+
+.map-header-sub {
+  font-family: 'Cormorant Garamond', serif;
+  font-style: italic;
+  font-size: 1.8rem;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  letter-spacing: 5px;
+  margin-top: 10px;
+  opacity: 0.95;
+}
+
+
+
+/* Кнопка включения звука на карте и суфлере */
+.audio-control-btn {
+  position: absolute;
+  bottom: 25px;
+  right: 25px;
+  z-index: 100;
+  background: rgba(8, 18, 36, 0.9);
+  border: 1px solid var(--gold-antique);
+  color: var(--gold-bright);
+  padding: 10px 18px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.5), inset 0 0 5px rgba(255, 215, 0, 0.2);
+  transition: var(--transition-smooth);
+}
+
+.audio-control-btn:hover {
+  background: var(--navy);
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4), inset 0 0 8px rgba(255, 215, 0, 0.4);
+  transform: scale(1.05);
+}
+
+/* Стили маркеров */
+/* Контейнер для точки и подписи города */
+.static-gold-marker-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+/* 1. Статичная золотая точка (укрупненная и с активным золотым сиянием) */
+.static-gold-marker {
+  width: 14px;
+  height: 14px;
+  background: radial-gradient(circle, #ffffff 15%, #ffd700 65%, #c39b52 100%);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8), 0 0 3px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  flex-shrink: 0;
+  animation: staticGlowPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes staticGlowPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.7), 0 0 3px rgba(0,0,0,0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(255, 215, 0, 1.0), 0 0 6px #ffffff, 0 0 3px rgba(0,0,0,0.5);
+    transform: scale(1.2);
+  }
+}
+
+.static-gold-marker-container:hover .static-gold-marker {
+  transform: scale(1.35);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 1.0), 0 0 10px #ffffff;
+  animation-play-state: paused;
+}
+
+/* Постоянная подпись города рядом с точкой */
+.static-marker-label {
+  position: absolute;
+  left: 19px;
+  top: -4px;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.0rem;
+  font-weight: 700;
+  color: var(--navy); /* Темно-синий текст для контраста */
+  text-shadow: 2px 2px 4px #fff, -2px -2px 4px #fff, 2px -2px 4px #fff, -2px 2px 4px #fff, 0 0 8px #fff;
+  pointer-events: none;
+  letter-spacing: 0.5px;
+}
+
+/* 2. Мощная пульсирующая золотая вспышка (Карета/Искра — устаревший класс, оставлен для совместимости) */
+.pulse-glow-container {
+  position: relative;
+  width: 50px;
+  height: 50px;
+  transform: translate(-50%, -50%);
+}
+.pulse-glow-core {
+  position: absolute;
+  top: 10px; left: 10px;
+  width: 30px; height: 30px;
+  background: radial-gradient(circle, #ffffff 15%, #ffea00 65%, #ff8c00 100%);
+  border-radius: 50%;
+  box-shadow: 0 0 20px #ffd700, 0 0 40px #ffea00, 0 0 80px #ff8c00;
+  z-index: 3;
+  border: 2px solid #ffffff;
+  display: flex; align-items: center; justify-content: center;
+}
+.pulse-glow-core svg { width: 18px; height: 18px; animation: rotateSparkStar 5s linear infinite; }
+@keyframes rotateSparkStar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.pulse-glow-ring {
+  position: absolute;
+  top: 0; left: 0;
+  width: 50px; height: 50px;
+  border: 4px solid #ffea00;
+  border-radius: 50%;
+  opacity: 0;
+  animation: pulse 1.6s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+  z-index: 2;
+  filter: drop-shadow(0 0 6px #ffd700) drop-shadow(0 0 2px #ff8c00);
+}
+@keyframes pulse {
+  0% { transform: scale(0.1); opacity: 0; }
+  30% { opacity: 0.95; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+
+/* === НОВЫЙ КОРОЛЕВСКИЙ МАРКЕР КАРЕТЫ === */
+.royal-spark-container {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+
+.spark-comet-tail {
+  position: absolute;
+  top: 27px;
+  left: -52px;
+  width: 58px;
+  height: 16px;
+  background: linear-gradient(to right, transparent, rgba(255,120,0,0.15), rgba(255,200,0,0.45), rgba(255,230,0,0.82));
+  filter: blur(5px);
+  border-radius: 0 50% 50% 0;
+  z-index: 1;
+  animation: cometTailPulse 1.2s infinite ease-in-out;
+}
+
+@keyframes cometTailPulse {
+  0%, 100% { opacity: 0.7; transform: scaleY(1); }
+  50% { opacity: 1.0; transform: scaleY(1.35); }
+}
+
+.spark-orb {
+  position: absolute;
+  top: 15px; left: 15px;
+  width: 40px; height: 40px;
+  background: radial-gradient(circle at 35% 30%, #ffffff 0%, #fff9e0 20%, #ffec00 50%, #ff9500 80%, #c04000 100%);
+  border-radius: 50%;
+  border: 2.5px solid rgba(255,255,255,0.95);
+  box-shadow:
+    0 0 12px #ffec00,
+    0 0 28px #ffd700,
+    0 0 55px #ff8c00,
+    0 0 90px rgba(255,100,0,0.55),
+    inset 0 1px 4px rgba(255,255,255,0.7);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 3;
+  animation: sparkOrbBreathing 1.2s infinite ease-in-out;
+}
+
+.spark-orb-inner {
+  font-size: 20px;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255,255,200,0.9), 0 0 4px rgba(255,150,0,0.6);
+  line-height: 1;
+}
+
+.spark-ring {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0;
+  animation: sparkRingExpand 2s infinite ease-out;
+}
+.spark-ring-1 {
+  top: 5px; left: 5px;
+  width: 60px; height: 60px;
+  border: 3px solid rgba(255,236,0,0.85);
+  filter: drop-shadow(0 0 5px #ffd700);
+  animation-delay: 0s;
+}
+.spark-ring-2 {
+  top: 0; left: 0;
+  width: 70px; height: 70px;
+  border: 2px solid rgba(255,150,0,0.55);
+  animation-delay: 1s;
+}
+
+@keyframes sparkOrbBreathing {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 12px #ffec00, 0 0 28px #ffd700, 0 0 55px #ff8c00, 0 0 90px rgba(255,100,0,0.5);
+  }
+  50% {
+    transform: scale(1.13);
+    box-shadow: 0 0 18px #ffec00, 0 0 42px #ffd700, 0 0 80px #ff8c00, 0 0 120px rgba(255,100,0,0.65);
+  }
+}
+
+@keyframes sparkRingExpand {
+  0% { transform: scale(0.2); opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { transform: scale(2.8); opacity: 0; }
+}
+
+/* 3. Информационный Свиток/Плашка */
+.parchment-plaque {
+  position: absolute;
+  width: 640px;
+  z-index: 9999;
+  opacity: 0;
+  animation: parchmentAppear 0.8s ease-out forwards;
+  pointer-events: auto;
+  perspective: 1200px;
+  transform: translate(-50%, -50%);
+  transition: left 1.2s cubic-bezier(0.19, 1, 0.22, 1), top 1.2s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.parchment-plaque-inner {
+  position: relative;
+  width: 100%;
+  background: rgba(8, 18, 36, 0.88);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 3px solid var(--gold-antique);
+  border-radius: 10px;
+  padding: 0 0 18px 0;
+  color: #ffffff;
+  box-shadow:
+    var(--card-shadow-x, 0px) var(--card-shadow-y, 20px) 50px rgba(0,0,0,0.9),
+    0 0 0 1.5px var(--hologram-glow-color, #ffd700),
+    0 0 40px var(--hologram-glow-color, rgba(255,215,0,0.25)),
+    inset 0 0 25px var(--hologram-glow-color, rgba(255,215,0,0.08)),
+    inset 0 1px 0 rgba(255,255,255,0.15);
+  text-align: center;
+  transform-style: preserve-3d;
+  overflow: visible;
+  transform: 
+    rotateX(calc(var(--card-base-rot-x, 0deg) + var(--card-mouse-rot-x, 0deg))) 
+    rotateY(calc(var(--card-base-rot-y, 0deg) + var(--card-mouse-rot-y, 0deg))) 
+    rotateZ(var(--card-base-rot-z, 0deg))
+    scale(var(--card-scale, 1));
+  transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.2), box-shadow 0.35s ease;
+}
+
+/* Контейнер для фоновых эффектов с обрезкой углов */
+.plaque-background-card {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  overflow: hidden;
+  border-radius: 7px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Динамический световой блик от курсора мыши внутри фонового контейнера */
+.plaque-background-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(circle 350px at var(--mouse-x, 0px) var(--mouse-y, 0px), rgba(255, 255, 255, 0.16), transparent 75%);
+  pointer-events: none;
+  z-index: 9;
+  mix-blend-mode: overlay;
+  transition: opacity 0.25s ease;
+}
+
+/* Сканирующий луч на карточке */
+.plaque-scanline {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(to right, transparent, #ffffff 30%, var(--hologram-glow-color, #ffd700) 50%, #ffffff 70%, transparent);
+  box-shadow: 0 0 12px var(--hologram-glow-color, #ffd700), 0 0 20px var(--hologram-glow-color, #ffd700);
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.parchment-plaque.active-shimmer .plaque-scanline {
+  animation: plaqueScanSweep 1.4s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes plaqueScanSweep {
+  0% { top: 0; opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Большой фоновый водяной знак */
+.plaque-watermark {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -48%);
+  font-size: 14rem;
+  color: rgba(195,155,82,0.045);
+  pointer-events: none;
+  z-index: 0;
+  line-height: 1;
+  user-select: none;
+  font-family: serif;
+}
+
+/* Эффект блика */
+.plaque-shimmer {
+  position: absolute;
+  top: 0; left: -150%;
+  width: 45%; height: 100%;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+  transform: skewX(-20deg);
+  pointer-events: none;
+  z-index: 99;
+}
+@keyframes shimmerSweep {
+  0% { left: -150%; }
+  60% { left: 150%; }
+  100% { left: 150%; }
+}
+.parchment-plaque-inner:hover .plaque-shimmer { animation: shimmerSweep 1.8s ease-in-out infinite; }
+.parchment-plaque.active-shimmer .plaque-shimmer { animation: shimmerSweep 1.6s ease-in-out; }
+
+.parchment-plaque-inner:hover {
+  box-shadow: 0 28px 60px rgba(255,215,0,0.2), 0 22px 50px rgba(0,0,0,0.85), inset 0 0 50px rgba(139,90,0,0.15);
+}
+
+.parchment-plaque-inner::before {
+  content: "";
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(255,255,200,0.25) 0%, transparent 50%),
+    radial-gradient(circle at center, rgba(0,0,0,0) 50%, rgba(139,90,0,0.07) 100%);
+  pointer-events: none;
+  border-radius: 7px;
+  z-index: 1;
+}
+
+/* ====== ШАПКА — ОРНАМЕНТАЛЬНАЯ ЛЕНТА ====== */
+.plaque-header-band {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 14px 30px 12px;
+  margin-bottom: 6px;
+  background: linear-gradient(to right, transparent 0%, rgba(195,155,82,0.14) 20%, rgba(195,155,82,0.28) 50%, rgba(195,155,82,0.14) 80%, transparent 100%);
+  border-top: 1.5px solid rgba(195,155,82,0.4);
+  border-bottom: 1.5px solid rgba(195,155,82,0.4);
+  position: relative;
+  z-index: 5;
+}
+
+.plaque-header-ornament {
+  font-size: 1.5rem;
+  color: var(--gold-antique);
+  line-height: 1;
+  animation: ornamentGlow 2.5s infinite ease-in-out;
+  flex-shrink: 0;
+}
+@keyframes ornamentGlow {
+  0%, 100% { opacity: 0.6; text-shadow: none; }
+  50% { opacity: 1.0; text-shadow: 0 0 8px var(--gold-glow); }
+}
+
+/* Название — старинный Ruslan Display */
+.plaque-event-title {
+  font-family: 'Ruslan Display', sans-serif;
+  font-size: 1.9rem;
+  color: #ffd700;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  line-height: 1.1;
+  text-shadow: 0 0 20px rgba(255,215,0,0.8), 0 2px 8px rgba(0,0,0,0.6);
+  transform: translateZ(12px);
+  position: relative;
+  z-index: 5;
+}
+
+.plaque-sub-header {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  font-style: italic;
+  color: rgba(255,215,0,0.7);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  text-shadow: 0 0 6px rgba(255,215,0,0.3);
+  position: relative;
+  z-index: 5;
+}
+
+.plaque-arrival-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  font-style: italic;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 6px;
+  letter-spacing: 1px;
+  text-shadow: 0 0 5px rgba(255,255,255,0.4);
+  transform: translateZ(8px);
+  position: relative;
+  z-index: 5;
+}
+
+.parchment-plaque .guest-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2.85rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #ffffff;
+  margin: 8px 20px 6px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 25px rgba(255,215,0,0.85), 0 2px 5px #000;
+  transform: translateZ(28px);
+  position: relative;
+  z-index: 5;
+}
+
+.parchment-plaque .guest-city {
+  font-family: 'Marck Script', cursive;
+  font-size: 1.95rem;
+  color: #ffd700;
+  margin-bottom: 2px;
+  text-shadow: 0 0 10px rgba(255,215,0,0.5), 0 2px 4px rgba(0,0,0,0.7);
+  transform: translateZ(16px);
+  position: relative;
+  z-index: 5;
+}
+
+@keyframes parchmentAppear {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.parchment-fade-out {
+  animation: parchmentDisappear 0.6s ease-in-out forwards !important;
+}
+@keyframes parchmentDisappear {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+/* Угловые барочные вензеля */
+.plaque-corner {
+  position: absolute;
+  width: 48px; height: 48px;
+  color: var(--gold-antique);
+  opacity: 0.7;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+  animation: cornerOpacityPulse 3s infinite ease-in-out;
+}
+@keyframes cornerOpacityPulse {
+  0%, 100% { opacity: 0.65; filter: none; }
+  50% { opacity: 1.0; filter: drop-shadow(0 0 6px var(--gold-glow)); }
+}
+.plaque-corner-tl { top: 6px; left: 6px; transform: translateZ(5px); animation-delay: 0s; }
+.plaque-corner-tr { top: 6px; right: 6px; transform: scaleX(-1) translateZ(5px); animation-delay: 0.75s; }
+.plaque-corner-bl { bottom: 6px; left: 6px; transform: scaleY(-1) translateZ(5px); animation-delay: 1.5s; }
+.plaque-corner-br { bottom: 6px; right: 6px; transform: scale(-1) translateZ(5px); animation-delay: 2.25s; }
+
+/* Орнаментальный разделитель */
+.plaque-ornamental-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 35px 10px;
+  position: relative;
+  z-index: 5;
+  transform: translateZ(8px);
+}
+.ornament-line {
+  flex: 1; height: 1px;
+  background: linear-gradient(to right, transparent, currentColor, transparent);
+  opacity: 0.3;
+}
+.ornament-jewel {
+  color: var(--gold-antique);
+  font-size: 0.9rem; opacity: 0.75; line-height: 1;
+  animation: ornamentGlow 3s infinite ease-in-out;
+}
+
+/* Блок стола */
+.plaque-guest-table {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: #ffd700;
+  margin: 0 30px 12px;
+  padding: 8px 20px;
+  background: rgba(255,215,0,0.06);
+  border: 1px solid rgba(255,215,0,0.35);
+  border-radius: 6px;
+  display: block;
+  transform: translateZ(22px);
+  position: relative;
+  z-index: 5;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  text-shadow: 0 0 8px rgba(255,215,0,0.5);
+  box-shadow: inset 0 0 10px rgba(255,215,0,0.05);
+}
+
+.plaque-footer-date-only {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  position: relative;
+  z-index: 5;
+}
+
+/* ================================================================= */
+/* 7 ПРЕМИАЛЬНЫХ ТЕМ КАРТОЧЕК ПО СТАТУСУ ГОСТЯ                      */
+/* ================================================================= */
+
+/* ──── 0. GUEST (ПОЧЕТНЫЙ ГОСТЬ) ──── */
+.parchment-plaque-inner.theme-guest {
+  background: rgba(12, 18, 28, 0.95);
+  border: 3px solid #e2c073;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.85), 0 0 35px rgba(226,192,115,0.25), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 60px rgba(226,192,115,0.08);
+}
+.parchment-plaque-inner.theme-guest .plaque-corner { color: #e2c073; opacity: 0.8; }
+.parchment-plaque-inner.theme-guest .plaque-header-band { background: linear-gradient(to right, transparent, rgba(226,192,115,0.08), rgba(226,192,115,0.25), rgba(226,192,115,0.08), transparent); border-color: rgba(226,192,115,0.35); }
+.parchment-plaque-inner.theme-guest .plaque-event-title { color: #f9e5b2; text-shadow: 0 0 15px rgba(226,192,115,0.6), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-guest .plaque-header-ornament { color: #e2c073; }
+.parchment-plaque-inner.theme-guest .plaque-sub-header { color: rgba(226,192,115,0.7); }
+.parchment-plaque-inner.theme-guest .plaque-arrival-title { color: rgba(255,255,255,0.85); font-weight: 500; }
+.parchment-plaque-inner.theme-guest .guest-name { color: #ffffff; text-shadow: 0 0 25px rgba(226,192,115,0.7), 0 2px 5px #000; font-size: 3rem; }
+.parchment-plaque-inner.theme-guest .guest-city { color: #e2c073; font-size: 2.1rem; }
+.parchment-plaque-inner.theme-guest .ornament-jewel { color: #e2c073; }
+.parchment-plaque-inner.theme-guest .plaque-guest-table { color: #e2c073; background: rgba(226,192,115,0.08); border-color: rgba(226,192,115,0.3); font-size: 1.55rem; }
+.parchment-plaque-inner.theme-guest .plaque-watermark { color: rgba(226,192,115,0.04); }
+.parchment-plaque-inner.theme-guest .plaque-footer-date-only { color: rgba(226,192,115,0.45); }
+
+/* ──── 1. SILVER ──── */
+.parchment-plaque-inner.theme-silver {
+  background: rgba(18, 28, 44, 0.9);
+  border: 3px solid #b0bec5;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.75), 0 0 30px rgba(176,200,220,0.35), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 0 45px rgba(200,220,240,0.1);
+}
+.parchment-plaque-inner.theme-silver .plaque-corner { color: #cfd8dc; }
+.parchment-plaque-inner.theme-silver .plaque-header-band { background: linear-gradient(to right, transparent, rgba(207,216,220,0.06), rgba(207,216,220,0.18), rgba(207,216,220,0.06), transparent); border-color: rgba(207,216,220,0.25); }
+.parchment-plaque-inner.theme-silver .plaque-event-title { color: #eceff1; text-shadow: 0 0 10px rgba(207,216,220,0.5); }
+.parchment-plaque-inner.theme-silver .plaque-header-ornament { color: #cfd8dc; }
+.parchment-plaque-inner.theme-silver .plaque-sub-header { color: rgba(207,216,220,0.55); }
+.parchment-plaque-inner.theme-silver .plaque-arrival-title { color: rgba(207,216,220,0.7); }
+.parchment-plaque-inner.theme-silver .guest-name { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.4), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-silver .guest-city { color: #b0bec5; }
+.parchment-plaque-inner.theme-silver .ornament-jewel { color: #cfd8dc; }
+.parchment-plaque-inner.theme-silver .plaque-guest-table { color: #cfd8dc; background: rgba(207,216,220,0.05); border-color: rgba(207,216,220,0.2); }
+.parchment-plaque-inner.theme-silver .plaque-watermark { color: rgba(207,216,220,0.03); }
+.parchment-plaque-inner.theme-silver .plaque-footer-date-only { color: rgba(207,216,220,0.4); }
+
+/* ──── 2. GOLD ──── */
+.parchment-plaque-inner.theme-gold {
+  background: rgba(18, 25, 36, 0.92);
+  border: 3px solid #ffd700;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.8), 0 0 40px rgba(255,215,0,0.4), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 0 50px rgba(255,215,0,0.12);
+}
+.parchment-plaque-inner.theme-gold .plaque-corner { color: #ffb300; }
+.parchment-plaque-inner.theme-gold .plaque-header-band { background: linear-gradient(to right, transparent, rgba(255,215,0,0.08), rgba(255,215,0,0.22), rgba(255,215,0,0.08), transparent); border-color: rgba(255,215,0,0.3); }
+.parchment-plaque-inner.theme-gold .plaque-event-title { color: #ffd700; text-shadow: 0 0 15px rgba(255,215,0,0.6), 0 2px 6px rgba(0,0,0,0.4); }
+.parchment-plaque-inner.theme-gold .plaque-header-ornament { color: #ffb300; }
+.parchment-plaque-inner.theme-gold .plaque-sub-header { color: rgba(255,215,0,0.6); }
+.parchment-plaque-inner.theme-gold .plaque-arrival-title { color: rgba(255,255,255,0.75); }
+.parchment-plaque-inner.theme-gold .guest-name { color: #ffffff; text-shadow: 0 0 20px rgba(255,215,0,0.7), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-gold .guest-city { color: #ffd700; }
+.parchment-plaque-inner.theme-gold .ornament-jewel { color: #ffb300; }
+.parchment-plaque-inner.theme-gold .plaque-guest-table { color: #ffd700; background: rgba(255,215,0,0.06); border-color: rgba(255,215,0,0.25); }
+.parchment-plaque-inner.theme-gold .plaque-watermark { color: rgba(255,215,0,0.04); }
+.parchment-plaque-inner.theme-gold .plaque-footer-date-only { color: rgba(255,215,0,0.45); }
+
+/* ──── 3. PLATINUM ──── */
+.parchment-plaque-inner.theme-platinum {
+  background: rgba(14, 25, 41, 0.91);
+  border: 3px solid #78909c;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.78), 0 0 40px rgba(120,144,156,0.35), inset 0 1px 0 rgba(255,255,255,0.15), inset 0 0 50px rgba(120,144,156,0.1);
+}
+.parchment-plaque-inner.theme-platinum .plaque-corner { color: #90a4ae; }
+.parchment-plaque-inner.theme-platinum .plaque-header-band { background: linear-gradient(to right, transparent, rgba(144,164,174,0.06), rgba(144,164,174,0.18), rgba(144,164,174,0.06), transparent); border-color: rgba(144,164,174,0.25); }
+.parchment-plaque-inner.theme-platinum .plaque-event-title { color: #eceff1; text-shadow: 0 0 12px rgba(144,164,174,0.5); }
+.parchment-plaque-inner.theme-platinum .plaque-header-ornament { color: #90a4ae; }
+.parchment-plaque-inner.theme-platinum .plaque-sub-header { color: rgba(144,164,174,0.55); }
+.parchment-plaque-inner.theme-platinum .plaque-arrival-title { color: rgba(144,164,174,0.7); }
+.parchment-plaque-inner.theme-platinum .guest-name { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.45), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-platinum .guest-city { color: #b0bec5; }
+.parchment-plaque-inner.theme-platinum .ornament-jewel { color: #90a4ae; }
+.parchment-plaque-inner.theme-platinum .plaque-guest-table { color: #b0bec5; background: rgba(144,164,174,0.05); border-color: rgba(144,164,174,0.2); }
+.parchment-plaque-inner.theme-platinum .plaque-watermark { color: rgba(144,164,174,0.03); }
+.parchment-plaque-inner.theme-platinum .plaque-footer-date-only { color: rgba(144,164,174,0.4); }
+
+/* ──── 4. TITANIUM ──── */
+.parchment-plaque-inner.theme-titanium {
+  background: rgba(18, 25, 36, 0.93);
+  border: 3px solid #607d8b;
+  color: #e0f0ff;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.85), 0 0 40px rgba(96,125,139,0.35), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 50px rgba(96,125,139,0.1);
+}
+.parchment-plaque-inner.theme-titanium .plaque-corner { color: #90a4ae; }
+.parchment-plaque-inner.theme-titanium .plaque-header-band { background: linear-gradient(to right, transparent, rgba(144,164,174,0.06), rgba(144,164,174,0.18), rgba(144,164,174,0.06), transparent); border-color: rgba(144,164,174,0.25); }
+.parchment-plaque-inner.theme-titanium .plaque-event-title { color: #b0bec5; text-shadow: 0 0 12px rgba(144,164,174,0.4); }
+.parchment-plaque-inner.theme-titanium .plaque-header-ornament { color: #b0bec5; }
+.parchment-plaque-inner.theme-titanium .plaque-sub-header { color: rgba(144,164,174,0.5); }
+.parchment-plaque-inner.theme-titanium .plaque-arrival-title { color: rgba(144,164,174,0.7); }
+.parchment-plaque-inner.theme-titanium .guest-name { color: #ffffff; text-shadow: 0 0 15px rgba(255,255,255,0.4), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-titanium .guest-city { color: #b0bec5; }
+.parchment-plaque-inner.theme-titanium .ornament-jewel { color: #90a4ae; }
+.parchment-plaque-inner.theme-titanium .plaque-guest-table { color: #b0bec5; background: rgba(96,125,139,0.05); border-color: rgba(96,125,139,0.2); }
+.parchment-plaque-inner.theme-titanium .plaque-watermark { color: rgba(96,125,139,0.03); }
+.parchment-plaque-inner.theme-titanium .plaque-footer-date-only { color: rgba(144,164,174,0.38); }
+
+/* ──── 5. JADE ──── */
+.parchment-plaque-inner.theme-jade {
+  background: rgba(6, 26, 18, 0.94);
+  border: 3px solid #00c853;
+  color: #e8fff4;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.85), 0 0 45px rgba(0,200,83,0.45), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 60px rgba(0,200,83,0.12);
+}
+.parchment-plaque-inner.theme-jade .plaque-corner { color: #00c853; }
+.parchment-plaque-inner.theme-jade .plaque-header-band { background: linear-gradient(to right, transparent, rgba(0,200,83,0.08), rgba(0,200,83,0.22), rgba(0,200,83,0.08), transparent); border-color: rgba(0,200,83,0.3); }
+.parchment-plaque-inner.theme-jade .plaque-event-title { color: #00c853; text-shadow: 0 0 15px rgba(0,200,83,0.6), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-jade .plaque-header-ornament { color: #00c853; }
+.parchment-plaque-inner.theme-jade .plaque-sub-header { color: rgba(0,200,83,0.55); }
+.parchment-plaque-inner.theme-jade .plaque-arrival-title { color: rgba(180,240,210,0.75); }
+.parchment-plaque-inner.theme-jade .guest-name { color: #ffffff; text-shadow: 0 0 20px rgba(0,200,83,0.6), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-jade .guest-city { color: #00e676; }
+.parchment-plaque-inner.theme-jade .ornament-jewel { color: #00c853; }
+.parchment-plaque-inner.theme-jade .plaque-guest-table { color: #00e676; background: rgba(0,200,83,0.05); border-color: rgba(0,200,83,0.22); }
+.parchment-plaque-inner.theme-jade .plaque-watermark { color: rgba(0,200,83,0.03); }
+.parchment-plaque-inner.theme-jade .plaque-footer-date-only { color: rgba(180,240,210,0.38); }
+
+
+/* ──── 6. PEARL ──── */
+.parchment-plaque-inner.theme-pearl {
+  background: rgba(28, 20, 36, 0.91);
+  border: 3px solid #e040fb;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.8), 0 0 40px rgba(224,64,251,0.4), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 60px rgba(224,64,251,0.12);
+  animation: pearlDarkShimmer 4s infinite ease-in-out;
+}
+@keyframes pearlDarkShimmer {
+  0%, 100% { border-color: #e040fb; box-shadow: 0 22px 55px rgba(0,0,0,0.8), 0 0 40px rgba(224,64,251,0.4); }
+  50% { border-color: #00e5ff; box-shadow: 0 22px 55px rgba(0,0,0,0.8), 0 0 40px rgba(0,229,255,0.4); }
+}
+.parchment-plaque-inner.theme-pearl .plaque-corner { color: #e040fb; }
+.parchment-plaque-inner.theme-pearl .plaque-header-band { background: linear-gradient(to right, transparent, rgba(224,64,251,0.08), rgba(224,64,251,0.22), rgba(224,64,251,0.08), transparent); border-color: rgba(224,64,251,0.3); }
+.parchment-plaque-inner.theme-pearl .plaque-event-title { color: #f3e5f5; text-shadow: 0 0 12px rgba(224,64,251,0.5); }
+.parchment-plaque-inner.theme-pearl .plaque-header-ornament { color: #e040fb; }
+.parchment-plaque-inner.theme-pearl .plaque-sub-header { color: rgba(224,64,251,0.55); }
+.parchment-plaque-inner.theme-pearl .plaque-arrival-title { color: rgba(243,229,245,0.7); }
+.parchment-plaque-inner.theme-pearl .guest-name { color: #ffffff; text-shadow: 0 0 18px rgba(224,64,251,0.5), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-pearl .guest-city { color: #f3e5f5; }
+.parchment-plaque-inner.theme-pearl .ornament-jewel { color: #e040fb; }
+.parchment-plaque-inner.theme-pearl .plaque-guest-table { color: #f3e5f5; background: rgba(224,64,251,0.05); border-color: rgba(224,64,251,0.2); }
+.parchment-plaque-inner.theme-pearl .plaque-watermark { color: rgba(224,64,251,0.03); }
+.parchment-plaque-inner.theme-pearl .plaque-footer-date-only { color: rgba(243,229,245,0.4); }
+
+/* ──── 7. RUBY ──── */
+.parchment-plaque-inner.theme-ruby {
+  background: rgba(30, 4, 10, 0.94);
+  border: 3px solid #ff1744;
+  color: #ffe8ea;
+  box-shadow: 0 25px 65px rgba(0,0,0,0.9), 0 0 50px rgba(255,23,68,0.7), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 0 70px rgba(255,23,68,0.15);
+  animation: plaqueRubyPulseDark 2s infinite ease-in-out;
+}
+@keyframes plaqueRubyPulseDark {
+  0%, 100% { box-shadow: 0 25px 65px rgba(0,0,0,0.9), 0 0 45px rgba(255,23,68,0.6), inset 0 0 70px rgba(255,23,68,0.12); }
+  50% { box-shadow: 0 25px 65px rgba(0,0,0,0.9), 0 0 65px rgba(255,23,68,0.85), inset 0 0 70px rgba(255,23,68,0.2); }
+}
+.parchment-plaque-inner.theme-ruby .plaque-corner { color: #ff1744; }
+.parchment-plaque-inner.theme-ruby .plaque-header-band { background: linear-gradient(to right, transparent, rgba(255,23,68,0.08), rgba(255,23,68,0.24), rgba(255,23,68,0.08), transparent); border-color: rgba(255,23,68,0.32); }
+.parchment-plaque-inner.theme-ruby .plaque-event-title { color: #ff1744; text-shadow: 0 0 15px rgba(255,23,68,0.65), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-ruby .plaque-header-ornament { color: #ff1744; }
+.parchment-plaque-inner.theme-ruby .plaque-sub-header { color: rgba(255,23,68,0.55); }
+.parchment-plaque-inner.theme-ruby .plaque-arrival-title { color: rgba(255,210,215,0.75); }
+.parchment-plaque-inner.theme-ruby .guest-name { color: #ffffff; text-shadow: 0 0 20px rgba(255,23,68,0.75), 0 2px 4px #000; }
+.parchment-plaque-inner.theme-ruby .guest-city { color: #ff5252; }
+.parchment-plaque-inner.theme-ruby .ornament-jewel { color: #ff1744; }
+.parchment-plaque-inner.theme-ruby .plaque-guest-table { color: #ff5252; background: rgba(255,23,68,0.05); border-color: rgba(255,23,68,0.22); }
+.parchment-plaque-inner.theme-ruby .plaque-watermark { color: rgba(255,23,68,0.03); }
+.parchment-plaque-inner.theme-ruby .plaque-footer-date-only { color: rgba(255,200,210,0.38); }
+
+/* ========================================== */
+/* СТАТУС-БЕЙДЖ НА КАРТОЧКЕ ГОСТЯ             */
+/* ========================================== */
+
+.status-badge {
+  display: inline-block;
+  padding: 5px 18px;
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin: 8px 0 4px;
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 6;
+  transform: translateZ(18px);
+}
+
+/* 0. GUEST */
+.status-guest {
+  background: linear-gradient(135deg, #fdf5e6 0%, #e2c073 50%, #c39b52 100%);
+  color: #3a2800;
+  border: 1.5px solid #e2c073;
+  box-shadow: 0 3px 10px rgba(195,155,82,0.4), inset 0 1px 0 rgba(255,255,255,0.4);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.3);
+}
+
+/* 1. Silver */
+.status-silver {
+  background: linear-gradient(135deg, #e8e8e8 0%, #c0c0c0 50%, #9e9e9e 100%);
+  color: #2c3040;
+  border: 1.5px solid #c0c0c0;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.5);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.5);
+}
+
+/* 2. GOLD */
+.status-gold {
+  background: linear-gradient(135deg, #ffe566 0%, #f5cf2e 45%, #c59300 80%, #9a6e00 100%);
+  color: #3a2800;
+  border: 1.5px solid #e8b000;
+  box-shadow: 0 3px 12px rgba(245,208,46,0.5), inset 0 1px 0 rgba(255,255,255,0.4);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+}
+
+/* 3. PLATINUM */
+.status-platinum {
+  background: linear-gradient(135deg, #ffffff 0%, #eef2f7 35%, #c8d8e8 75%, #9ab0c8 100%);
+  color: #162030;
+  border: 1.5px solid #9ab5cc;
+  box-shadow: 0 3px 14px rgba(180,210,240,0.6), inset 0 1px 0 rgba(255,255,255,0.7);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+}
+
+/* 4. TITANIUM */
+.status-titanium {
+  background: linear-gradient(135deg, #78909c 0%, #546e7a 45%, #263238 80%, #162028 100%);
+  color: #e0f0ff;
+  border: 1.5px solid #546e7a;
+  box-shadow: 0 3px 10px rgba(50,80,100,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+}
+
+/* 5. JADE */
+.status-jade {
+  background: linear-gradient(135deg, #a7f3d0 0%, #34d399 30%, #059669 65%, #064e3b 100%);
+  color: #ffffff;
+  border: 2px solid #f0b429;
+  box-shadow: 0 3px 14px rgba(52,211,153,0.6), 0 0 8px rgba(240,180,41,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+}
+
+/* 6. PEARL */
+.status-pearl {
+  background: linear-gradient(135deg, #fef3ff 0%, #f3e8ff 30%, #e0f2fe 65%, #f0fff8 100%);
+  color: #5b21b6;
+  border: 1.5px solid #d8b4fe;
+  box-shadow: 0 3px 14px rgba(200,160,255,0.5), inset 0 1px 0 rgba(255,255,255,0.8);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.7);
+  animation: pearlBadgePulse 3s infinite ease-in-out;
+}
+@keyframes pearlBadgePulse {
+  0%, 100% { border-color: #d8b4fe; box-shadow: 0 3px 14px rgba(200,160,255,0.5); }
+  50% { border-color: #a78bfa; box-shadow: 0 3px 20px rgba(167,139,250,0.7); }
+}
+
+/* 7. RUBY */
+.status-ruby {
+  background: linear-gradient(135deg, #fecaca 0%, #ef4444 25%, #b91c1c 60%, #7f1d1d 100%);
+  color: #ffd700;
+  border: 2px solid #ffd700;
+  box-shadow: 0 3px 18px rgba(239,68,68,0.9), 0 0 10px rgba(255,215,0,0.6), inset 0 1px 0 rgba(255,255,255,0.15);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  animation: rubyBadgePulse 1.8s infinite ease-in-out;
+}
+@keyframes rubyBadgePulse {
+  0%, 100% { box-shadow: 0 3px 18px rgba(239,68,68,0.8), 0 0 10px rgba(255,215,0,0.5); transform: scale(1); }
+  50%       { box-shadow: 0 3px 28px rgba(239,68,68,1.0), 0 0 18px rgba(255,215,0,0.9); transform: scale(1.04); }
+}
+
+
+/* Табличные маркеры статусов в хостес */
+.table-status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-family: 'Alice', serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+}
+
+/* ========================================== */
+/* СТИЛИ ХОСТЕС (hostess.html)               */
+/* ========================================== */
+
+.hostess-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 25px 15px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.hostess-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.hostess-header h1 {
+  font-family: 'Ruslan Display', sans-serif;
+  font-size: 2.3rem;
+  color: var(--gold-bright);
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+/* Панель статистики */
+.stats-panel {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.stat-card {
+  background: rgba(8, 18, 36, 0.4);
+  border: 1px solid rgba(195, 155, 82, 0.3);
+  padding: 12px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.8rem;
+  color: var(--gold-bright);
+  font-weight: 700;
+}
+
+.stat-lbl {
+  font-size: 0.8rem;
+  color: #a89498;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+
+/* Поиск и Экспресс-добавление */
+.control-bar {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  background: rgba(8, 18, 36, 0.6);
+  border: 1px solid var(--gold-antique);
+  border-radius: 6px;
+  padding: 14px 16px;
+  color: var(--text-light);
+  font-size: 1rem;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.search-input:focus {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.add-vip-btn {
+  background: linear-gradient(135deg, #c39b52 0%, #8c5a00 100%);
+  border: 1px solid var(--gold-bright);
+  color: #fff;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 0 25px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+}
+
+.add-vip-btn:hover {
+  filter: brightness(1.2);
+  transform: translateY(-2px);
+}
+
+/* Фильтры вкладок */
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.filter-tab {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(195, 155, 82, 0.15);
+  color: #a89498;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: var(--transition-smooth);
+}
+
+.filter-tab.active {
+  background: rgba(8, 18, 36, 0.8);
+  border-color: var(--gold-antique);
+  color: var(--gold-bright);
+}
+
+/* Таблица гостей */
+.table-container {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid rgba(195, 155, 82, 0.2);
+  border-radius: 6px;
+  background: rgba(8, 18, 36, 0.8);
+  box-shadow: inset 0 0 30px rgba(0,0,0,0.8);
+}
+
+/* Кастомный красивый скроллбар для хостес */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+}
+.table-container::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.3);
+}
+.table-container::-webkit-scrollbar-thumb {
+  background: var(--gold-antique);
+  border-radius: 4px;
+}
+
+.guest-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.guest-table th, .guest-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(195, 155, 82, 0.1);
+}
+
+.guest-table th {
+  background: rgba(8, 18, 36, 0.9);
+  color: var(--gold-antique);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.guest-row {
+  transition: all 0.4s ease;
+}
+
+.guest-row.arrived-success {
+  background: rgba(46, 117, 89, 0.15) !important;
+  color: #8ae4bc;
+}
+
+.guest-row.fading-out {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.guest-table td .name-cell {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.guest-table td .city-cell {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: var(--gold-antique);
+}
+
+/* Кнопка регистрации */
+.register-btn {
+  background: rgba(8, 18, 36, 0.9);
+  border: 1px solid var(--gold-antique);
+  color: var(--gold-bright);
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.register-btn:hover {
+  background: var(--gold-antique);
+  color: var(--navy);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+
+.register-btn:disabled {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Модальное окно быстрого добавления */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.vip-modal {
+  background: radial-gradient(circle, #0b1a30 0%, #030812 100%);
+  border: 2px solid var(--gold-antique);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 480px;
+  padding: 30px;
+  box-shadow: 0 15px 35px rgba(0,0,0,0.8), inset 0 0 15px rgba(255, 215, 0, 0.1);
+  transform: scale(0.9);
+  transition: transform 0.3s ease;
+}
+
+.modal-overlay.active .vip-modal {
+  transform: scale(1);
+}
+
+.vip-modal h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 2rem;
+  color: var(--gold-bright);
+  margin-bottom: 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(195, 155, 82, 0.2);
+  padding-bottom: 10px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.85rem;
+  color: #a89498;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--gold-antique);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: var(--text-light);
+  font-size: 1rem;
+  outline: none;
+}
+
+.form-input:focus {
+  border-color: var(--gold-bright);
+}
+
+.form-select {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--gold-antique);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: var(--text-light);
+  font-size: 0.95rem;
+  outline: none;
+  cursor: pointer;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.form-select:focus {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 8px var(--gold-glow);
+}
+
+.form-select option {
+  background: #0b1a30;
+  color: var(--text-light);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 25px;
+}
+
+.btn-cancel {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #ccc;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-submit {
+  background: linear-gradient(135deg, #c39b52 0%, #8c5a00 100%);
+  border: 1px solid var(--gold-bright);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Кнопка сброса для хостес */
+.reset-db-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  color: #ff6b6b;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+.reset-db-btn:hover {
+  background: rgba(255, 0, 0, 0.1);
+  border-color: rgba(255, 0, 0, 0.6);
+}
+
+/* ========================================== */
+/* СТИЛИ ГЛАШАТАЯ (herald.html)               */
+/* ========================================== */
+
+.herald-body {
+  background-color: #000;
+  color: var(--gold-bright);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  position: relative;
+  flex-direction: column;
+}
+
+/* Золотая рамка в императорском стиле по краям экрана */
+.herald-frame {
+  position: absolute;
+  top: 30px; left: 30px; right: 30px; bottom: 30px;
+  border: 3px double var(--gold-antique);
+  pointer-events: none;
+  z-index: 5;
+}
+
+.herald-frame::before {
+  content: "";
+  position: absolute;
+  top: 10px; left: 10px; right: 10px; bottom: 10px;
+  border: 1px solid rgba(195, 155, 82, 0.3);
+}
+
+/* Внутренние угловые вензеля */
+.herald-corner {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--gold-antique);
+  z-index: 6;
+}
+.hc-tl { top: 45px; left: 45px; border-right: none; border-bottom: none; }
+.hc-tr { top: 45px; right: 45px; border-left: none; border-bottom: none; }
+.hc-bl { bottom: 45px; left: 45px; border-right: none; border-top: none; }
+.hc-br { bottom: 45px; right: 45px; border-left: none; border-top: none; }
+
+/* Центральный блок вывода суфлера */
+.herald-announcement-box {
+  width: 80%;
+  max-width: 1000px;
+  text-align: center;
+  z-index: 10;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+  position: relative;
+  background: radial-gradient(circle, #0f2537 0%, #050d15 100%);
+  border: 3px double var(--gold-antique);
+  padding: 50px 70px;
+  border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.9), inset 0 0 30px rgba(255, 215, 0, 0.15);
+}
+
+.herald-box-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--gold-bright);
+  pointer-events: none;
+  opacity: 0.85;
+}
+.hbc-tl { top: 12px; left: 12px; border-right: none; border-bottom: none; }
+.hbc-tr { top: 12px; right: 12px; border-left: none; border-bottom: none; }
+.hbc-bl { bottom: 12px; left: 12px; border-right: none; border-top: none; }
+.hbc-br { bottom: 12px; right: 12px; border-left: none; border-top: none; }
+
+
+.herald-announcement-box.active {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Королевский герб или вензель сверху */
+.herald-crest {
+  font-size: 3.5rem;
+  color: var(--gold-bright);
+  margin-bottom: 25px;
+  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4));
+  animation: float Crest 4s infinite ease-in-out;
+}
+
+.herald-title {
+  font-family: 'Ruslan Display', sans-serif;
+  font-size: 2.2rem;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold-antique);
+  margin-bottom: 20px;
+  font-weight: 400;
+}
+
+.herald-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 3.6rem;
+  line-height: 1.35;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(255, 215, 0, 0.4), 0 2px 4px #000;
+}
+
+.herald-text .highlight-name {
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-color: var(--gold-bright);
+  text-underline-offset: 8px;
+}
+
+.herald-text .highlight-city {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  color: var(--gold-bright);
+}
+
+.herald-vivat {
+  font-family: 'Ruslan Display', sans-serif;
+  font-size: 4rem;
+  font-weight: 700;
+  margin-top: 30px;
+  letter-spacing: 3px;
+  animation: vivatPulse 2s infinite;
+  color: var(--gold-bright);
+}
+
+@keyframes vivatPulse {
+  0%, 100% {
+    transform: scale(1);
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  }
+  50% {
+    transform: scale(1.08);
+    text-shadow: 0 0 35px rgba(255, 215, 0, 0.9);
+  }
+}
+
+/* Панель очереди для глашатая */
+.herald-queue-panel {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.herald-queue-title {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--gold-antique);
+}
+
+.herald-queue-list {
+  display: flex;
+  gap: 15px;
+}
+
+.herald-queue-item {
+  background: rgba(195, 155, 82, 0.1);
+  border: 1px solid rgba(195, 155, 82, 0.3);
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: 'Cormorant Garamond', serif;
+  color: #ccc;
+  white-space: nowrap;
+}
+
+.herald-skip-btn {
+  background: var(--navy);
+  border: 1px solid var(--gold-antique);
+  color: var(--gold-bright);
+  padding: 8px 18px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: var(--transition-smooth);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+}
+
+.herald-skip-btn:hover {
+  background: var(--gold-antique);
+  color: var(--navy);
+}
+
+/* Режим ожидания на экране глашатая */
+.herald-idle-message {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 1.8rem;
+  color: rgba(195, 155, 82, 0.4);
+  text-align: center;
+}
+
+/* ========================================== */
+/* СТИЛИ ИМПОРТА EXCEL И УПРАВЛЕНИЯ          */
+/* ========================================== */
+
+.import-dropzone {
+  border: 2px dashed var(--gold-antique);
+  border-radius: 8px;
+  background: rgba(8, 18, 36, 0.25);
+  padding: 35px 25px;
+  text-align: center;
+  margin-bottom: 25px;
+  transition: var(--transition-smooth);
+  cursor: pointer;
+}
+
+.import-dropzone:hover, .import-dropzone.dragover {
+  background: rgba(8, 18, 36, 0.45);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+}
+
+.dropzone-icon {
+  font-size: 3rem;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 0 8px rgba(195, 155, 82, 0.3));
+}
+
+.dropzone-text {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.35rem;
+  color: #fdf5e6;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.dropzone-subtext {
+  font-size: 0.85rem;
+  color: #a89498;
+  margin-bottom: 15px;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.main-tabs {
+  display: flex;
+  border-bottom: 2px solid rgba(195, 155, 82, 0.3);
+  margin-bottom: 25px;
+}
+
+.main-tab-btn {
+  background: transparent;
+  border: none;
+  color: #a89498;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  padding: 12px 25px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.main-tab-btn:hover {
+  color: var(--gold-antique);
+}
+
+.main-tab-btn.active {
+  color: var(--gold-bright);
+  border-bottom-color: var(--gold-bright);
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+@media (max-width: 768px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-card {
+  background: rgba(8, 18, 36, 0.7);
+  border: 1px solid rgba(195, 155, 82, 0.25);
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+}
+
+.admin-card h2 {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.6rem;
+  color: var(--gold-bright);
+  margin-bottom: 15px;
+  border-bottom: 1px solid rgba(195, 155, 82, 0.15);
+  padding-bottom: 8px;
+}
+
+.delete-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+}
+
+.delete-btn:hover {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: #ff6b6b;
+}
+
+.import-preview-table-container {
+  max-height: 250px;
+  overflow-y: auto;
+  border: 1px solid rgba(195, 155, 82, 0.2);
+  border-radius: 4px;
+  margin: 15px 0;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ========================================== */
+/* ДОПОЛНИТЕЛЬНЫЙ ДЕКОР И ИНТЕРФЕЙС           */
+/* ========================================== */
+
+/* Кнопка настроек в углу экрана (для GitHub Pages) */
+.settings-trigger-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 100;
+  font-size: 1.4rem;
+  color: var(--gold-antique);
+  cursor: pointer;
+  background: rgba(8, 18, 36, 0.85);
+  border: 1px solid var(--gold-antique);
+  width: 42px;
+  height: 42px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  transition: var(--transition-smooth);
+}
+
+.settings-trigger-btn:hover {
+  color: var(--gold-bright);
+  border-color: var(--gold-bright);
+  transform: rotate(45deg) scale(1.05);
+  box-shadow: 0 0 10px var(--gold-glow);
+}
+
+/* Декоративная подпись кораблей на морях */
+.ship-marker-container {
+  position: relative;
+  opacity: 0.65;
+  transition: opacity 0.3s;
+}
+
+.ship-marker-container:hover {
+  opacity: 1.0;
+}
+
+.ship-label {
+  position: absolute;
+  bottom: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: #ffd700;
+  text-shadow: 0 0 4px rgba(0, 0, 0, 0.8), 0 0 8px rgba(255, 215, 0, 0.6);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Бегущая строка летописи гостей на карте */
+.arrival-ticker-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(8, 18, 36, 0.95);
+  border-top: 2px solid var(--gold-antique);
+  height: 42px;
+  z-index: 99;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding: 0 20px;
+  box-shadow: 0 -4px 10px rgba(0,0,0,0.3);
+}
+
+.ticker-title {
+  font-family: 'Ruslan Display', sans-serif;
+  font-size: 0.9rem;
+  color: var(--gold-bright);
+  margin-right: 15px;
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  border-right: 1px solid rgba(195, 155, 82, 0.3);
+  padding-right: 15px;
+  height: 20px;
+  line-height: 20px;
+}
+
+.ticker-content-wrapper {
+  overflow: hidden;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.ticker-content {
+  display: inline-block;
+  font-family: 'Old Standard TT', serif;
+  font-size: 0.95rem;
+  color: var(--text-light);
+  white-space: nowrap;
+  animation: marquee 35s linear infinite;
+  padding-left: 100%;
+}
+
+@keyframes marquee {
+  0% { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(-100%, 0, 0); }
+}
+
+/* ========================================== */
+/* НОВЫЕ СТИЛИ КАРТЫ ДЛЯ СЕРВЕРЛЕС-РЕЖИМА    */
+/* ========================================== */
+
+/* Роза Ветров (Компас) */
+.compass-rose-marker {
+  pointer-events: none !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+@keyframes compass-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.compass-rose-svg {
+  animation: compass-rotate 240s linear infinite;
+  transform-origin: center;
+  filter: drop-shadow(0 2px 5px rgba(0,0,0,0.3));
+  opacity: 0.6;
+  transition: opacity 0.3s;
+}
+
+.compass-rose-svg:hover {
+  opacity: 0.9;
+}
+
+/* Анимированный путь путешествия (дуга кареты) */
+.animated-journey-path {
+  stroke-dasharray: 10 14;
+  stroke-dashoffset: 0;
+  animation: journey-flow 0.9s linear infinite;
+  filter:
+    drop-shadow(0 0 6px #ffea00)
+    drop-shadow(0 0 14px #ffd700)
+    drop-shadow(0 0 3px #ff5500);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes journey-flow {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -24; }
+}
+
+
+/* Свиток Недавно Прибывших - Голографическая парящая HUD-панель */
+.last-arrivals-scroll {
+  position: absolute;
+  left: 25px;
+  top: 130px;
+  width: 280px;
+  background: rgba(3, 8, 20, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 215, 0, 0.4);
+  border-radius: 12px 0 12px 0;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.15), inset 0 0 15px rgba(255, 215, 0, 0.08);
+  z-index: 10;
+  padding: 24px 20px;
+  pointer-events: auto;
+  animation: hudFloat 4s infinite ease-in-out, hudFlicker 8s infinite ease-in-out;
+}
+
+.last-arrivals-scroll h3 {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 1.35rem;
+  color: #ffd700;
+  border-bottom: 1px solid rgba(255, 215, 0, 0.35);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+}
+
+.last-arrivals-scroll h3::before {
+  content: "⚜ ";
+  color: #ffd700;
+}
+
+.last-arrivals-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.last-arrivals-item {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.15rem;
+  color: #ffffff;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgba(255, 215, 0, 0.25);
+  padding-bottom: 8px;
+  line-height: 1.3;
+  animation: scrollItemAppear 0.5s ease-out forwards;
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.last-arrivals-item:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.last-arrivals-item .guest-name {
+  font-weight: 600;
+  display: block;
+  color: #ffffff;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.5), 0 0 2px #ffd700;
+}
+
+.last-arrivals-item .guest-city {
+  font-family: 'Marck Script', cursive;
+  font-size: 1.25rem;
+  color: #ffd700;
+  display: block;
+  margin-top: 2px;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+}
+
+@keyframes scrollItemAppear {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Императорский Медальон-счетчик (Голографический HUD-круг) */
+.royal-count-badge {
+  position: absolute;
+  top: 25px;
+  right: 25px;
+  z-index: 10;
+  background: rgba(3, 8, 20, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(255, 215, 0, 0.45);
+  border-radius: 50%;
+  width: 135px;
+  height: 135px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 215, 0, 0.15), inset 0 0 15px rgba(255, 215, 0, 0.08);
+  pointer-events: none;
+  padding: 5px;
+  text-align: center;
+  animation: hudFloat 4s infinite ease-in-out, hudFlicker 8s infinite ease-in-out;
+}
+
+.medallion-crown {
+  font-size: 1.6rem;
+  line-height: 1;
+  margin-bottom: 2px;
+  animation: crownWave 2.5s infinite ease-in-out;
+}
+
+.medallion-vals {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 700;
+  font-size: 2.1rem;
+  color: #ffd700;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.75);
+  letter-spacing: 0.5px;
+}
+
+.medallion-lbl {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #c39b52;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 4px;
+  line-height: 1;
+}
+
+@keyframes crownWave {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3px) rotate(5deg); }
+}
+
+@keyframes hudFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes hudFlicker {
+  0%, 100% { opacity: 0.95; filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.15)); }
+  45% { opacity: 0.95; }
+  46% { opacity: 0.8; }
+  47% { opacity: 0.95; }
+  82% { opacity: 0.95; }
+  83% { opacity: 0.75; }
+  84% { opacity: 0.95; }
+}
+
+/* Световой конус прожектора */
+.hologram-light-cone {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.8s ease-in-out, clip-path 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.25);
+  mix-blend-mode: screen;
+  background: radial-gradient(circle at var(--spotlight-x, 50%) var(--spotlight-y, 75%), var(--cone-glow-color, rgba(255, 215, 0, 0.35)) 0%, transparent 90%);
+  clip-path: polygon(var(--spotlight-x, 50%) var(--spotlight-y, 75%), 0% 100%, 100% 100%);
+}
+
+/* Шлейф звездной пыли за каретой */
+.stardust-trail-particle {
+  animation: stardustFade 1s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+  pointer-events: none;
+}
+
+@keyframes stardustFade {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(0.2); opacity: 0; }
+}
+
+/* Изящный мини-попап для достопримечательностей в стиле HUD */
+.landmark-popup .leaflet-popup-content-wrapper {
+  background: rgba(8, 18, 36, 0.9) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1.5px solid var(--gold-antique) !important;
+  border-radius: 6px !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 215, 0, 0.2), inset 0 0 10px rgba(255, 215, 0, 0.1) !important;
+  font-family: 'Cormorant Garamond', serif !important;
+  padding: 4px !important;
+}
+
+.landmark-popup .leaflet-popup-tip {
+  background: rgba(8, 18, 36, 0.9) !important;
+  border-left: 1.5px solid var(--gold-antique) !important;
+  border-bottom: 1.5px solid var(--gold-antique) !important;
+}
+
+.landmark-popup-title {
+  font-family: 'Alice', serif !important;
+  font-size: 1.05rem !important;
+  font-weight: 700 !important;
+  color: #ffd700 !important;
+  border-bottom: 1px dashed rgba(255, 215, 0, 0.3) !important;
+  padding-bottom: 3px !important;
+  margin-bottom: 5px !important;
+  text-align: center !important;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.5);
+}
+
+.landmark-popup-desc {
+  font-size: 0.9rem !important;
+  line-height: 1.25 !important;
+  color: #fdf5e6 !important;
+  text-align: center !important;
+  font-style: italic !important;
+}
+
+.landmark-marker-wrapper {
+  pointer-events: auto !important;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.landmark-icon-svg {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  transition: transform 0.3s ease, filter 0.3s ease;
+  cursor: pointer;
+}
+
+.landmark-icon-svg:hover {
+  transform: scale(1.15);
+  filter: drop-shadow(0 0 8px var(--gold-bright));
+}
+
+/* Летящая золотая карета гостя */
+.journey-traveler {
+  position: absolute;
+  z-index: 9999;
+  pointer-events: none;
+  display: none;
+  transform-origin: center;
+  transition: transform 0.05s linear;
+}
+
+/* Тройные золотые круги (рипплы) на воде в точке прибытия */
+.ripple-ring {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  transform: translate(-50%, -50%);
+  border: 2px solid var(--gold-bright);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+}
+
+.rr-1 {
+  animation: ripple-wave 2.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+}
+
+.rr-2 {
+  animation: ripple-wave 2.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  animation-delay: 0.7s;
+}
+
+.rr-3 {
+  animation: ripple-wave 2.2s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
+  animation-delay: 1.4s;
+}
+
+@keyframes ripple-wave {
+  0% {
+    width: 0px;
+    height: 0px;
+    opacity: 1;
+    box-shadow: 0 0 10px var(--gold-bright);
+  }
+  100% {
+    width: 140px;
+    height: 140px;
+    opacity: 0;
+  }
+}
+
+/* Красивое оформление номера стола на приветственном свитке */
+.parchment-plaque .guest-table-num {
+  font-family: 'Alice', serif;
+  font-size: 1.15rem;
+  color: #8c5a00;
+  margin-top: 8px;
+  font-weight: bold;
+  border-top: 1px dashed rgba(139, 90, 0, 0.25);
+  padding-top: 6px;
+}
+
+/* Контейнер предпросмотра свитка в модальном окне ручного добавления */
+.preview-scroll-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(8, 18, 36, 0.45);
+  border: 1px dashed rgba(195, 155, 82, 0.25);
+  border-radius: 6px;
+  padding: 20px;
+  width: 100%;
+}
+
+.live-scroll-preview {
+  background: var(--parchment);
+  border: 2px solid var(--gold-antique);
+  border-radius: 6px;
+  padding: 25px 20px;
+  color: var(--text-dark);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4), inset 0 0 20px rgba(139, 90, 0, 0.15);
+  text-align: center;
+  width: 100%;
+  position: relative;
+  background-image: radial-gradient(rgba(0,0,0,0) 65%, rgba(139, 90, 0, 0.08));
+}
+
+.live-scroll-preview::before {
+  content: "";
+  position: absolute;
+  top: 6px; left: 6px; right: 6px; bottom: 6px;
+  border: 1px dashed rgba(139, 90, 0, 0.25);
+  pointer-events: none;
+}
+
+.live-scroll-preview .scroll-crest {
+  font-size: 2.2rem;
+  color: var(--gold-antique);
+  margin-bottom: 8px;
+}
+
+.live-scroll-preview .scroll-title {
+  font-family: 'Ruslan Display', serif;
+  font-size: 1.35rem;
+  color: #8c5a00;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.live-scroll-preview .scroll-guest-name {
+  font-family: 'Old Standard TT', serif;
+  font-size: 1.55rem;
+  font-weight: bold;
+  color: var(--navy);
+  margin-bottom: 8px;
+  line-height: 1.25;
+}
+
+.live-scroll-preview .scroll-guest-city {
+  font-family: 'Marck Script', cursive;
+  font-size: 1.45rem;
+  color: #5c3a21;
+  margin-bottom: 8px;
+}
+
+.live-scroll-preview .scroll-guest-table {
+  font-family: 'Alice', serif;
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #8c5a00;
+  border-top: 1px dashed rgba(139, 90, 0, 0.2);
+  margin-top: 10px;
+  padding-top: 8px;
+}
+
+.live-scroll-preview .scroll-geotag {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 15px;
+  font-style: italic;
+}
+
+/* Адаптивный брейкпоинт для модального окна добавления VIP */
+@media (max-width: 768px) {
+  .add-vip-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+}
+
+/* Кнопка Редактирования гостя в таблице админки */
+.edit-btn {
+  background: transparent;
+  border: 1px solid rgba(195, 155, 82, 0.4);
+  color: var(--gold-antique);
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  margin-right: 6px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.85rem;
+}
+
+.edit-btn:hover {
+  background: rgba(195, 155, 82, 0.15);
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  box-shadow: 0 0 5px var(--gold-glow);
+}
+
+/* Кнопка Отмены прибытия гостя */
+.undo-arrival-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 107, 107, 0.4);
+  color: #ff6b6b;
+  padding: 3px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 0.8rem;
+  transition: var(--transition-smooth);
+}
+
+.undo-arrival-btn:hover {
+  background: rgba(255, 107, 107, 0.15);
+  border-color: #ff8b8b;
+  color: #ff8b8b;
+  box-shadow: 0 0 5px rgba(255, 107, 107, 0.3);
+}
+
+/* Стилизация подписи гостей (созвездия) на карте */
+.static-guest-marker-wrapper-icon {
+  z-index: 9 !important;
+}
+
+.static-guest-marker-container {
+  display: flex;
+  align-items: center;
+  position: relative;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Анимация покачивания карточки глашатая во время фанфар */
+.herald-announcement-box.fanfare-active {
+  animation: heraldFloat 3s infinite ease-in-out, heraldGlowPulse 2s infinite ease-in-out;
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+@keyframes heraldFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(-0.5deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(0.5deg);
+  }
+}
+
+@keyframes heraldGlowPulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.6));
+  }
+}
+
+/* === НОВЫЙ HUD-БЛОК ГРУППИРОВКИ ГОСТЕЙ ИЗ ОДНОГО ГОРОДА === */
+.city-constellation-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.city-constellation-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.05rem;
+  font-style: italic;
+  color: #ffd700;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.65), 0 2px 4px #000;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 5px;
+  letter-spacing: 0.5px;
+}
+
+.city-constellation-list-wrapper {
+  max-height: 100px;
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 15%, #000 85%, transparent 100%);
+  width: 240px;
+}
+
+.city-constellation-list {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 0;
+  margin: 0;
+  list-style: none;
+}
+
+.city-constellation-list.scroll-active {
+  animation: hudListScroll var(--scroll-duration, 12s) linear infinite;
+}
+
+.city-constellation-item {
+  font-family: 'Marck Script', cursive;
+  font-size: 1.15rem;
+  color: #ffffff;
+  text-shadow: 0 0 8px rgba(255, 215, 0, 0.8), 0 2px 4px #000;
+  font-weight: bold;
+  height: 22px;
+  line-height: 22px;
+  text-align: center;
+  width: 100%;
+}
+
+@keyframes hudListScroll {
+  0%, 8% { transform: translateY(0); }
+  42%, 58% { transform: translateY(var(--scroll-offset, -100px)); }
+  92%, 100% { transform: translateY(0); }
+}
+
+/* === ЭФФЕКТ ЛЕТЯЩИХ ЗОЛОТЫХ ИСКР К КАРТОЧКЕ === */
+.arrival-flying-spark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: radial-gradient(circle at center, #ffffff 30%, #ffd700 80%);
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ffd700, 0 0 16px #ff8c00;
+  z-index: 10005;
+  pointer-events: none;
+  animation: flySparkCurve 1.2s cubic-bezier(0.1, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes flySparkCurve {
+  0% {
+    transform: translate(var(--start-x), var(--start-y)) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(var(--ctrl-x), var(--ctrl-y)) scale(1.6);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--end-x), var(--end-y)) scale(0.2);
+    opacity: 0;
+  }
+}
+
+/* === ГЛИТЧ-ЭФФЕКТ ДЛЯ ИМЕНИ ГОСТЯ === */
+.glitch-name-text {
+  position: relative;
+  animation: textGlitchFlicker 0.4s ease-in-out;
+}
+
+.glitch-name-text::before,
+.glitch-name-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: transparent;
+}
+
+.glitch-name-text::before {
+  left: 2px;
+  text-shadow: -1.5px 0 #ff00c1;
+  clip: rect(10px, 600px, 30px, 0);
+  animation: glitchAnim1 1.2s infinite linear alternate-reverse;
+}
+
+.glitch-name-text::after {
+  left: -2px;
+  text-shadow: -1.5px 0 #00fff9, 0 1px #00fff9;
+  clip: rect(40px, 600px, 80px, 0);
+  animation: glitchAnim2 1.2s infinite linear alternate-reverse;
+}
+
+@keyframes textGlitchFlicker {
+  0%, 100% { transform: none; opacity: 1; }
+  20% { transform: skewX(-3deg) scaleY(0.98); opacity: 0.9; }
+  40% { transform: skewX(3deg) scaleY(1.02); opacity: 0.85; }
+  60% { transform: skewX(-2deg); opacity: 0.95; }
+  80% { transform: skewX(1deg); opacity: 0.9; }
+}
+
+@keyframes glitchAnim1 {
+  0% { clip: rect(10px, 9999px, 45px, 0); }
+  100% { clip: rect(35px, 9999px, 95px, 0); }
+}
+
+@keyframes glitchAnim2 {
+  0% { clip: rect(60px, 9999px, 90px, 0); }
+  100% { clip: rect(5px, 9999px, 60px, 0); }
+}
+
+

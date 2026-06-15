@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Петровская Ассамблея — Карта Прибытия</title>
+  
+  <!-- Общие стили -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <!-- Стили и скрипты Leaflet (Оффлайн-режим) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Стили и скрипты Mapbox GL JS (Онлайн-режим в резерве) -->
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet" />
+
+  <style>
+    @keyframes pulseStar {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255,215,0,0.5)); }
+      50% { transform: scale(1.3); filter: drop-shadow(0 0 10px rgba(255,215,0,0.9)); }
+    }
+    
+    .spark-icon-marker {
+      pointer-events: none;
+    }
+
+    /* Стилизация карты вынесена в style.css */
+  </style>
+</head>
+<body class="map-body-container" style="margin: 0; overflow: hidden; height: 100vh;">
+
+  <!-- Волны Невы и волшебные искры -->
+  <canvas id="stars-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; opacity: 0.65;"></canvas>
+
+  <!-- Световой конус проекции голограммы -->
+  <div class="hologram-light-cone" id="hologram-light-cone"></div>
+
+  <!-- Голограмма волн Невы (Параллакс-слои) -->
+  <div class="hologram-waves-overlay wave-layer-2"></div>
+  <div class="hologram-waves-overlay wave-layer-1"></div>
+
+  <!-- Силуэт Петропавловской крепости -->
+  <div class="hologram-skyline-overlay"></div>
+
+  <!-- Голограмма Петра Первого -->
+  <div class="hologram-peter-overlay"></div>
+
+  <!-- Сканирующий луч для сборки крепости -->
+  <div class="hologram-scanline"></div>
+
+  <!-- Бархатный оверлей -->
+  <div class="map-bg-overlay"></div>
+
+  <!-- Голографическое название-логотип во весь экран -->
+  <div class="hologram-title-overlay"></div>
+
+  <!-- Шапка карты (подзаголовок) -->
+  <header class="map-header">
+    <div class="map-header-sub"></div>
+  </header>
+
+  <!-- Свиток недавно прибывших -->
+  <div class="last-arrivals-scroll" id="arrivals-scroll" style="display: none;">
+    <h3>Прибывшие гости</h3>
+    <ul class="last-arrivals-list" id="arrivals-scroll-list"></ul>
+  </div>
+
+  <!-- Императорский Медальон-счетчик -->
+  <div class="royal-count-badge">
+    <div class="medallion-crown"><img src="royal_crown.png" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; filter: drop-shadow(0 0 5px rgba(255,215,0,0.5));"></div>
+    <div class="medallion-vals">
+      <span id="royal-count-val">0</span> / <span id="royal-total-val">0</span>
+    </div>
+    <div class="medallion-lbl">гостей</div>
+  </div>
+
+
+
+  <!-- Контейнер карты Leaflet -->
+  <div id="map-container" class="vintage-map"></div>
+
+  <!-- Золотая пергаментная плашка/свиток для объявления -->
+  <div class="parchment-plaque" id="parchment-plaque" style="display: none;">
+    <div class="parchment-plaque-inner" id="parchment-plaque-inner">
+      <!-- Контейнер для фоновых эффектов с обрезкой углов -->
+      <div class="plaque-background-card">
+        <div class="plaque-shimmer"></div>
+        <div class="plaque-scanline"></div>
+        <div class="plaque-watermark">⚜</div>
+      </div>
+
+      <!-- Барочные угловые вензеля -->
+      <div class="plaque-corner plaque-corner-tl">
+        <svg viewBox="0 0 100 100" style="width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;">
+          <path d="M 10 10 L 80 10" /><path d="M 10 10 L 10 80" />
+          <path d="M 25 10 C 25 25, 25 25, 10 25" /><path d="M 40 10 C 40 40, 40 40, 10 40" />
+          <path d="M 55 10 C 55 55, 55 55, 10 55" stroke-dasharray="1 3" />
+          <circle cx="10" cy="10" r="5" fill="currentColor" />
+          <path d="M 15 15 C 22 15, 22 22, 15 22 Z" fill="currentColor" />
+        </svg>
+      </div>
+      <div class="plaque-corner plaque-corner-tr">
+        <svg viewBox="0 0 100 100" style="width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;">
+          <path d="M 10 10 L 80 10" /><path d="M 10 10 L 10 80" />
+          <path d="M 25 10 C 25 25, 25 25, 10 25" /><path d="M 40 10 C 40 40, 40 40, 10 40" />
+          <path d="M 55 10 C 55 55, 55 55, 10 55" stroke-dasharray="1 3" />
+          <circle cx="10" cy="10" r="5" fill="currentColor" />
+          <path d="M 15 15 C 22 15, 22 22, 15 22 Z" fill="currentColor" />
+        </svg>
+      </div>
+      <div class="plaque-corner plaque-corner-bl">
+        <svg viewBox="0 0 100 100" style="width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;">
+          <path d="M 10 10 L 80 10" /><path d="M 10 10 L 10 80" />
+          <path d="M 25 10 C 25 25, 25 25, 10 25" /><path d="M 40 10 C 40 40, 40 40, 10 40" />
+          <path d="M 55 10 C 55 55, 55 55, 10 55" stroke-dasharray="1 3" />
+          <circle cx="10" cy="10" r="5" fill="currentColor" />
+          <path d="M 15 15 C 22 15, 22 22, 15 22 Z" fill="currentColor" />
+        </svg>
+      </div>
+      <div class="plaque-corner plaque-corner-br">
+        <svg viewBox="0 0 100 100" style="width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;">
+          <path d="M 10 10 L 80 10" /><path d="M 10 10 L 10 80" />
+          <path d="M 25 10 C 25 25, 25 25, 10 25" /><path d="M 40 10 C 40 40, 40 40, 10 40" />
+          <path d="M 55 10 C 55 55, 55 55, 10 55" stroke-dasharray="1 3" />
+          <circle cx="10" cy="10" r="5" fill="currentColor" />
+          <path d="M 15 15 C 22 15, 22 22, 15 22 Z" fill="currentColor" />
+        </svg>
+      </div>
+
+      <!-- Орнаментальная лента с названием мероприятия -->
+      <div class="plaque-header-band">
+        <span class="plaque-header-ornament">✦</span>
+        <div class="plaque-event-title">ПЕТРОВСКАЯ АССАМБЛЕЯ</div>
+        <span class="plaque-header-ornament">✦</span>
+      </div>
+      <div class="plaque-sub-header">Спецпроект Scarlet Sails Life Experience</div>
+
+      <div class="plaque-arrival-title" id="plaque-arrival-title">Прибыл достопочтенный гость</div>
+      <div class="status-badge" id="plaque-guest-status" style="display: none;">STATUS</div>
+      <div class="guest-name" id="plaque-guest-name">Имя гостя</div>
+      <div class="guest-city" id="plaque-guest-city">из города Город</div>
+
+      <div class="plaque-ornamental-divider">
+        <span class="ornament-line"></span>
+        <span class="ornament-jewel">◆</span>
+        <span class="ornament-line"></span>
+      </div>
+
+      <div class="plaque-guest-table" id="plaque-guest-table">Приглашен за Стол №—</div>
+      <div class="plaque-footer-date-only">г. Санкт-Петербург</div>
+    </div>
+  </div>
+
+  <script>
+    // Инициализация карты Leaflet
+    const stPetersburgCoords = [59.9343, 30.3351];
+    
+    const map = L.map('map-container', {
+      center: [57.5, 42.0], // Центр европейской части России
+      zoom: 4.5,
+      zoomControl: false,
+      attributionControl: false
+    });
+
+    // Добавляем слой карты OpenStreetMap для отображения русских названий
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 18
+    }).addTo(map);
+
+    // Слой для статичных маркеров гостей
+    const staticMarkersGroup = L.layerGroup().addTo(map);
+
+    // Список всех гостей и очередь анимаций
+    let allGuests = [];
+    let animationQueue = [];
+    let isAnimating = false;
+    let isCardActive = false;
+    let cardTargetSide = 'right';
+    let cardTargetLeftPercent = 72;
+    let cardTargetTopPercent = 52;
+
+    // Supabase клиент
+    const _sb = window.sb;
+    // BroadcastChannel — fallback оффлайн
+    const channel = new BroadcastChannel('assembly_event_channel');
+
+    // BroadcastChannel оффлайн-слушатель
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'guest_arrived') {
+        handleArrival(event.data.guest);
+      } else if (event.data && event.data.type === 'guests_reset') {
+        resetAll();
+      } else if (event.data && event.data.type === 'guests_updated') {
+        reloadGuestsData();
+      }
+    };
+
+    // Supabase Realtime — подписка на гостей
+    _sb.channel('map-guests')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'guests' }, (payload) => {
+        if (payload.new && payload.new.is_arrived && !payload.old.is_arrived) {
+          handleArrival({
+            id: payload.new.id,
+            fullName: payload.new.full_name,
+            city: payload.new.city || '',
+            tableNumber: payload.new.table_number || '',
+            status: payload.new.status || 'Silver',
+            lat: payload.new.lat || 55.0,
+            lng: payload.new.lng || 37.0,
+            isArrived: true
+          });
+        }
+        // Если изменение не is_arrived — перезагружаем все
+        if (!payload.new.is_arrived || (payload.old && !payload.old.is_arrived)) {
+          reloadGuestsData();
+        }
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'guests' }, () => reloadGuestsData())
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guests' }, () => reloadGuestsData())
+      .subscribe();
+
+    // Вспомогательная функция для удаления отчеств
+    function formatNameWithoutPatronymic(name) {
+      if (!name) return '';
+      const parts = name.split(/\s+/);
+      return parts.filter((part, idx) => {
+        const clean = part.toLowerCase().replace(/[^а-яёa-z]/g, '');
+        const isPatronymicSuffix = clean.endsWith('ович') || 
+                                   clean.endsWith('евич') || 
+                                   clean.endsWith('овна') || 
+                                   clean.endsWith('евна') || 
+                                   (clean.endsWith('ич') && clean !== 'прокопович' && clean !== 'кович') || 
+                                   clean.endsWith('вна');
+        if (isPatronymicSuffix && idx > 0 && (idx < parts.length - 1 || parts.length > 2)) {
+          return false;
+        }
+        return true;
+      }).join(' ');
+    }
+
+    // Склонение городов в родительный падеж
+    function getCityInGenitive(city) {
+      if (!city) return '';
+      const trimmed = city.trim();
+      const lower = trimmed.toLowerCase();
+
+      if (lower === 'нижний новгород') return 'Нижнего Новгорода';
+      if (lower === 'великий новгород') return 'Великого Новгорода';
+      if (lower === 'ростов-на-дону') return 'Ростова-на-Дону';
+      if (lower === 'санкт-петербург') return 'Санкт-Петербурга';
+
+      if (lower.endsWith('о') || lower.endsWith('е') || lower.endsWith('и') || lower.endsWith('ы')) {
+        return trimmed;
+      }
+
+      if (trimmed.endsWith('а')) {
+        const base = trimmed.slice(0, -1);
+        const lastChar = base.slice(-1).toLowerCase();
+        if (['г', 'к', 'х', 'ж', 'ч', 'ш', 'щ'].includes(lastChar)) {
+          return base + 'и';
+        }
+        return base + 'ы';
+      }
+
+      if (trimmed.endsWith('я')) {
+        return trimmed.slice(0, -1) + 'и';
+      }
+
+      if (trimmed.endsWith('ь')) {
+        const base = trimmed.slice(0, -1);
+        if (lower.endsWith('славль')) {
+          return base + 'я';
+        }
+        return base + 'и';
+      }
+
+      const lastChar = trimmed.slice(-1).toLowerCase();
+      if ('бвгджзклмнпрстфхцчшщ'.includes(lastChar)) {
+        return trimmed + 'а';
+      }
+
+      return trimmed;
+    }
+
+    // Загрузка гостей и первоначальная отрисовка
+    async function loadData() {
+      try {
+        const { data, error } = await _sb.from('guests').select('*').order('id');
+        if (error) throw error;
+        allGuests = (data || []).map(g => ({
+          id: g.id, fullName: g.full_name, city: g.city || '',
+          tableNumber: g.table_number || '', status: g.status || 'Silver',
+          lat: g.lat || 55.0, lng: g.lng || 37.0, isArrived: g.is_arrived || false
+        }));
+        drawStaticMarkers();
+        updateArrivalsList();
+      } catch (e) {
+        console.error('Ошибка загрузки гостей из Supabase:', e);
+      }
+    }
+
+    async function reloadGuestsData() {
+      await loadData();
+    }
+
+    // Встроенный словарь координат городов для определения центров
+    const CITY_CENTERS = {
+      'санкт-петербург': [59.9343, 30.3351],
+      'москва': [55.7558, 37.6173],
+      'воронеж': [51.6608, 39.2003],
+      'тобольск': [58.2000, 68.2500],
+      'дмитров': [56.3424, 37.5204],
+      'казань': [55.8304, 49.0661],
+      'тула': [54.1961, 37.6182],
+      'новгород': [58.5252, 31.2755],
+      'великий новгород': [58.5252, 31.2755],
+      'астрахань': [46.3497, 48.0408],
+      'выборг': [60.7100, 28.7490],
+      'екатеринбург': [56.8389, 60.6057],
+      'новосибирск': [55.0084, 82.9357],
+      'нижний новгород': [56.3269, 44.0059],
+      'пермь': [58.0105, 56.2502],
+      'сочи': [43.6028, 39.7342],
+      'архангельск': [64.5401, 40.5433]
+    };
+
+    // Отрисовка всех статичных маркеров гостей (с созвездиями и объединенными метками)
+    function drawStaticMarkers() {
+      staticMarkersGroup.clearLayers();
+
+      // Добавим красивый замок-герб в Санкт-Петербурге
+      const spbCenterIcon = L.divIcon({
+        className: 'spb-hub-icon',
+        html: `
+          <div style="display: flex; flex-direction: column; align-items: center; position: relative;">
+            <div style="animation: float Crest 4s infinite ease-in-out; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 60px; height: 60px;">
+              <img src="royal_crown.png" style="width: 100%; height: 100%; object-fit: contain; mix-blend-mode: screen; filter: drop-shadow(0 0 12px rgba(255,215,0,0.8));">
+            </div>
+            <div style="font-family: 'Cormorant Garamond', serif; font-size: 1.05rem; color: #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.8), 0 2px 4px #000; font-weight: bold; margin-top: -5px; white-space: nowrap; letter-spacing: 1.5px;">
+              САНКТ-ПЕТЕРБУРГ
+            </div>
+          </div>
+        `,
+        iconSize: [160, 60],
+        iconAnchor: [80, 45]
+      });
+      L.marker(stPetersburgCoords, { icon: spbCenterIcon }).addTo(staticMarkersGroup);
+
+      // Группируем прибывших по городам
+      const arrivedGroups = {};
+      allGuests.forEach(g => {
+        if (g.isArrived) {
+          const normCity = g.city.trim().toLowerCase();
+          if (!arrivedGroups[normCity]) {
+            arrivedGroups[normCity] = {
+              cityName: g.city.trim(),
+              guests: [],
+              lat: g.lat,
+              lng: g.lng
+            };
+          }
+          arrivedGroups[normCity].guests.push(g);
+        }
+      });
+
+      // Отрисовка групп
+      for (const key in arrivedGroups) {
+        const group = arrivedGroups[key];
+        const isSpb = key === 'санкт-петербург' || key === 'спб' || key === 'питер';
+        const centerCoords = isSpb ? stPetersburgCoords : (CITY_CENTERS[key] || [group.lat, group.lng]);
+
+        // Генерируем HTML списка гостей
+        let listHtml = '';
+        group.guests.forEach(g => {
+          listHtml += `<li class="city-constellation-item">★ ${formatNameWithoutPatronymic(g.fullName)}</li>`;
+        });
+
+        const hasScroll = group.guests.length > 5;
+        const scrollClass = hasScroll ? 'scroll-active' : '';
+        const scrollOffset = hasScroll ? `-${(group.guests.length - 5) * 22}px` : '0px';
+        const scrollDuration = hasScroll ? `${group.guests.length * 2.5}s` : '0s';
+
+        let markerHtml = '';
+        let anchor = [120, 7];
+
+        if (isSpb) {
+          // Для Санкт-Петербурга рендерим список со смещением вниз под корону
+          markerHtml = `
+            <div class="city-constellation-container">
+              <div class="city-constellation-list-wrapper">
+                <ul class="city-constellation-list ${scrollClass}" style="--scroll-offset: ${scrollOffset}; --scroll-duration: ${scrollDuration};">
+                  ${listHtml}
+                </ul>
+              </div>
+            </div>
+          `;
+          anchor = [120, -18]; // Смещаем под логотип короны
+        } else {
+          // Для остальных городов рисуем золотой маркер-точку и название города со списком под ним
+          markerHtml = `
+            <div class="city-constellation-container">
+              <div class="static-gold-marker"></div>
+              <div class="city-constellation-title">${group.cityName.toUpperCase()}</div>
+              <div class="city-constellation-list-wrapper">
+                <ul class="city-constellation-list ${scrollClass}" style="--scroll-offset: ${scrollOffset}; --scroll-duration: ${scrollDuration};">
+                  ${listHtml}
+                </ul>
+              </div>
+            </div>
+          `;
+          anchor = [120, 7]; // Выравниваем по золотой точке вверху
+        }
+
+        L.marker(centerCoords, {
+          icon: L.divIcon({
+            className: 'static-guest-marker-wrapper-icon',
+            html: markerHtml,
+            iconSize: [240, 180],
+            iconAnchor: anchor
+          })
+        }).addTo(staticMarkersGroup);
+      }
+    }
+
+    // Обновление свитка гостей на левой панели и счетчика
+    function updateArrivalsList() {
+      const scrollEl = document.getElementById('arrivals-scroll');
+      const listEl = document.getElementById('arrivals-scroll-list');
+      const counterEl = document.getElementById('royal-count-val');
+      const totalEl = document.getElementById('royal-total-val');
+
+      const arrived = allGuests.filter(g => g.isArrived);
+      counterEl.textContent = arrived.length;
+      if (totalEl) totalEl.textContent = allGuests.length;
+
+
+      // Сортируем по ID по убыванию, чтобы показать новейших сверху
+      arrived.sort((a, b) => b.id - a.id);
+
+      if (arrived.length > 0) {
+        scrollEl.style.display = 'block';
+        listEl.innerHTML = '';
+        arrived.forEach(g => {
+          const li = document.createElement('li');
+          li.className = 'last-arrivals-item';
+          li.style.opacity = '1';
+          li.style.transform = 'none';
+          li.innerHTML = `
+            <strong class="guest-name">${formatNameWithoutPatronymic(g.fullName)}</strong>
+            <br>
+            <span class="guest-city">из г. ${getCityInGenitive(g.city)}</span>
+          `;
+          listEl.appendChild(li);
+        });
+      } else {
+        scrollEl.style.display = 'none';
+      }
+    }
+
+    // Обработка входящего гостя
+    function handleArrival(guest) {
+      // Исключаем дубли
+      if (animationQueue.some(g => g.id === guest.id)) return;
+      
+      animationQueue.push(guest);
+      if (!isAnimating) {
+        processAnimationQueue();
+      }
+    }
+
+    // Запуск очереди анимаций
+    let flightTimeout = null;
+    let sparkTimeout = null;
+    let cardTimeout = null;
+
+    function processAnimationQueue() {
+      if (animationQueue.length === 0) {
+        isAnimating = false;
+        return;
+      }
+
+      isAnimating = true;
+      const guest = animationQueue[0];
+      const startCoords = [guest.lat, guest.lng];
+
+      // --- ФАЗА 1: ДВИЖЕНИЕ (Всего 11 секунд) ---
+      
+      // 1. Полет камеры к городу отправления гостя (3 секунды)
+      map.flyTo(startCoords, 6.5, {
+        duration: 3.0,
+        easeLinearity: 0.25
+      });
+
+        // 2. Движение кареты и возвращение камеры (8 секунд)
+        flightTimeout = setTimeout(() => {
+
+          // Королевский маркер-орб
+          const sparkMarker = L.marker(startCoords, {
+            icon: L.divIcon({
+              className: 'spark-icon-marker',
+              html: `<div class="royal-spark-container">
+                <div class="spark-comet-tail"></div>
+                <div class="spark-orb"><div class="spark-orb-inner">⚜</div></div>
+                <div class="spark-ring spark-ring-1"></div>
+                <div class="spark-ring spark-ring-2"></div>
+              </div>`,
+              iconSize: [70, 70],
+              iconAnchor: [35, 35]
+            })
+          }).addTo(map);
+
+          map.flyTo(stPetersburgCoords, 5.5, {
+            duration: 8.0,
+            easeLinearity: 0.2
+          });
+
+          const startSparkTime = performance.now();
+          const sparkDuration = 8000;
+          let lastSpawnTime = 0;
+
+          function tickSpark(time) {
+            const elapsed = time - startSparkTime;
+            const progress = Math.min(elapsed / sparkDuration, 1);
+
+            const curLat = startCoords[0] + (stPetersburgCoords[0] - startCoords[0]) * progress;
+            const curLng = startCoords[1] + (stPetersburgCoords[1] - startCoords[1]) * progress;
+
+            // Передвигаем маркер
+            sparkMarker.setLatLng([curLat, curLng]);
+
+            // Эффект звездного шлейфа
+            if (time - lastSpawnTime > 80) { // спавним маркеры шлейфа каждые 80мс
+              lastSpawnTime = time;
+              const star = L.circleMarker([curLat, curLng], {
+                radius: Math.random() * 3 + 2,
+                color: '#ffd700',
+                fillColor: '#ffd700',
+                fillOpacity: 0.8,
+                weight: 0,
+                className: 'stardust-trail-particle'
+              }).addTo(map);
+              
+              setTimeout(() => {
+                map.removeLayer(star);
+              }, 1000);
+            }
+
+            if (progress < 1) {
+              requestAnimationFrame(tickSpark);
+            } else {
+              map.removeLayer(sparkMarker);
+              onCarriageArrival(guest);
+            }
+          }
+          requestAnimationFrame(tickSpark);
+
+        }, 3000);
+      }
+
+    function checkIsFemale(fullName) {
+      if (!fullName) return false;
+      const cleanName = formatNameWithoutPatronymic(fullName);
+      const words = cleanName.split(/\s+/);
+      let isFemale = false;
+      words.forEach(w => {
+        const lower = w.toLowerCase();
+        if (['императрица', 'статс-дама', 'княгиня', 'графиня', 'цесаревна', 'царевна'].includes(lower)) {
+          isFemale = true;
+        }
+        if (lower.endsWith('ва') || lower.endsWith('на') || lower.endsWith('ая')) {
+          if (lower !== 'никита' && lower !== 'фома' && lower !== 'савва' && lower !== 'лука') {
+            isFemale = true;
+          }
+        }
+      });
+      return isFemale;
+    }
+
+    function getStatusForGuest(guest) {
+      if (guest.status) return guest.status;
+      const name = (guest.fullName || '').toLowerCase();
+      if (name.includes('пётр великий') || name.includes('петр великий') || name.includes('екатерина алексеевна') || name.includes('екатерина i')) return 'RUBY';
+      if (name.includes('меншиков')) return 'PEARL';
+      if (name.includes('шереметев') || name.includes('шафиров')) return 'JADE';
+      if (name.includes('апраксин') || name.includes('беринг') || name.includes('ягужинский')) return 'TITANIUM';
+      if (name.includes('долгоруков') || name.includes('трезини') || name.includes('лопухина')) return 'PLATINUM';
+      if (name.includes('демидов') || name.includes('посошков') || name.includes('прокопович')) return 'GOLD';
+      return 'Silver';
+    }
+
+    // Момент прибытия кареты (11-я секунда)
+    function onCarriageArrival(guest) {
+      // Обновляем статус гостя в локальной базе и на диске
+      const localGuest = allGuests.find(g => g.id === guest.id);
+      if (localGuest) {
+        localGuest.isArrived = true;
+      } else {
+        guest.isArrived = true;
+        allGuests.push(guest);
+      }
+
+      // Перерисовываем маркеры и список
+      drawStaticMarkers();
+      updateArrivalsList();
+
+      // Элементы карточки
+      const plaque = document.getElementById('parchment-plaque');
+      const plaqueInner = document.getElementById('parchment-plaque-inner');
+      const nameEl = document.getElementById('plaque-guest-name');
+      const cityEl = document.getElementById('plaque-guest-city');
+      const tableEl = document.getElementById('plaque-guest-table');
+      const statusBadge = document.getElementById('plaque-guest-status');
+      const arrivalTitleEl = document.getElementById('plaque-arrival-title');
+
+      // --- Определяем пол гостя ---
+      const isFemale = checkIsFemale(guest.fullName);
+
+      // --- Заголовок с учётом пола и статуса ---
+      const rawStatus = getStatusForGuest(guest).toLowerCase().trim();
+      let statusClass = 'status-silver';
+      let statusLabel = 'Silver';
+      let themeClass = 'theme-silver';
+      let guestColor = '#b0bec5'; // цвет по умолчанию (Silver)
+
+      if (rawStatus === 'ruby' || rawStatus === '7') {
+        statusClass = 'status-ruby'; statusLabel = 'RUBY'; themeClass = 'theme-ruby';
+        guestColor = '#ff1744';
+      } else if (rawStatus === 'pearl' || rawStatus === '6') {
+        statusClass = 'status-pearl'; statusLabel = 'PEARL'; themeClass = 'theme-pearl';
+        guestColor = '#e040fb';
+      } else if (rawStatus === 'jade' || rawStatus === '5') {
+        statusClass = 'status-jade'; statusLabel = 'JADE'; themeClass = 'theme-jade';
+        guestColor = '#00c853';
+      } else if (rawStatus === 'titanium' || rawStatus === '4') {
+        statusClass = 'status-titanium'; statusLabel = 'TITANIUM'; themeClass = 'theme-titanium';
+        guestColor = '#607d8b';
+      } else if (rawStatus === 'platinum' || rawStatus === '3') {
+        statusClass = 'status-platinum'; statusLabel = 'PLATINUM'; themeClass = 'theme-platinum';
+        guestColor = '#78909c';
+      } else if (rawStatus === 'gold' || rawStatus === '2') {
+        statusClass = 'status-gold'; statusLabel = 'GOLD'; themeClass = 'theme-gold';
+        guestColor = '#ffd700';
+      } else if (rawStatus === '0' || rawStatus === 'почетный гость' || rawStatus === 'guest') {
+        statusClass = 'status-guest'; statusLabel = 'ПОЧЕТНЫЙ ГОСТЬ'; themeClass = 'theme-guest';
+        guestColor = '#e2c073';
+      } else {
+        statusClass = 'status-silver'; statusLabel = 'SILVER'; themeClass = 'theme-silver';
+        guestColor = '#b0bec5';
+      }
+
+      // Подсвечиваем голограммы, сканирующий луч и световой конус в цвет карточки гостя
+      fortressEl.style.setProperty('--hologram-glow-color', guestColor);
+      peterEl.style.setProperty('--hologram-glow-color', guestColor);
+      scanlineEl.style.setProperty('--hologram-glow-color', guestColor);
+      
+      const cone = document.getElementById('hologram-light-cone');
+      if (cone) {
+        cone.style.setProperty('--cone-glow-color', guestColor);
+      }
+
+      // --- Применяем тему к внутреннему контейнеру ---
+      plaqueInner.className = 'parchment-plaque-inner ' + themeClass;
+
+      // --- Генерируем подзаголовок-приветствие ---
+      const greetings = isFemale ? [
+        'Прибыла достопочтенная гостья',
+        'Рады встречать прекрасную гостью',
+        'К нам пожаловала благородная гостья',
+        'С честью принимаем дорогую гостью',
+        'Ассамблея приветствует гостью'
+      ] : [
+        'Прибыл достопочтенный гость',
+        'Рады встречать благородного гостя',
+        'К нам пожаловал почётный гость',
+        'С честью принимаем дорогого гостя',
+        'Ассамблея приветствует гостя'
+      ];
+      const greetingText = greetings[Math.floor(Math.random() * greetings.length)];
+      if (arrivalTitleEl) arrivalTitleEl.textContent = greetingText;
+
+      // --- Заполняем данные гостя ---
+      nameEl.textContent = formatNameWithoutPatronymic(guest.fullName);
+      cityEl.textContent = `из города ${getCityInGenitive(guest.city)}`;
+      tableEl.textContent = `${isFemale ? 'Приглашена' : 'Приглашен'} за Стол №${guest.tableNumber || '—'}`;
+
+      if (statusBadge) {
+        statusBadge.className = 'status-badge';
+        statusBadge.textContent = statusLabel;
+        statusBadge.classList.add(statusClass);
+        statusBadge.style.display = (themeClass === 'theme-guest') ? 'none' : 'inline-block';
+      }
+
+      // --- Показываем карточку со случайным 3D-позиционированием и углами ---
+      // 1. Вычисляем точные координаты Санкт-Петербурга на экране
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const spbPoint = map.latLngToContainerPoint(stPetersburgCoords);
+      const spbX = ((spbPoint.x / w) * 100).toFixed(1);
+      const spbY = ((spbPoint.y / h) * 100).toFixed(1);
+
+      // 2. Рандомизируем конечные координаты карточки гостя для предотвращения однообразия
+      const targetLeftVal = Math.random() > 0.5 ? 'right' : 'left';
+      isCardActive = true;
+      cardTargetSide = targetLeftVal;
+
+      // Диапазоны: слева 22%-34%, справа 66%-78%, по высоте 42%-62%
+      const targetLeftPercent = targetLeftVal === 'right' ? (66 + Math.random() * 12).toFixed(1) : (22 + Math.random() * 12).toFixed(1);
+      const targetTopPercent = (42 + Math.random() * 20).toFixed(1);
+
+      cardTargetLeftPercent = parseFloat(targetLeftPercent);
+      cardTargetTopPercent = parseFloat(targetTopPercent);
+
+      const targetLeft = `${targetLeftPercent}%`;
+      const targetTop = `${targetTopPercent}%`;
+
+      // Смещаем обе голограммы на противоположную от карточки сторону (увеличено до 24vw)
+      const shiftXVal = targetLeftVal === 'right' ? '-24vw' : '24vw';
+      if (fortressEl) fortressEl.style.setProperty('--hologram-shift-x', shiftXVal);
+      if (peterEl) peterEl.style.setProperty('--hologram-shift-x', shiftXVal);
+
+      // Выбираем случайную стартовую траекторию 3D-вращения для вылета карточки
+      const startRotations = [
+        { x: '65deg', y: '-180deg', z: '-40deg' },  // Вращение в спирали
+        { x: '-50deg', y: '180deg', z: '50deg' },   // Резкий разворот снизу
+        { x: '90deg', y: '-90deg', z: '180deg' }    // Тройной переворот
+      ];
+      const randomStart = startRotations[Math.floor(Math.random() * startRotations.length)];
+
+      // Задаем начальную позицию вылета карточки прямо из Санкт-Петербурга
+      plaque.style.transition = 'none';
+      plaque.style.left = `${spbX}%`;
+      plaque.style.top = `${spbY}%`;
+      plaque.style.transform = 'translate(-50%, -50%) scale(0.1)';
+
+      plaqueInner.style.transition = 'none';
+      plaqueInner.style.setProperty('--card-scale', '0.1');
+      plaqueInner.style.setProperty('--card-base-rot-x', randomStart.x);
+      plaqueInner.style.setProperty('--card-base-rot-y', randomStart.y);
+      plaqueInner.style.setProperty('--card-base-rot-z', randomStart.z);
+      plaqueInner.style.setProperty('--card-mouse-rot-x', '0deg');
+      plaqueInner.style.setProperty('--card-mouse-rot-y', '0deg');
+      plaqueInner.style.setProperty('--card-shadow-x', '0px');
+      plaqueInner.style.setProperty('--card-shadow-y', '20px');
+
+      // Инициализируем конус прожектора в виде точки в Санкт-Петербурге
+      if (cone) {
+        cone.style.transition = 'none';
+        cone.style.setProperty('--spotlight-x', `${spbX}%`);
+        cone.style.setProperty('--spotlight-y', `${spbY}%`);
+        cone.style.clipPath = `polygon(${spbX}% ${spbY}%, ${spbX}% ${spbY}%, ${spbX}% ${spbY}%, ${spbX}% ${spbY}%, ${spbX}% ${spbY}%)`;
+        cone.style.opacity = '0';
+      }
+
+      // Активируем временный глитч имени гостя при открытии
+      nameEl.classList.add('glitch-name-text');
+      nameEl.setAttribute('data-text', nameEl.textContent);
+      setTimeout(() => {
+        nameEl.classList.remove('glitch-name-text');
+      }, 2500);
+
+      plaque.style.display = 'block';
+      plaque.classList.remove('parchment-fade-out', 'active-shimmer');
+      
+      void plaque.offsetWidth; // триггерим reflow
+      if (cone) void cone.offsetWidth;
+
+      // Выбираем одну из 3 кривых плавности для вылета
+      const easingCurves = [
+        'left 1.2s cubic-bezier(0.19, 1, 0.22, 1), top 1.2s cubic-bezier(0.19, 1, 0.22, 1), transform 1.2s cubic-bezier(0.19, 1, 0.22, 1)', // Плавный
+        'left 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), top 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Пружинный
+        'left 1.2s cubic-bezier(0.25, 1.1, 0.5, 1.15), top 1.2s cubic-bezier(0.25, 1.1, 0.5, 1.15), transform 1.2s cubic-bezier(0.25, 1.1, 0.5, 1.15)' // Скользящий
+      ];
+      const selectedCurve = easingCurves[Math.floor(Math.random() * easingCurves.length)];
+
+      // 3. Запускаем анимацию полета и раскрытия в 3D
+      plaque.style.transition = selectedCurve;
+      plaqueInner.style.transition = 'transform 1.2s cubic-bezier(0.19, 1, 0.22, 1), box-shadow 1.2s cubic-bezier(0.19, 1, 0.22, 1)';
+      if (cone) {
+        cone.style.transition = 'opacity 1.2s cubic-bezier(0.19, 1, 0.22, 1), clip-path 1.2s cubic-bezier(0.19, 1, 0.22, 1)';
+      }
+
+      const targetRotX = (Math.random() * 24 - 12).toFixed(1) + 'deg'; // от -12deg до +12deg
+      const targetRotY = (Math.random() * 30 - 15).toFixed(1) + 'deg'; // от -15deg до +15deg
+      const targetRotZ = (Math.random() * 8 - 4).toFixed(1) + 'deg';   // от -4deg до +4deg
+
+      plaque.style.left = targetLeft;
+      plaque.style.top = targetTop;
+      plaque.style.transform = 'translate(-50%, -50%) scale(1.0)';
+
+      plaqueInner.style.setProperty('--card-base-rot-x', targetRotX);
+      plaqueInner.style.setProperty('--card-base-rot-y', targetRotY);
+      plaqueInner.style.setProperty('--card-base-rot-z', targetRotZ);
+      plaqueInner.style.setProperty('--card-scale', '1.0');
+
+      // Координаты цели в пикселях для прожектора и искр
+      const targetX = w * (cardTargetLeftPercent / 100);
+      const targetY = h * (cardTargetTopPercent / 100);
+
+      if (cone) {
+        // Размеры карточки
+        const cardW = 640;
+        const cardH = 370;
+
+        // Пересчитываем углы карточки в проценты от экрана
+        const xTL = (((targetX - cardW/2) / w) * 100).toFixed(1);
+        const yTL = (((targetY - cardH/2) / h) * 100).toFixed(1);
+        const xTR = (((targetX + cardW/2) / w) * 100).toFixed(1);
+        const yTR = (((targetY - cardH/2) / h) * 100).toFixed(1);
+        const xBR = (((targetX + cardW/2) / w) * 100).toFixed(1);
+        const yBR = (((targetY + cardH/2) / h) * 100).toFixed(1);
+        const xBL = (((targetX - cardW/2) / w) * 100).toFixed(1);
+        const yBL = (((targetY + cardH/2) / h) * 100).toFixed(1);
+
+        cone.style.clipPath = `polygon(${spbX}% ${spbY}%, ${xTL}% ${yTL}%, ${xTR}% ${yTR}%, ${xBR}% ${yBR}%, ${xBL}% ${yBL}%)`;
+        cone.style.opacity = '0.22';
+      }
+
+      // Запускаем рой летящих искр от Санкт-Петербурга к карточке
+      spawnSparks(spbPoint.x, spbPoint.y, targetX, targetY);
+
+      plaque.classList.add('active-shimmer'); // Запускаем блик
+
+      // --- Интерактивный 3D-тилт и перемещение светового блика за курсором ---
+      let tiltBound = null;
+      function onMouseMove(e) {
+        const rect = plaqueInner.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = (e.clientX - cx) / (rect.width / 2);  // -1..1
+        const dy = (e.clientY - cy) / (rect.height / 2); // -1..1
+        
+        const mouseRotX = (-dy * 18).toFixed(1) + 'deg'; // повышенные углы до 18deg
+        const mouseRotY = (dx * 22).toFixed(1) + 'deg';  // до 22deg
+        
+        // Динамический сдвиг тени в противоположную наклону сторону
+        const shadowX = (-dx * 25).toFixed(1) + 'px';
+        const shadowY = (20 - dy * 25).toFixed(1) + 'px';
+        
+        // Координаты мыши относительно карточки для Specular Highlight
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        plaqueInner.style.setProperty('--mouse-x', `${mx}px`);
+        plaqueInner.style.setProperty('--mouse-y', `${my}px`);
+        
+        plaqueInner.style.transition = 'transform 0.1s ease, box-shadow 0.1s ease';
+        plaqueInner.style.setProperty('--card-mouse-rot-x', mouseRotX);
+        plaqueInner.style.setProperty('--card-mouse-rot-y', mouseRotY);
+        plaqueInner.style.setProperty('--card-shadow-x', shadowX);
+        plaqueInner.style.setProperty('--card-shadow-y', shadowY);
+        plaqueInner.style.setProperty('--card-scale', '1.04');
+      }
+      function onMouseLeave() {
+        plaqueInner.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.6s ease';
+        plaqueInner.style.setProperty('--card-mouse-rot-x', '0deg');
+        plaqueInner.style.setProperty('--card-mouse-rot-y', '0deg');
+        plaqueInner.style.setProperty('--card-shadow-x', '0px');
+        plaqueInner.style.setProperty('--card-shadow-y', '20px');
+        plaqueInner.style.setProperty('--card-scale', '1.0');
+      }
+      tiltBound = onMouseMove;
+      plaque.addEventListener('mousemove', tiltBound);
+      plaque.addEventListener('mouseleave', onMouseLeave);
+
+      // Закрываем карточку ровно через 20 секунд
+      cardTimeout = setTimeout(() => {
+        isCardActive = false;
+        plaque.classList.add('parchment-fade-out');
+        plaque.removeEventListener('mousemove', tiltBound);
+        plaque.removeEventListener('mouseleave', onMouseLeave);
+
+        // Отключаем прожектор
+        if (cone) cone.style.opacity = '0';
+
+        // Возвращаем голограммы в исходное положение по центру
+        if (fortressEl) fortressEl.style.setProperty('--hologram-shift-x', '0vw');
+        if (peterEl) peterEl.style.setProperty('--hologram-shift-x', '0vw');
+
+        // Эффектное 3D вращение при затухании и улете в глубину
+        plaqueInner.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
+        plaqueInner.style.setProperty('--card-base-rot-y', '80deg'); // сильный разворот при улете
+        plaqueInner.style.setProperty('--card-base-rot-x', '-25deg');
+        plaqueInner.style.setProperty('--card-scale', '0.1');
+
+        setTimeout(() => {
+          plaque.style.display = 'none';
+          plaque.classList.remove('parchment-fade-out', 'active-shimmer');
+          
+          // Сбрасываем стили
+          plaqueInner.style.removeProperty('--card-base-rot-x');
+          plaqueInner.style.removeProperty('--card-base-rot-y');
+          plaqueInner.style.removeProperty('--card-base-rot-z');
+          plaqueInner.style.removeProperty('--card-mouse-rot-x');
+          plaqueInner.style.removeProperty('--card-mouse-rot-y');
+          plaqueInner.style.removeProperty('--card-shadow-x');
+          plaqueInner.style.removeProperty('--card-shadow-y');
+          plaqueInner.style.removeProperty('--card-scale');
+          plaqueInner.style.transform = '';
+
+          animationQueue.shift();
+          processAnimationQueue();
+        }, 600);
+
+      }, 20000);
+    }
+
+    // Полный сброс карты при сбросе системы хостес
+    function resetAll() {
+      isCardActive = false;
+      clearTimeout(flightTimeout);
+      clearTimeout(sparkTimeout);
+      clearTimeout(cardTimeout);
+
+      // Сбрасываем плашку
+      const plaque = document.getElementById('parchment-plaque');
+      if (plaque) {
+        plaque.style.display = 'none';
+        plaque.classList.remove('parchment-fade-out');
+      }
+
+      // Сбрасываем прожектор
+      const cone = document.getElementById('hologram-light-cone');
+      if (cone) {
+        cone.style.opacity = '0';
+        cone.style.clipPath = '';
+        cone.style.removeProperty('--spotlight-x');
+        cone.style.removeProperty('--spotlight-y');
+      }
+
+      // Сбрасываем сдвиги голограмм
+      if (fortressEl) fortressEl.style.setProperty('--hologram-shift-x', '0vw');
+      if (peterEl) peterEl.style.setProperty('--hologram-shift-x', '0vw');
+
+      // Перезагружаем список
+      let stored = localStorage.getItem('assembly_guests');
+      if (stored) {
+        allGuests = JSON.parse(stored).map(g => ({ ...g, isArrived: false }));
+        localStorage.setItem('assembly_guests', JSON.stringify(allGuests));
+      }
+      
+      drawStaticMarkers();
+      updateArrivalsList();
+      
+      animationQueue = [];
+      isAnimating = false;
+      map.setView([57.5, 42.0], 4.5);
+    }
+
+    // Обновление данных (без сброса прибывших)
+    function reloadGuestsData() {
+      let stored = localStorage.getItem('assembly_guests');
+      if (stored) {
+        allGuests = JSON.parse(stored);
+        drawStaticMarkers();
+        updateArrivalsList();
+      }
+    }
+
+    // Функция генерации летящих искр от СПб к приземляющейся карточке гостя
+    function spawnSparks(startX, startY, endX, endY) {
+      for (let i = 0; i < 15; i++) {
+        const spark = document.createElement('div');
+        spark.className = 'arrival-flying-spark';
+        
+        // Задаем стартовые координаты в пикселях
+        spark.style.setProperty('--start-x', startX + 'px');
+        spark.style.setProperty('--start-y', startY + 'px');
+        
+        // Рандомизируем контрольную точку для дуги полета
+        const dx = endX - startX;
+        const dy = endY - startY;
+        const ctrlX = startX + dx * 0.5 + (Math.random() - 0.5) * 300;
+        const ctrlY = startY + dy * 0.2 + (Math.random() - 0.5) * 300;
+        
+        spark.style.setProperty('--ctrl-x', ctrlX + 'px');
+        spark.style.setProperty('--ctrl-y', ctrlY + 'px');
+        spark.style.setProperty('--end-x', endX + 'px');
+        spark.style.setProperty('--end-y', endY + 'px');
+        
+        // Рандомизируем задержку и скорость полета каждой искры
+        spark.style.animationDelay = (Math.random() * 0.4).toFixed(2) + 's';
+        spark.style.animationDuration = (0.8 + Math.random() * 0.6).toFixed(2) + 's';
+        
+        document.body.appendChild(spark);
+        
+        // Удаляем элемент после завершения полета
+        setTimeout(() => {
+          spark.remove();
+        }, 2000);
+      }
+    }
+
+    // Функция обновления прожектора при перемещении/зумировании карты в реальном времени
+    function updateSpotlightTrack() {
+      if (!isCardActive) return;
+      const cone = document.getElementById('hologram-light-cone');
+      if (!cone) return;
+
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      
+      // Вычисляем новые экранные координаты Санкт-Петербурга
+      const spbPoint = map.latLngToContainerPoint(stPetersburgCoords);
+      const spbX = ((spbPoint.x / w) * 100).toFixed(1);
+      const spbY = ((spbPoint.y / h) * 100).toFixed(1);
+
+      // Устанавливаем новые координаты источника света для прожектора
+      cone.style.setProperty('--spotlight-x', `${spbX}%`);
+      cone.style.setProperty('--spotlight-y', `${spbY}%`);
+
+      // Координаты углов карточки
+      const targetLeft = cardTargetLeftPercent / 100;
+      const targetTop = cardTargetTopPercent / 100;
+      const cardW = 640;
+      const cardH = 370;
+
+      const targetX = w * targetLeft;
+      const targetY = h * targetTop;
+
+      const xTL = (((targetX - cardW/2) / w) * 100).toFixed(1);
+      const yTL = (((targetY - cardH/2) / h) * 100).toFixed(1);
+      const xTR = (((targetX + cardW/2) / w) * 100).toFixed(1);
+      const yTR = (((targetY - cardH/2) / h) * 100).toFixed(1);
+      const xBR = (((targetX + cardW/2) / w) * 100).toFixed(1);
+      const yBR = (((targetY + cardH/2) / h) * 100).toFixed(1);
+      const xBL = (((targetX - cardW/2) / w) * 100).toFixed(1);
+      const yBL = (((targetY + cardH/2) / h) * 100).toFixed(1);
+
+      cone.style.clipPath = `polygon(${spbX}% ${spbY}%, ${xTL}% ${yTL}%, ${xTR}% ${yTR}%, ${xBR}% ${yBR}%, ${xBL}% ${yBL}%)`;
+    }
+
+    // Регистрируем обработчик на перемещение карты
+    map.on('move', updateSpotlightTrack);
+
+    // Инициализация парящих золотых искр отключена по запросу пользователя
+    (function initMagicalEnvironment() {
+      const canvas = document.getElementById('stars-canvas');
+      if (canvas) {
+        canvas.style.display = 'none';
+      }
+    })();
+
+    // === ДИНАМИЧЕСКАЯ СМЕНА ГОЛОГРАММ (СЛУЧАЙНЫЕ ЭФФЕКТЫ И ПОЗИЦИИ) ===
+    const fortressEl = document.querySelector('.hologram-skyline-overlay');
+    const peterEl = document.querySelector('.hologram-peter-overlay');
+    const scanlineEl = document.querySelector('.hologram-scanline');
+
+    let currentHologram = 'none'; // 'fortress', 'peter', 'none'
+    let hologramTimer = null;
+
+    // Курированная неоново-барочная палитра для голограмм
+    const NEON_PALETTE = [
+      { color: '#ffd700', shadow: 'rgba(255, 215, 0, 0.5)' }, // Царский золотой
+      { color: '#ff8c00', shadow: 'rgba(255, 140, 0, 0.5)' }, // Янтарный огонь
+      { color: '#00e5ff', shadow: 'rgba(0, 229, 255, 0.5)' }, // Бирюзовая голограмма
+      { color: '#00e676', shadow: 'rgba(0, 230, 118, 0.5)' }, // Изумрудная ассамблея
+      { color: '#d500f9', shadow: 'rgba(213, 0, 249, 0.5)' }  // Императорский пурпур
+    ];
+
+    function resetAnimations(el) {
+      el.className = el.className.split(' ')[0]; // оставляем только базовый класс
+      el.style.opacity = '0';
+      el.style.transform = '';
+      el.style.clipPath = '';
+      // Сбрасываем инлайн-переменные
+      el.style.removeProperty('--hologram-shift-x');
+      el.style.removeProperty('--hologram-shift-y');
+      el.style.removeProperty('--hologram-scale-x');
+      el.style.removeProperty('--hologram-scale-y');
+      el.style.removeProperty('--hologram-scale');
+      el.style.removeProperty('--hologram-rotate');
+      el.style.removeProperty('--hologram-duration');
+      el.style.removeProperty('--hologram-glow-color');
+      void el.offsetWidth;
+    }
+
+    function showHologram(type) {
+      const activeEl = type === 'fortress' ? fortressEl : peterEl;
+      resetAnimations(fortressEl);
+      resetAnimations(peterEl);
+      
+      // 1. Выбор случайного цвета
+      const randomColor = NEON_PALETTE[Math.floor(Math.random() * NEON_PALETTE.length)];
+      activeEl.style.setProperty('--hologram-glow-color', randomColor.color);
+      // Задаем цвет и свечение сканирующего луча
+      scanlineEl.style.setProperty('--hologram-glow-color', randomColor.color);
+
+      // 2. Расчет случайного местоположения, масштаба и наклона
+      let shiftX, shiftY, scaleVal, rotateVal, scaleXSign = 1;
+      
+      if (type === 'fortress') {
+        shiftX = (Math.random() * 12 - 6).toFixed(1) + 'vw';   // от -6vw до +6vw (чтобы крепость не выходила за края)
+        shiftY = (Math.random() * -3).toFixed(1) + 'vh';       // от -3vh до 0vh (только вверх, чтобы низ не обрезался)
+        scaleVal = (0.95 + Math.random() * 0.10).toFixed(2);   // от 0.95 до 1.05
+        rotateVal = (Math.random() * 1.6 - 0.8).toFixed(1) + 'deg'; // от -0.8deg до +0.8deg (минимальный крен)
+      } else {
+        shiftX = (Math.random() * 60 - 30).toFixed(1) + 'vw'; // от -30vw до +30vw
+        shiftY = (Math.random() * 13 - 5).toFixed(1) + 'vh';  // от -5vh до +8vh
+        scaleVal = (0.90 + Math.random() * 0.30).toFixed(2);  // от 0.90 до 1.20
+        rotateVal = (Math.random() * 6 - 3).toFixed(1) + 'deg'; // от -3deg до +3deg
+        scaleXSign = Math.random() > 0.5 ? 1 : -1;             // случайное отзеркаливание
+      }
+
+      if (isCardActive) {
+        shiftX = cardTargetSide === 'right' ? '-24vw' : '24vw';
+        if (type === 'fortress') {
+          scaleVal = 0.95;
+        }
+      }
+
+      activeEl.style.setProperty('--hologram-shift-x', shiftX);
+      activeEl.style.setProperty('--hologram-shift-y', shiftY);
+      activeEl.style.setProperty('--hologram-scale-x', scaleXSign);
+      activeEl.style.setProperty('--hologram-scale', scaleVal);
+      activeEl.style.setProperty('--hologram-rotate', rotateVal);
+
+      // 3. Выбор случайной длительности анимации (от 3.0с до 5.0с)
+      const durationSec = (3.0 + Math.random() * 2.0).toFixed(2);
+      activeEl.style.setProperty('--hologram-duration', durationSec + 's');
+      scanlineEl.style.setProperty('--hologram-duration', durationSec + 's');
+
+      // 4. Выбор одного из 8 случайных эффектов проявления
+      const effectIdx = Math.floor(Math.random() * 8);
+      
+      scanlineEl.className = 'hologram-scanline';
+      void scanlineEl.offsetWidth;
+
+      // Стили проявления:
+      // 0: scan-up (снизу вверх)
+      // 1: scan-down (сверху вниз)
+      // 2: scan-right (слева направо)
+      // 3: scan-left (справа налево)
+      // 4: curtain (занавес из центра)
+      // 5: radial (круговое расширение)
+      // 6: glitch-reveal (цифровой глитч)
+      // 7: glitch-strobe (стробоскопический глитч)
+      
+      const effectClasses = [
+        'effect-scan-up',
+        'effect-scan-down',
+        'effect-scan-right',
+        'effect-scan-left',
+        'effect-curtain-reveal',
+        'effect-radial',
+        'effect-glitch-reveal',
+        'effect-glitch-strobe'
+      ];
+      
+      const scanlineClasses = [
+        'scan-line-up',
+        'scan-line-down',
+        'scan-line-right',
+        'scan-line-left',
+        'scan-line-curtain',
+        'scan-line-radial',
+        '', // без луча для обычного глитча
+        ''  // без луча для стробоскопа
+      ];
+
+      activeEl.classList.add(effectClasses[effectIdx]);
+      if (scanlineClasses[effectIdx]) {
+        scanlineEl.classList.add(scanlineClasses[effectIdx]);
+      }
+
+      currentHologram = type;
+
+      // Фаза постоянного мерцания после проявления (адаптировано под длительность)
+      setTimeout(() => {
+        if (currentHologram === type) {
+          activeEl.classList.remove(...effectClasses);
+          const idleClass = type === 'fortress' ? 'effect-idle-flicker-fortress' : 'effect-idle-flicker-peter';
+          activeEl.classList.add(idleClass);
+        }
+      }, parseFloat(durationSec) * 1000);
+    }
+
+    function hideCurrentHologram(callback) {
+      const activeEl = currentHologram === 'fortress' ? fortressEl : (currentHologram === 'peter' ? peterEl : null);
+      if (activeEl) {
+        activeEl.className = activeEl.className.split(' ')[0]; // сброс idle-flicker
+        void activeEl.offsetWidth;
+        activeEl.classList.add('effect-fade-out');
+        setTimeout(() => {
+          resetAnimations(activeEl);
+          callback();
+        }, 1500);
+      } else {
+        callback();
+      }
+    }
+
+    function startHologramCycle() {
+      setTimeout(() => {
+        showHologram('fortress');
+        
+        hologramTimer = setInterval(() => {
+          hideCurrentHologram(() => {
+            const nextType = currentHologram === 'fortress' ? 'peter' : 'fortress';
+            showHologram(nextType);
+          });
+        }, 14000); // 14 секунд на один показ (включая плавное затухание)
+      }, 2000);
+    }
+
+    // Загрузка при открытии
+    window.addEventListener('DOMContentLoaded', () => {
+      loadData();
+      startHologramCycle();
+    });
+  </script>
+</body>
+</html>

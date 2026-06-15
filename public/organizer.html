@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Петровская Ассамблея — Панель Организатора</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Alice&family=Marck+Script&family=Ruslan+Display&family=Bad+Script&family=Kelly+Slab&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Gabriela&family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Pattaya&family=Montserrat:wght@400;500;700;800;900&family=Forum&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=Oranienbaum&family=Spectral:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Caveat:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    body {
+      height: auto !important;
+      overflow: auto !important;
+    }
+    /* Переопределение темы на светлую */
+    body.hostess-body { background: #f4f6f9 !important; color: #2c3e50 !important; }
+    .hostess-header h1 { color: #1a252f !important; text-shadow: none !important; }
+    .main-tab-btn { background: #e2e6ea !important; color: #495057 !important; border-color: #dae0e5 !important; }
+    .main-tab-btn.active { background: #fff !important; color: #c39b52 !important; border-bottom: 2px solid #c39b52 !important; box-shadow: 0 -3px 10px rgba(0,0,0,0.05) !important; }
+    .admin-card { background: #ffffff !important; border: 1px solid #e0e6ed !important; box-shadow: 0 4px 15px rgba(0,0,0,0.03) !important; }
+    .admin-card h2, .admin-card h3, .admin-card label { color: #2c3e50 !important; }
+    .admin-card p { color: #6c757d !important; }
+    hr { border-top: 1px solid #e0e6ed !important; }
+    .form-input, .form-select { background: #fdfdfd !important; border: 1px solid #ced4da !important; color: #495057 !important; }
+    .form-input:focus, .form-select:focus { border-color: #c39b52 !important; outline: none; box-shadow: 0 0 5px rgba(195, 155, 82, 0.3) !important; }
+    
+    .guest-table { background: #fff !important; }
+    .guest-table th { background: #f8f9fa !important; color: #495057 !important; border-bottom: 2px solid #dee2e6 !important; cursor: pointer; transition: background 0.2s; user-select: none; }
+    .guest-table th:hover { background: #e9ecef !important; }
+    .guest-table td { color: #212529 !important; border-bottom: 1px solid #e9ecef !important; }
+    .guest-table tr:hover td { background: #f1f3f5 !important; }
+    
+    .file-upload-block { background: #f8f9fa !important; border: 2px dashed #ced4da !important; padding: 20px; border-radius: 8px; text-align: center; margin-bottom: 20px; transition: all 0.3s; }
+    .file-upload-block.active { background: #fff8e1 !important; border-color: #c39b52 !important; }
+    .file-upload-block h3 { color: #c39b52 !important; font-family: 'Alice', serif; }
+    
+    .table-container { background: transparent !important; border: 1px solid #e0e6ed !important; border-radius: 8px; overflow: auto !important; }
+
+    .stats-panel-light { display: flex; gap: 15px; margin-bottom: 15px; }
+    .stat-card-light { flex: 1; background: #fff; border: 1px solid #e0e6ed; border-radius: 8px; padding: 15px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+    .stat-val-light { font-size: 1.8rem; font-weight: bold; color: #c39b52; font-family: 'Playfair Display', serif; }
+    .stat-lbl-light { font-size: 0.85rem; color: #6c757d; text-transform: uppercase; margin-top: 5px; letter-spacing: 0.5px; }
+
+    .search-wrapper-light { margin-bottom: 15px; display: flex; gap: 10px; align-items: center; }
+    .search-input-light { flex: 1; padding: 10px 15px; border: 1px solid #ced4da; border-radius: 6px; font-size: 0.95rem; }
+    .search-input-light:focus { border-color: #c39b52; outline: none; }
+
+    .btn-delete-row { background: #ff4d4d; color: #fff; border: none; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; transition: background 0.2s; }
+    .btn-delete-row:hover { background: #cc0000; }
+
+    .sort-icon { display: inline-block; margin-left: 5px; font-size: 0.8rem; color: #adb5bd; }
+
+    /* Предупреждение о локальном запуске */
+    #local-warning {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+      background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center;
+    }
+    .local-warning-box {
+      background: #fff; padding: 30px; border-radius: 12px; max-width: 500px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    .local-warning-box h2 { color: #d9534f; margin-top: 0; }
+    .local-warning-box p { color: #333; font-size: 1.1rem; line-height: 1.5; }
+    .local-warning-box code { background: #f4f4f4; padding: 5px 10px; border-radius: 4px; font-weight: bold; color: #d14; }
+
+    /* Дипломы специфичные фиксы */
+    #panel-diplomas h3 {
+      margin-top: 20px; margin-bottom: 12px; color: #c39b52; font-family: 'Alice', serif;
+      font-size: 1.15rem; border-bottom: 1px dashed rgba(195, 155, 82, 0.5); padding-bottom: 5px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+  </style>
+</head>
+<body class="hostess-body">
+
+  <div id="local-warning">
+    <div class="local-warning-box">
+      <h2>Supabase-инициализация</h2>
+      <p>Панель работает прямо в браузере. Для создания таблиц нажмите кнопку ниже и вызовите Edge Function с правами сервиса на стороне Supabase.</p>
+      <p><code>init-database</code> создаёт базовую таблицу гостей и включает Realtime.</p>
+      <button onclick="document.getElementById('local-warning').style.display='none'" style="margin-top: 15px; padding: 10px 20px; background: linear-gradient(135deg, #c39b52, #ffd700); color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-family: 'Montserrat', sans-serif;">ПРОДОЛЖИТЬ РАБОТУ</button>
+    </div>
+  </div>
+
+  <div class="hostess-container" style="height: auto; max-width: 1250px; padding-bottom: 50px;">
+    <header class="hostess-header" style="position: relative; margin-bottom: 30px;">
+      <h1>Петровская Ассамблея</h1>
+      <p style="font-family: 'Playfair Display', serif; font-style: italic; color: #6c757d; font-size: 1.15rem;">Панель организатора: Инструменты и Списки</p>
+    </header>
+
+    <div class="main-tabs">
+      <button class="main-tab-btn active" id="tab-btn-merge">ОБЪЕДИНЕНИЕ И РАБОТА СО СПИСКАМИ</button>
+      <button class="main-tab-btn" id="tab-btn-diplomas">ДИПЛОМЫ (PDF)</button>
+    </div>
+
+    <!-- Вкладка 1: Объединение списков -->
+    <div id="panel-merge">
+      <div class="admin-grid" style="grid-template-columns: 1fr 1.8fr; gap: 20px;">
+        
+        <!-- Левая часть: Загрузка файлов -->
+        <div class="admin-card">
+          <h2>Импорт таблиц Excel</h2>
+          <p style="font-size: 0.85rem; margin-bottom: 15px;">Загрузите выгрузки. Алгоритм автоматически сопоставит гостей по ФИО.</p>
+          
+          <input type="file" id="file-tables" accept=".xlsx, .xls, .csv" style="display: none;">
+          <input type="file" id="file-payments" accept=".xlsx, .xls, .csv" style="display: none;">
+
+          <div class="file-upload-block" id="dropzone-tables">
+            <h3>1. Таблица со столами</h3>
+            <p style="font-size: 0.8rem;">Колонки "1 стол", "2 стол" и т.д., а в строках имена.</p>
+            <button class="add-vip-btn" onclick="document.getElementById('file-tables').click()" style="margin: 0 auto; padding: 8px 15px; font-size: 0.85rem;">Выбрать файл</button>
+            <div id="status-tables" style="margin-top: 10px; font-size: 0.8rem; color: #28a745; font-weight: bold; display: none;">✓ Файл успешно загружен</div>
+          </div>
+
+          <div class="file-upload-block" id="dropzone-payments">
+            <h3>2. Таблица оплат и статусов</h3>
+            <p style="font-size: 0.8rem;">Колонки: ФИО, Статус, Город, Сумма оплаты.</p>
+            <button class="add-vip-btn" onclick="document.getElementById('file-payments').click()" style="margin: 0 auto; padding: 8px 15px; font-size: 0.85rem;">Выбрать файл</button>
+            <div id="status-payments" style="margin-top: 10px; font-size: 0.8rem; color: #28a745; font-weight: bold; display: none;">✓ Файл успешно загружен</div>
+          </div>
+
+          <button class="reset-db-btn" id="btn-merge" style="width: 100%; margin: 10px 0 0 0; padding: 14px; font-weight: bold; background: linear-gradient(135deg, #c39b52, #ffd700); color: #000; border: none; cursor: pointer; border-radius: 6px; font-size: 1rem; box-shadow: 0 4px 10px rgba(195,155,82,0.3);">
+            🔄 ОБЪЕДИНИТЬ ДАННЫЕ
+          </button>
+          <button class="add-vip-btn" id="btn-init-db" style="width: 100%; margin: 10px 0 0 0; padding: 14px; font-weight: bold; border: none; cursor: pointer; border-radius: 6px; font-size: 1rem;">
+            ИНИЦИАЛИЗИРОВАТЬ БАЗУ ДАННЫХ
+          </button>
+          <div id="init-db-status" style="margin-top: 10px; font-size: 0.85rem; color: #6c757d; line-height: 1.5;"></div>
+          
+          <!-- Блок ручной инициализации через SQL -->
+          <div id="sql-fallback-box" style="display: none; margin-top: 15px; padding: 12px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 6px; font-size: 0.85rem;">
+            <p style="margin: 0 0 8px 0; color: #b78103; font-weight: bold;">⚠️ Настройка через SQL Editor (рекомендуется):</p>
+            <p style="margin: 0 0 10px 0; color: #555; font-size: 0.8rem; line-height: 1.4;">Запрос заблокирован CORS (запуск из локального файла). Скопируйте SQL-код ниже, откройте <b>SQL Editor</b> (кнопка "+ New query") в вашей консоли Supabase, вставьте код и нажмите <b>Run</b>.</p>
+            <textarea id="sql-code-area" readonly style="width: 100%; height: 120px; font-family: monospace; font-size: 0.75rem; padding: 6px; border: 1px solid #ced4da; border-radius: 4px; background: #fff; resize: vertical;" onclick="this.select(); document.execCommand('copy'); alert('SQL-код скопирован!');" placeholder="SQL-код для базы данных..."></textarea>
+            <button class="add-vip-btn" style="width: 100%; margin-top: 8px; font-size: 0.8rem; padding: 8px; cursor: pointer;" onclick="document.getElementById('sql-code-area').select(); document.execCommand('copy'); alert('SQL-код скопирован!');">Скопировать SQL-код</button>
+          </div>
+        </div>
+
+        <!-- Правая часть: Управление списком -->
+        <div class="admin-card" style="display: flex; flex-direction: column;">
+          
+          <div class="stats-panel-light">
+            <div class="stat-card-light">
+              <div class="stat-val-light" id="stat-count">0</div>
+              <div class="stat-lbl-light">Всего гостей в списке</div>
+            </div>
+            <div class="stat-card-light">
+              <div class="stat-val-light" id="stat-sum" style="color: #28a745;">0 ₽</div>
+              <div class="stat-lbl-light">Общая сумма оплат</div>
+            </div>
+          </div>
+
+          <div class="search-wrapper-light">
+            <input type="text" id="merge-search" class="search-input-light" placeholder="Поиск по ФИО, столу или городу...">
+          </div>
+          
+          <div class="table-container" style="flex: 1; max-height: 480px;">
+            <table class="guest-table" style="font-size: 0.85rem;">
+              <thead>
+                <tr>
+                  <th onclick="sortTable('fullName')">ФИО <span class="sort-icon" id="sort-fullName">↕</span></th>
+                  <th onclick="sortTable('tableNumber')" style="width: 80px;">Стол <span class="sort-icon" id="sort-tableNumber">↕</span></th>
+                  <th onclick="sortTable('status')">Статус <span class="sort-icon" id="sort-status">↕</span></th>
+                  <th onclick="sortTable('city')">Город <span class="sort-icon" id="sort-city">↕</span></th>
+                  <th onclick="sortTable('payment')">Оплата <span class="sort-icon" id="sort-payment">↕</span></th>
+                  <th style="width: 60px; text-align: center;">Удалить</th>
+                </tr>
+              </thead>
+              <tbody id="merge-table-body">
+                <tr>
+                  <td colspan="6" style="text-align: center; color: #a89498; padding: 30px;">Загрузите файлы слева и нажмите "Объединить данные", чтобы увидеть сводку.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top: 15px; display: flex; gap: 15px;">
+            <button class="add-vip-btn" id="btn-sync-db" style="flex: 1; margin: 0; display: none; background: #28a745; border-color: #28a745; color: #fff;">
+              📤 ОТПРАВИТЬ В БАЗУ РЕГИСТРАЦИИ (ХОСТЕС)
+            </button>
+            <button class="reset-db-btn" id="btn-export-excel" style="flex: 1; margin: 0; display: none; background: #fff; border: 1px solid #ced4da; color: #2c3e50;">
+              💾 СКАЧАТЬ В EXCEL
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Вкладка 2: Дипломы (PDF) -->
+    <div id="panel-diplomas" style="display: none;">
+      <div class="admin-grid" style="grid-template-columns: 1fr 1.2fr; gap: 30px; margin-top: 15px;">
+        
+        <!-- Настройки генерации -->
+        <div class="admin-card" style="text-align: left;">
+          <h2>Печать верительных грамот</h2>
+          
+          <div class="form-group">
+            <label for="diploma-group-select">Группа гостей для экспорта</label>
+            <select id="diploma-group-select" class="form-select">
+              <option value="guest">Все почетные гости (ПОЧЕТНЫЙ ГОСТЬ)</option>
+              <option value="Silver">Все со статусом Silver (серебро)</option>
+              <option value="GOLD">Все со статусом GOLD (золото)</option>
+              <option value="PLATINUM">Все со статусом PLATINUM (платинум)</option>
+              <option value="TITANIUM">Все со статусом TITANIUM (титан)</option>
+              <option value="JADE">Все со статусом JADE (джейд)</option>
+              <option value="PEARL">Все со статусом PEARL (Перл)</option>
+              <option value="RUBY">Все со статусом RUBY (Рубин)</option>
+              <option value="arrived">Все прибывшие гости</option>
+              <option value="all">Все приглашенные в списке</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="diploma-preview-guest">Гость для предпросмотра</label>
+            <select id="diploma-preview-guest" class="form-select"></select>
+          </div>
+          
+          <hr>
+          <h3>Настройки ФИО (Строка 1)</h3>
+          <div class="form-group">
+            <label for="diploma-name-y">Смещение по вертикали (Y): <span id="val-name-y">1258</span>px</label>
+            <input type="range" id="diploma-name-y" min="800" max="1500" step="5" value="1258" style="width: 100%; accent-color: #c39b52;">
+          </div>
+          
+          <div class="form-group" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px;">
+            <div>
+              <label for="diploma-name-font">Шрифт ФИО</label>
+              <select id="diploma-name-font" class="form-select">
+                <option value="Alice" selected>Alice (Антиква)</option>
+                <option value="Cormorant Garamond">Cormorant Garamond (Королевский)</option>
+                <option value="Marck Script">Marck Script (Каллиграфия)</option>
+                <option value="Ruslan Display">Ruslan Display (Древнерусский)</option>
+                <option value="Bad Script">Bad Script (Рукописный)</option>
+                <option value="Kelly Slab">Kelly Slab (Имперский)</option>
+                <option value="Forum">Forum (Римский монументальный)</option>
+                <option value="Old Standard TT">Old Standard TT (Старопечатный)</option>
+                <option value="Oranienbaum">Oranienbaum (Имперская антиква)</option>
+                <option value="Spectral">Spectral (Литературный)</option>
+                <option value="Caveat">Caveat (Небрежный рукописный)</option>
+                <option value="Playfair Display">Playfair Display (Классический)</option>
+                <option value="Montserrat">Montserrat</option>
+              </select>
+            </div>
+            <div>
+              <label for="diploma-name-style">Стиль шрифта</label>
+              <select id="diploma-name-style" class="form-select">
+                <option value="normal" selected>Обычный</option>
+                <option value="italic">Курсив</option>
+                <option value="bold">Полужирный</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+            <div>
+              <label for="diploma-name-size">Размер ФИО: <span id="val-name-size">75</span>px</label>
+              <input type="range" id="diploma-name-size" min="30" max="150" step="1" value="75" style="width: 100%; accent-color: #c39b52;">
+            </div>
+            <div>
+              <label for="diploma-line-gap">Интервал: <span id="val-line-gap">88</span>px</label>
+              <input type="range" id="diploma-line-gap" min="10" max="200" step="1" value="88" style="width: 100%; accent-color: #c39b52;">
+            </div>
+          </div>
+
+          <div class="form-group" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 10px;">
+            <div>
+              <label for="diploma-name-case">Склонение имени</label>
+              <select id="diploma-name-case" class="form-select">
+                <option value="nominative" selected>Именительный (Иван Никитин)</option>
+                <option value="genitive">Родительный (Ивана Никитина)</option>
+                <option value="dative">Дательный (Ивану Никитину)</option>
+              </select>
+            </div>
+            <div style="display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-top: 10px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; color: #495057; font-size: 0.85rem;">
+                <input type="checkbox" id="diploma-exclude-patronymic" checked style="accent-color: #c39b52;">
+                Без отчества
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; text-transform: none; color: #495057; font-size: 0.85rem;">
+                <input type="checkbox" id="diploma-show-city" style="accent-color: #c39b52;">
+                Печатать город
+              </label>
+            </div>
+          </div>
+          
+          <hr>
+          <h3>Настройки Города (Строка 2)</h3>
+          <div class="form-group">
+            <label for="diploma-city-template">Шаблон текста города</label>
+            <input type="text" id="diploma-city-template" class="form-input" value="г. {city}" placeholder="Например, г. {city} или из {city}">
+          </div>
+
+          <div class="form-group">
+            <label for="diploma-city-y">Смещение по вертикали (Y): <span id="val-city-y">1520</span>px</label>
+            <input type="range" id="diploma-city-y" min="1000" max="1800" step="5" value="1520" style="width: 100%; accent-color: #c39b52;">
+          </div>
+          
+          <div class="form-group" style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 10px;">
+            <div>
+              <label for="diploma-city-font">Шрифт города</label>
+              <select id="diploma-city-font" class="form-select">
+                <option value="Alice" selected>Alice (Антиква)</option>
+                <option value="Marck Script">Marck Script (Каллиграфия)</option>
+                <option value="Playfair Display">Playfair Display (Классический)</option>
+              </select>
+            </div>
+            <div>
+              <label for="diploma-city-style">Стиль шрифта</label>
+              <select id="diploma-city-style" class="form-select">
+                <option value="italic" selected>Курсив</option>
+                <option value="normal">Обычный</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="diploma-city-size">Размер шрифта: <span id="val-city-size">55</span>px</label>
+            <input type="range" id="diploma-city-size" min="20" max="120" step="1" value="55" style="width: 100%; accent-color: #c39b52;">
+          </div>
+
+          <hr>
+          <div class="form-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: center;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <label for="diploma-color" style="margin-bottom: 0;">Цвет надписей</label>
+                <label style="display: flex; align-items: center; gap: 4px; cursor: pointer; color: #c39b52; font-size: 0.8rem; text-transform: none;">
+                  <input type="checkbox" id="diploma-auto-color" checked style="accent-color: #c39b52;">
+                  Автоцвет
+                </label>
+              </div>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="color" id="diploma-color" value="#5c3f1a" style="border: 0; width: 45px; height: 35px; border-radius: 4px; cursor: pointer; background: transparent;">
+                <input type="text" id="diploma-color-text" class="form-input" value="#5c3f1a" style="text-transform: uppercase; padding: 6px 10px;">
+              </div>
+            </div>
+            <div>
+              <label for="diploma-letter-spacing">Межбуквенный интервал</label>
+              <input type="number" id="diploma-letter-spacing" class="form-input" min="0" max="15" value="0">
+            </div>
+          </div>
+
+          <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 12px;">
+            <button class="add-vip-btn" id="btn-download-selected" style="width: 100%; margin: 0; padding: 12px; font-weight: bold; background: linear-gradient(135deg, #c39b52, #ffd700); color: #000; border: none; border-radius: 6px; cursor: pointer;">
+              📥 СКАЧАТЬ ВЫБРАННЫЙ ДИПЛОМ (PDF)
+            </button>
+            <button class="reset-db-btn" id="btn-download-mass" style="width: 100%; margin: 0; padding: 12px; font-weight: bold; background: #2c3e50; color: #fff; border: none; border-radius: 6px; cursor: pointer;">
+              📜 СКАЧАТЬ ВСЕ ДИПЛОМЫ ГРУППЫ
+            </button>
+          </div>
+          
+          <div id="mass-progress-container" style="display: none; margin-top: 20px; padding: 15px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 8px;">
+            <div style="font-size: 0.9rem; color: #2c3e50; margin-bottom: 8px; display: flex; justify-content: space-between;" id="mass-progress-text">
+              <span>Идет печать дипломов...</span>
+              <span id="mass-progress-percent">0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e9ecef; border-radius: 4px; overflow: hidden;">
+              <div id="mass-progress-bar" style="width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease;"></div>
+            </div>
+          </div>
+          
+          <hr>
+          <h3>Облачные шаблоны (Supabase Storage)</h3>
+          <p style="font-size: 0.8rem; color: #6c757d; margin-bottom: 10px;">Загрузите файлы макетов, чтобы они хранились в облаке Supabase.</p>
+          <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px;" id="storage-templates-list"></div>
+        </div>
+        
+        <!-- Предпросмотр -->
+        <div class="admin-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 550px;">
+          <h2 style="margin-bottom: 15px;">Предпросмотр грамоты</h2>
+          
+          <div id="diploma-canvas-container" style="position: relative; width: 100%; max-width: 420px; border: 1px solid #ced4da; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); background: #fdfdfd; aspect-ratio: 1696/2528; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            <div id="diploma-loading" style="font-size: 1.1rem; color: #6c757d; font-family: 'Alice', serif;">Загрузка шаблона...</div>
+            <canvas id="diploma-preview-canvas" style="display: none; width: 100%; height: 100%; object-fit: contain;"></canvas>
+          </div>
+          <p style="font-size: 0.8rem; color: #adb5bd; margin-top: 15px; font-style: italic; max-width: 420px; text-align: center;">
+            * Разрешение оригинала 1696x2528px. Текст в PDF будет четким.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Проверка протокола
+    if (window.location.protocol === 'file:') {
+      document.getElementById('local-warning').style.display = 'flex';
+    }
+
+    const sb = window.sb;
+    const initDbBtn = document.getElementById('btn-init-db');
+    const initDbStatus = document.getElementById('init-db-status');
+
+    // ==========================================
+    // ЛОГИКА ВКЛАДОК
+    // ==========================================
+    const tabMergeBtn = document.getElementById('tab-btn-merge');
+    const tabDiplomasBtn = document.getElementById('tab-btn-diplomas');
+    const panelMerge = document.getElementById('panel-merge');
+    const panelDiplomas = document.getElementById('panel-diplomas');
+
+    tabMergeBtn.addEventListener('click', () => {
+      tabMergeBtn.classList.add('active');
+      tabDiplomasBtn.classList.remove('active');
+      panelMerge.style.display = 'block';
+      panelDiplomas.style.display = 'none';
+    });
+
+    tabDiplomasBtn.addEventListener('click', () => {
+      tabDiplomasBtn.classList.add('active');
+      tabMergeBtn.classList.remove('active');
+      panelMerge.style.display = 'none';
+      panelDiplomas.style.display = 'block';
+      
+      checkTemplatesInStorage();
+      loadDiplomaTemplate().then(() => {
+        updateGroupGuests();
+        syncAutoColorUI();
+        drawPreview();
+      }).catch(err => {
+        console.warn('Diploma template loading failed:', err);
+      });
+    });
+
+    // ==========================================
+    // ЛОГИКА ОБЪЕДИНЕНИЯ И СПИСКОВ
+    // ==========================================
+    let tablesData = [];
+    let paymentsData = [];
+    let mergedData = []; // Оригинальный объединенный массив
+    let displayData = []; // Массив для отображения (с учетом сортировки/поиска)
+    
+    let currentSortColumn = '';
+    let sortAscending = true;
+
+    const fileTables = document.getElementById('file-tables');
+    const filePayments = document.getElementById('file-payments');
+
+    fileTables.addEventListener('change', (e) => {
+      if(e.target.files.length > 0) {
+        document.getElementById('status-tables').style.display = 'block';
+        document.getElementById('dropzone-tables').classList.add('active');
+        parseTablesExcel(e.target.files[0]);
+      }
+    });
+
+    filePayments.addEventListener('change', (e) => {
+      if(e.target.files.length > 0) {
+        document.getElementById('status-payments').style.display = 'block';
+        document.getElementById('dropzone-payments').classList.add('active');
+        parsePaymentsExcel(e.target.files[0]);
+      }
+    });
+
+    function parseTablesExcel(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
+        tablesData = [];
+        if(json.length > 0) {
+          const headers = json[0];
+          for(let r = 1; r < json.length; r++) {
+            const row = json[r];
+            for(let c = 0; c < headers.length; c++) {
+              if(row[c] && typeof row[c] === 'string' && row[c].trim().length > 0) {
+                let tableNum = headers[c];
+                if(typeof tableNum === 'string') {
+                  const match = tableNum.match(/\d+/);
+                  if(match) tableNum = match[0];
+                }
+                tablesData.push({ name: row[c].trim(), table: String(tableNum) });
+              }
+            }
+          }
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function parsePaymentsExcel(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, {type: 'array'});
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet);
+        paymentsData = [];
+        json.forEach(row => {
+          let name = "", status = "Silver", city = "", payment = 0;
+          for(let key in row) {
+            const kl = key.toLowerCase();
+            const val = row[key];
+            if(kl.includes('фио') || kl.includes('список') || kl.includes('имя')) name = val;
+            else if(kl.includes('статус')) status = val;
+            else if(kl.includes('город') || kl.includes('земля')) city = val;
+            else if(kl.includes('оплат') || kl.includes('сумма')) payment = val;
+          }
+          if(name && typeof name === 'string' && name.trim().length > 0) {
+            paymentsData.push({
+              name: name.trim(),
+              status: status ? String(status).trim() : 'Silver',
+              city: city ? String(city).trim() : '',
+              payment: parseInt(String(payment).replace(/[^\d]/g, '')) || 0
+            });
+          }
+        });
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function normalizeName(name) {
+      return name.toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ').trim();
+    }
+
+    document.getElementById('btn-merge').addEventListener('click', () => {
+      if(tablesData.length === 0 && paymentsData.length === 0) {
+        alert("Загрузите хотя бы одну таблицу.");
+        return;
+      }
+      mergedData = [];
+      const usedTables = new Set();
+      
+      let baseId = 1;
+      paymentsData.forEach(p => {
+        const normNameP = normalizeName(p.name);
+        let table = "";
+        for(let i=0; i<tablesData.length; i++) {
+          const t = tablesData[i];
+          const normNameT = normalizeName(t.name);
+          if(normNameT === normNameP || normNameP.includes(normNameT) || normNameT.includes(normNameP)) {
+            table = t.table;
+            usedTables.add(i);
+            break;
+          }
+        }
+        mergedData.push({ id: baseId++, fullName: p.name, tableNumber: table, status: p.status, city: p.city, payment: p.payment, isArrived: false });
+      });
+
+      tablesData.forEach((t, i) => {
+        if(!usedTables.has(i)) {
+          mergedData.push({ id: baseId++, fullName: t.name, tableNumber: t.table, status: 'Silver', city: '', payment: 0, isArrived: false });
+        }
+      });
+
+      applyFiltersAndSort();
+      document.getElementById('btn-sync-db').style.display = 'block';
+      document.getElementById('btn-export-excel').style.display = 'block';
+    });
+
+    document.getElementById('merge-search').addEventListener('input', () => {
+      applyFiltersAndSort();
+    });
+
+    function sortTable(column) {
+      if (currentSortColumn === column) {
+        sortAscending = !sortAscending;
+      } else {
+        currentSortColumn = column;
+        sortAscending = true;
+      }
+      
+      document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '↕');
+      const sortIcon = document.getElementById(`sort-${column}`);
+      if (sortIcon) sortIcon.textContent = sortAscending ? '↑' : '↓';
+
+      applyFiltersAndSort();
+    }
+
+    async function deleteRow(id) {
+      if (!confirm('Вы уверены, что хотите удалить этого гостя из базы данных?')) return;
+      
+      try {
+        const { error } = await sb.from('guests').delete().eq('id', id);
+        if (error) {
+          console.error('Ошибка при удалении из Supabase:', error);
+          alert('Не удалось удалить гостя из базы данных: ' + error.message);
+          return;
+        }
+      } catch (err) {
+        console.error('Исключение при удалении:', err);
+        alert('Ошибка при соединении с базой: ' + err.message);
+        return;
+      }
+
+      mergedData = mergedData.filter(g => g.id !== id);
+      if (typeof allGuests !== 'undefined') {
+        allGuests = allGuests.filter(g => g.id !== id);
+      }
+      applyFiltersAndSort();
+      updateGroupGuests();
+    }
+
+    function applyFiltersAndSort() {
+      const searchTxt = document.getElementById('merge-search').value.toLowerCase();
+      
+      displayData = mergedData.filter(g => {
+        if (!searchTxt) return true;
+        return (g.fullName.toLowerCase().includes(searchTxt) || 
+               (g.city && g.city.toLowerCase().includes(searchTxt)) ||
+               (g.tableNumber && g.tableNumber.toLowerCase().includes(searchTxt)));
+      });
+
+      if (currentSortColumn) {
+        displayData.sort((a, b) => {
+          let valA = a[currentSortColumn] || '';
+          let valB = b[currentSortColumn] || '';
+          
+          if (currentSortColumn === 'payment') {
+            valA = Number(valA) || 0;
+            valB = Number(valB) || 0;
+            return sortAscending ? valA - valB : valB - valA;
+          } else if (currentSortColumn === 'tableNumber') {
+            const numA = parseInt(valA) || 999;
+            const numB = parseInt(valB) || 999;
+            return sortAscending ? numA - numB : numB - numA;
+          } else {
+            valA = String(valA).toLowerCase();
+            valB = String(valB).toLowerCase();
+            if (valA < valB) return sortAscending ? -1 : 1;
+            if (valA > valB) return sortAscending ? 1 : -1;
+            return 0;
+          }
+        });
+      }
+
+      renderMergeTable();
+      updateStats();
+    }
+
+    function renderMergeTable() {
+      const tbody = document.getElementById('merge-table-body');
+      tbody.innerHTML = '';
+      
+      if(displayData.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">Нет данных по заданному фильтру</td></tr>';
+        return;
+      }
+
+      displayData.forEach(g => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${g.fullName}</td>
+          <td><b>${g.tableNumber || '-'}</b></td>
+          <td>${g.status}</td>
+          <td>${g.city || '-'}</td>
+          <td>${g.payment ? g.payment.toLocaleString('ru-RU') + ' ₽' : '0'}</td>
+          <td style="text-align: center;">
+            <button class="btn-delete-row" onclick="deleteRow(${g.id})">✖</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateStats() {
+      document.getElementById('stat-count').textContent = displayData.length;
+      const totalSum = displayData.reduce((sum, g) => sum + (Number(g.payment) || 0), 0);
+      document.getElementById('stat-sum').textContent = totalSum.toLocaleString('ru-RU') + ' ₽';
+    }
+
+    document.getElementById('btn-sync-db').addEventListener('click', async () => {
+      if(!confirm("Это заменит текущую базу гостей. Продолжить?")) return;
+      try {
+        const payload = mergedData.map(guest => ({
+          full_name: guest.fullName,
+          table_number: guest.tableNumber || '',
+          status: guest.status || 'Silver',
+          city: guest.city || '',
+          payment: Number(guest.payment) || 0,
+          is_arrived: Boolean(guest.isArrived),
+          lat: Number.isFinite(Number(guest.lat)) ? Number(guest.lat) : 55.0,
+          lng: Number.isFinite(Number(guest.lng)) ? Number(guest.lng) : 37.0
+        }));
+
+        const { error: deleteError } = await sb.from('guests').delete().neq('id', 0);
+        if (deleteError) throw deleteError;
+
+        const { error } = await sb.from('guests').insert(payload);
+        if (error) throw error;
+        alert(`Успешно! База обновлена. Добавлено ${payload.length} гостей.`);
+        await fetchAllGuests();
+      } catch (err) { alert(`Ошибка при отправке в Supabase: ${err.message || err}`); }
+    });
+
+    document.getElementById('btn-export-excel').addEventListener('click', () => {
+      const exportData = mergedData.map(g => ({
+        "ФИО": g.fullName, "Стол": g.tableNumber, "Статус": g.status, "Город": g.city, "Оплата": g.payment
+      }));
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Сводка");
+      XLSX.writeFile(wb, "Петровская_Ассамблея_Сводка.xlsx");
+    });
+
+
+    // ==========================================
+    // ЛОГИКА ДИПЛОМОВ
+    // ==========================================
+    let allGuests = [];
+    
+    function formatNameWithoutPatronymic(name) {
+      if (!name) return '';
+      const parts = name.split(/\s+/);
+      return parts.filter((part, idx) => {
+        const clean = part.toLowerCase().replace(/[^а-яёa-z]/g, '');
+        const isPatronymicSuffix = clean.endsWith('ович') || clean.endsWith('евич') || clean.endsWith('овна') || clean.endsWith('евна') || (clean.endsWith('ич') && clean !== 'прокопович' && clean !== 'кович') || clean.endsWith('вна');
+        if (isPatronymicSuffix && idx > 0 && (idx < parts.length - 1 || parts.length > 2)) return false;
+        return true;
+      }).join(' ');
+    }
+
+    function getStatusForGuest(guest) { return (guest.status && guest.status.trim() !== '') ? guest.status : 'Silver'; }
+
+    function normalizeStatus(status) {
+      const norm = (status || '').trim().toLowerCase();
+      if (norm === 'ruby' || norm === 'рубин' || norm === '7') return 'ruby';
+      if (norm === 'pearl' || norm === 'перл' || norm === '6') return 'pearl';
+      if (norm === 'jade' || norm === 'джейд' || norm === '5') return 'jade';
+      if (norm === 'titanium' || norm === 'titan' || norm === 'титан' || norm === '4') return 'titanium';
+      if (norm === 'platinum' || norm === 'платинум' || norm === '3') return 'platinum';
+      if (norm === 'gold' || norm === 'золото' || norm === '2') return 'gold';
+      if (norm === 'silver' || norm === 'серебро' || norm === '1') return 'silver';
+      return 'guest';
+    }
+
+    async function fetchAllGuests() {
+      try {
+        console.log('[Supabase] Загрузка списка гостей...');
+        const { data, error } = await sb.from('guests').select('*').order('id');
+        console.log('[Supabase] Результат загрузки:', { count: data ? data.length : null, error });
+        if (error) {
+          const missingTable = error.code === 'PGRST116' || /could not find the table|does not exist|schema cache/i.test(error.message || '');
+          if (missingTable) {
+            allGuests = [];
+            updateGroupGuests();
+            return;
+          }
+          throw error;
+        }
+        allGuests = (data || []).map(g => ({
+          id: g.id,
+          fullName: g.full_name,
+          tableNumber: g.table_number || '',
+          status: g.status || 'Silver',
+          city: g.city || '',
+          payment: Number(g.payment) || 0,
+          isArrived: Boolean(g.is_arrived),
+          lat: Number(g.lat) || 55.0,
+          lng: Number(g.lng) || 37.0
+        }));
+        
+        // Отображаем существующих гостей в таблице
+        if (mergedData.length === 0 && allGuests.length > 0) {
+          mergedData = JSON.parse(JSON.stringify(allGuests));
+          applyFiltersAndSort();
+        }
+        
+        updateGroupGuests();
+      } catch (err) { console.error(err); }
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchAllGuests();
+      checkTemplatesInStorage();
+    });
+
+    const LOCAL_PATHS = {
+      'ruby': '../diplom/temps/Рубин.png', 'pearl': '../diplom/temps/Перл.png', 'jade': '../diplom/temps/джейд.png',
+      'titanium': '../diplom/temps/титан.png', 'platinum': '../diplom/temps/платинум.png', 'gold': '../diplom/temps/золото.png',
+      'silver': '../diplom/temps/серебро.png', 'guest': '../diplom/temps/Почетный гость.png'
+    };
+
+    const BUCKET_URL = 'https://pkillhsdugnsevogizum.supabase.co/storage/v1/object/public/diplomas/';
+    const TEMPLATE_PATHS = {
+      'ruby': BUCKET_URL + 'ruby.png',
+      'pearl': BUCKET_URL + 'pearl.png',
+      'jade': BUCKET_URL + 'jade.png',
+      'titanium': BUCKET_URL + 'titanium.png',
+      'platinum': BUCKET_URL + 'platinum.png',
+      'gold': BUCKET_URL + 'gold.png',
+      'silver': BUCKET_URL + 'silver.png',
+      'guest': BUCKET_URL + 'guest.png'
+    };
+
+    let diplomaImageObj = null; let currentTemplateStatus = null;
+
+    async function declineName(name, targetCase) {
+      if (targetCase === 'nominative') return name;
+      try {
+        const response = await fetch(`https://ws3.morpher.ru/russian/declension?s=${encodeURIComponent(name)}&format=json`);
+        if (response.ok) {
+          const data = await response.json();
+          if (targetCase === 'genitive' && data.Р) return data.Р;
+          if (targetCase === 'dative' && data.Д) return data.Д;
+        }
+      } catch (error) {}
+      return name;
+    }
+
+    function getAutoColorForStatus(status) {
+      const norm = normalizeStatus(status);
+      switch(norm) {
+        case 'ruby': return '#4a0a18'; case 'pearl': return '#1a334a'; case 'jade': return '#11331c';
+        case 'titanium': return '#222222'; case 'platinum': return '#1a1d2e'; case 'gold': return '#4a3300';
+        case 'silver': return '#1f2937'; case 'guest': return '#3d1a00'; default: return '#5c3f1a';
+      }
+    }
+
+    function syncAutoColorUI() {
+      if (document.getElementById('diploma-auto-color').checked && currentTemplateStatus) {
+        const autoColor = getAutoColorForStatus(currentTemplateStatus);
+        document.getElementById('diploma-color').value = autoColor;
+        document.getElementById('diploma-color-text').value = autoColor;
+      }
+    }
+
+    function loadDiplomaTemplate(status = 'silver') {
+      return new Promise((resolve, reject) => {
+        const normStatus = normalizeStatus(status);
+        if (diplomaImageObj && currentTemplateStatus === normStatus) return resolve(diplomaImageObj);
+
+        const canvas = document.getElementById('diploma-preview-canvas');
+        const loading = document.getElementById('diploma-loading');
+        canvas.style.display = 'none'; loading.style.display = 'block';
+
+        const img = new Image(); img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          diplomaImageObj = img; currentTemplateStatus = normStatus;
+          canvas.width = img.width; canvas.height = img.height;
+          syncAutoColorUI(); loading.style.display = 'none'; canvas.style.display = 'block'; resolve(img);
+        };
+        
+        let triedLocal = false;
+        img.onerror = () => {
+          if (!triedLocal) {
+            triedLocal = true;
+            console.log(`[Дипломы] Шаблон для ${normStatus} не найден в Storage, пробуем локальный...`);
+            img.removeAttribute('crossorigin');
+            img.src = LOCAL_PATHS[normStatus] || LOCAL_PATHS['silver'];
+          } else {
+            loading.style.display = 'none';
+            reject(new Error(`Failed to load template for ${normStatus}`));
+          }
+        };
+        
+        img.src = TEMPLATE_PATHS[normStatus] || TEMPLATE_PATHS['silver'];
+      });
+    }
+
+    function drawPreview() {
+      if (!diplomaImageObj) return;
+      const canvas = document.getElementById('diploma-preview-canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height); ctx.drawImage(diplomaImageObj, 0, 0);
+
+      const guestId = parseInt(document.getElementById('diploma-preview-guest').value);
+      if (isNaN(guestId)) return;
+      const guest = allGuests.find(g => g.id === guestId);
+      if (!guest) return;
+
+      const caseType = document.getElementById('diploma-name-case').value;
+      const excludePatronymic = document.getElementById('diploma-exclude-patronymic').checked;
+      let baseName = guest.fullName || '';
+      if (excludePatronymic) baseName = formatNameWithoutPatronymic(baseName);
+
+      declineName(baseName, caseType).then(finalName => drawTextOnCanvas(ctx, canvas, finalName, guest.city));
+    }
+
+    function drawTextOnCanvas(ctx, canvas, fullName, city) {
+      const centerX = canvas.width / 2; const fontColor = document.getElementById('diploma-color').value;
+      const letterSpacing = parseInt(document.getElementById('diploma-letter-spacing').value) || 0;
+      
+      const drawTextWithSpacing = (text, x, y, spacing) => {
+        if (spacing === 0) { ctx.fillText(text, x, y); return; }
+        ctx.textAlign = 'left'; let totalWidth = 0;
+        for (let i = 0; i < text.length; i++) totalWidth += ctx.measureText(text[i]).width + spacing;
+        totalWidth -= spacing; let currentX = x - (totalWidth / 2);
+        for (let i = 0; i < text.length; i++) { ctx.fillText(text[i], currentX, y); currentX += ctx.measureText(text[i]).width + spacing; }
+      };
+
+      const nameY = parseInt(document.getElementById('diploma-name-y').value);
+      const nameSize = parseInt(document.getElementById('diploma-name-size').value);
+      const nameFont = document.getElementById('diploma-name-font').value;
+      const nameStyle = document.getElementById('diploma-name-style').value;
+      const lineGap = parseInt(document.getElementById('diploma-line-gap').value);
+
+      ctx.font = `${nameStyle !== 'normal' ? nameStyle + ' ' : ''}${nameSize}px "${nameFont}", serif`;
+      ctx.fillStyle = fontColor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+
+      const parts = fullName.split(' ');
+      if (parts.length === 2) {
+        drawTextWithSpacing(parts[0], centerX, nameY - (lineGap/2), letterSpacing);
+        drawTextWithSpacing(parts[1], centerX, nameY + (lineGap/2), letterSpacing);
+      } else if (parts.length === 3) {
+        drawTextWithSpacing(parts[0], centerX, nameY - lineGap, letterSpacing);
+        drawTextWithSpacing(parts[1], centerX, nameY, letterSpacing);
+        drawTextWithSpacing(parts[2], centerX, nameY + lineGap, letterSpacing);
+      } else drawTextWithSpacing(fullName, centerX, nameY, letterSpacing);
+
+      if (document.getElementById('diploma-show-city').checked && city) {
+        const cityY = parseInt(document.getElementById('diploma-city-y').value);
+        const citySize = parseInt(document.getElementById('diploma-city-size').value);
+        const cityFont = document.getElementById('diploma-city-font').value;
+        const cityStyle = document.getElementById('diploma-city-style').value;
+        const finalCityText = document.getElementById('diploma-city-template').value.replace('{city}', city);
+        
+        ctx.font = `${cityStyle !== 'normal' ? cityStyle + ' ' : ''}${citySize}px "${cityFont}", serif`;
+        ctx.fillStyle = fontColor; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        drawTextWithSpacing(finalCityText, centerX, cityY, letterSpacing);
+      }
+    }
+
+    const refreshInputs = [
+      'diploma-preview-guest', 'diploma-name-y', 'diploma-name-font', 'diploma-name-style',
+      'diploma-name-size', 'diploma-line-gap', 'diploma-name-case', 'diploma-exclude-patronymic',
+      'diploma-show-city', 'diploma-city-template', 'diploma-city-y', 'diploma-city-font',
+      'diploma-city-style', 'diploma-city-size', 'diploma-color', 'diploma-color-text', 'diploma-letter-spacing'
+    ];
+
+    refreshInputs.forEach(id => {
+      document.getElementById(id)?.addEventListener('input', (e) => {
+        if(id === 'diploma-color') document.getElementById('diploma-color-text').value = e.target.value;
+        if(id === 'diploma-color-text') document.getElementById('diploma-color').value = e.target.value;
+        if(id === 'diploma-color' || id === 'diploma-color-text') document.getElementById('diploma-auto-color').checked = false;
+        if(id.startsWith('diploma-name-y')) document.getElementById('val-name-y').textContent = e.target.value;
+        if(id.startsWith('diploma-name-size')) document.getElementById('val-name-size').textContent = e.target.value;
+        if(id.startsWith('diploma-line-gap')) document.getElementById('val-line-gap').textContent = e.target.value;
+        if(id.startsWith('diploma-city-y')) document.getElementById('val-city-y').textContent = e.target.value;
+        if(id.startsWith('diploma-city-size')) document.getElementById('val-city-size').textContent = e.target.value;
+        drawPreview();
+      });
+    });
+
+    document.getElementById('diploma-auto-color').addEventListener('change', () => { syncAutoColorUI(); drawPreview(); });
+    document.getElementById('diploma-preview-guest').addEventListener('change', async (e) => {
+      const guestId = parseInt(e.target.value);
+      const guest = allGuests.find(g => g.id === guestId);
+      if (guest) { try { await loadDiplomaTemplate(getStatusForGuest(guest)); drawPreview(); } catch(err){} }
+    });
+
+    document.getElementById('diploma-group-select').addEventListener('change', updateGroupGuests);
+
+    function updateGroupGuests() {
+      const groupFilter = document.getElementById('diploma-group-select').value;
+      const select = document.getElementById('diploma-preview-guest');
+      select.innerHTML = '';
+      
+      let filtered = allGuests;
+      if (groupFilter === 'arrived') filtered = allGuests.filter(g => g.isArrived);
+      else if (groupFilter !== 'all') filtered = allGuests.filter(g => normalizeStatus(getStatusForGuest(g)) === normalizeStatus(groupFilter));
+
+      if (filtered.length === 0) { select.innerHTML = '<option value="">Нет гостей</option>'; return; }
+
+      filtered.forEach(g => {
+        const opt = document.createElement('option');
+        opt.value = g.id; opt.textContent = `${g.fullName} (${getStatusForGuest(g)})`;
+        select.appendChild(opt);
+      });
+
+      if (filtered[0]) loadDiplomaTemplate(getStatusForGuest(filtered[0])).then(drawPreview).catch(()=>{});
+    }
+
+    document.getElementById('btn-download-selected').addEventListener('click', () => {
+      const canvas = document.getElementById('diploma-preview-canvas');
+      const select = document.getElementById('diploma-preview-guest');
+      const guestName = select.options[select.selectedIndex]?.textContent || 'Диплом';
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`Диплом_${guestName.replace(/[^а-яА-Яa-zA-Z0-9]/g, '_')}.pdf`);
+    });
+
+    document.getElementById('btn-download-mass').addEventListener('click', async () => {
+      const groupFilter = document.getElementById('diploma-group-select').value;
+      let filtered = allGuests;
+      if (groupFilter === 'arrived') filtered = allGuests.filter(g => g.isArrived);
+      else if (groupFilter !== 'all') filtered = allGuests.filter(g => normalizeStatus(getStatusForGuest(g)) === normalizeStatus(groupFilter));
+
+      if (filtered.length === 0) return alert("Нет гостей для экспорта!");
+      if (!confirm(`Будет сгенерировано ${filtered.length} дипломов. Продолжить?`)) return;
+
+      const progressContainer = document.getElementById('mass-progress-container');
+      const progressBar = document.getElementById('mass-progress-bar');
+      const progressPercent = document.getElementById('mass-progress-percent');
+      progressContainer.style.display = 'block'; progressBar.style.width = '0%'; progressPercent.textContent = '0%';
+
+      const pdf = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const offscreenCanvas = document.createElement('canvas'); const offscreenCtx = offscreenCanvas.getContext('2d');
+      offscreenCanvas.width = 1696; offscreenCanvas.height = 2528;
+      const pdfHeight = (offscreenCanvas.height * pdfWidth) / offscreenCanvas.width;
+
+      for (let i = 0; i < filtered.length; i++) {
+        const guest = filtered[i];
+        try {
+          const templateImg = await loadDiplomaTemplate(getStatusForGuest(guest));
+          offscreenCtx.clearRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
+          offscreenCtx.drawImage(templateImg, 0, 0);
+
+          let baseName = formatNameWithoutPatronymic(guest.fullName || '');
+          const finalName = await declineName(baseName, document.getElementById('diploma-name-case').value);
+          
+          if (document.getElementById('diploma-auto-color').checked) document.getElementById('diploma-color').value = getAutoColorForStatus(getStatusForGuest(guest));
+          drawTextOnCanvas(offscreenCtx, offscreenCanvas, finalName, guest.city);
+
+          if (i > 0) pdf.addPage();
+          pdf.addImage(offscreenCanvas.toDataURL('image/jpeg', 0.85), 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+          const percent = Math.round(((i + 1) / filtered.length) * 100);
+          progressBar.style.width = `${percent}%`; progressPercent.textContent = `${percent}%`;
+          await new Promise(r => setTimeout(r, 50));
+        } catch (err) {}
+      }
+      progressPercent.textContent = 'Сохранение...';
+      pdf.save(`Дипломы.pdf`);
+      setTimeout(() => { progressContainer.style.display = 'none'; alert('Готово!'); }, 1000);
+    });
+
+    async function initDatabase() {
+      initDbBtn.disabled = true;
+      initDbStatus.textContent = 'Выполняем инициализацию через Supabase Edge Function...';
+
+      try {
+        const { data, error } = await sb.functions.invoke('init-database', {
+          body: { source: 'organizer.html' }
+        });
+
+        if (error) throw error;
+
+        const message = typeof data === 'string' ? data : (data && data.message) || 'База данных инициализирована.';
+        initDbStatus.textContent = message;
+        alert(message);
+        await fetchAllGuests();
+      } catch (err) {
+        // Проверяем, работает ли прямое подключение к базе данных
+        let directConnectionWorks = false;
+        try {
+          const { data, error: selectError } = await sb.from('guests').select('id').limit(1);
+          if (!selectError) directConnectionWorks = true;
+        } catch (directErr) {
+          console.warn('Direct connection check failed:', directErr);
+        }
+
+        if (directConnectionWorks) {
+          initDbStatus.textContent = 'Подключение успешно: база уже инициализирована!';
+          alert('Соединение с базой данных Supabase уже установлено, и таблицы успешно доступны! Ошибка вызова Edge Function проигнорирована, база полностью готова к работе.');
+          await fetchAllGuests();
+          return;
+        }
+
+        const message = err?.message || String(err);
+        const notDeployed = /404|not found|function.*not found|missing/i.test(message);
+        const hint = notDeployed
+          ? ' Edge Function init-database еще не задеплоена в Supabase.'
+          : '';
+        initDbStatus.textContent = `Ошибка инициализации: ${message}`;
+        
+        // Показываем блок ручного копирования SQL
+        const fallbackBox = document.getElementById('sql-fallback-box');
+        if (fallbackBox) {
+          fallbackBox.style.display = 'block';
+          document.getElementById('sql-code-area').value = window.SETUP_SQL || '';
+        }
+        
+        alert(`Не удалось инициализировать базу: ${message}${hint}\n\nВы можете выполнить настройку вручную с помощью SQL-скрипта (появился под кнопкой инициализации).`);
+      } finally {
+        initDbBtn.disabled = false;
+      }
+    }
+
+    initDbBtn.addEventListener('click', initDatabase);
+
+    // ==========================================
+    // УПРАВЛЕНИЕ ХРАНИЛИЩЕМ ШАБЛОНОВ SUPABASE
+    // ==========================================
+    const STORAGE_FILENAMES = {
+      'ruby': 'ruby.png',
+      'pearl': 'pearl.png',
+      'jade': 'jade.png',
+      'titanium': 'titanium.png',
+      'platinum': 'platinum.png',
+      'gold': 'gold.png',
+      'silver': 'silver.png',
+      'guest': 'guest.png'
+    };
+
+    async function checkTemplatesInStorage() {
+      const listDiv = document.getElementById('storage-templates-list');
+      if (!listDiv) return;
+      listDiv.innerHTML = '<p style="font-size:0.85rem; color:#6c757d;">Проверка файлов...</p>';
+
+      try {
+        const { data, error } = await sb.storage.from('diplomas').list();
+        
+        if (error) {
+          listDiv.innerHTML = `
+            <div style="color: #d9534f; font-size: 0.85rem; margin-bottom: 8px;">Бакет 'diplomas' не найден в Storage.</div>
+            <button class="add-vip-btn" onclick="createDiplomasBucket()" style="padding: 6px 12px; font-size: 0.8rem; margin:0;">Создать бакет в Storage</button>
+          `;
+          return;
+        }
+
+        const existingNames = new Set((data || []).map(f => f.name));
+        listDiv.innerHTML = '';
+
+        Object.keys(STORAGE_FILENAMES).forEach(status => {
+          const filename = STORAGE_FILENAMES[status];
+          const exists = existingNames.has(filename);
+          
+          const row = document.createElement('div');
+          row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; background: #f8f9fa; border: 1px solid #e0e6ed; border-radius: 6px; font-size: 0.85rem; margin-bottom: 4px;';
+          
+          const statusText = status.toUpperCase();
+          const badgeColor = exists ? '#28a745' : '#dc3545';
+          const badgeText = exists ? 'В облаке' : 'Нет в облаке';
+          
+          row.innerHTML = `
+            <div>
+              <span style="font-weight: bold; color: #2c3e50;">${statusText}</span>
+              <span style="color: #6c757d; margin-left: 5px; font-size: 0.8rem;">(${filename})</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="color: ${badgeColor}; font-weight: bold; font-size: 0.8rem;">${badgeText}</span>
+              <input type="file" id="upload-file-${status}" accept="image/png" style="display:none;" onchange="uploadTemplateToStorage('${status}', this.files[0])">
+              <button class="add-vip-btn" onclick="document.getElementById('upload-file-${status}').click()" style="padding: 4px 8px; font-size: 0.75rem; margin: 0;">
+                ${exists ? 'Обновить' : 'Загрузить'}
+              </button>
+            </div>
+          `;
+          listDiv.appendChild(row);
+        });
+      } catch (err) {
+        listDiv.innerHTML = `<p style="font-size:0.85rem; color:#dc3545;">Ошибка: ${err.message || err}</p>`;
+      }
+    }
+
+    async function createDiplomasBucket() {
+      const { error } = await sb.storage.createBucket('diplomas', {
+        public: true,
+        fileSizeLimit: 52428800 // 50MB
+      });
+      if (error) {
+        alert('Не удалось создать бакет через API. Пожалуйста, запустите SETUP SQL в Supabase SQL Editor.');
+      } else {
+        alert('Бакет "diplomas" успешно создан!');
+        checkTemplatesInStorage();
+      }
+    }
+
+    async function uploadTemplateToStorage(status, file) {
+      if (!file) return;
+      const filename = STORAGE_FILENAMES[status];
+      
+      const listDiv = document.getElementById('storage-templates-list');
+      const progressIndicator = document.createElement('div');
+      progressIndicator.style.cssText = 'position:fixed; top:20px; right:20px; background:rgba(0,0,0,0.85); color:#fff; padding:15px; border-radius:8px; z-index:10000; font-size:0.9rem;';
+      progressIndicator.textContent = `Загружаем ${filename} в Supabase Storage...`;
+      document.body.appendChild(progressIndicator);
+
+      try {
+        const { error } = await sb.storage
+          .from('diplomas')
+          .upload(filename, file, {
+            upsert: true,
+            contentType: 'image/png'
+          });
+
+        if (error) throw error;
+        alert(`Шаблон ${filename} успешно загружен!`);
+        checkTemplatesInStorage();
+        
+        const currentSelectedGuest = document.getElementById('diploma-preview-guest').value;
+        if (currentSelectedGuest) {
+          const guest = allGuests.find(g => g.id === parseInt(currentSelectedGuest));
+          if (guest && normalizeStatus(getStatusForGuest(guest)) === status) {
+            loadDiplomaTemplate(getStatusForGuest(guest)).then(drawPreview).catch(()=>{});
+          }
+        }
+      } catch (err) {
+        alert(`Ошибка загрузки: ${err.message || err}`);
+      } finally {
+        progressIndicator.remove();
+      }
+    }
+
+    window.createDiplomasBucket = createDiplomasBucket;
+    window.uploadTemplateToStorage = uploadTemplateToStorage;
+    window.checkTemplatesInStorage = checkTemplatesInStorage;
+  </script>
+</body>
+</html>

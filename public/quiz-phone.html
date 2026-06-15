@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Петровский Пульт — Тайный Вечер</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+    
+  
+  <style>
+    /* Предотвращение зума и жестов */
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(circle at center, #1b160e 0%, #080705 100%);
+      position: relative;
+    }
+
+    /* Водяной знак - геральдика */
+    body::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      height: 80%;
+      background: url('royal_crown.png') no-repeat center;
+      background-size: contain;
+      opacity: 0.03;
+      pointer-events: none;
+      z-index: 0;
+      filter: sepia(1) saturate(2);
+    }
+
+    /* Эффект старого пергамента на границах */
+    .parchment-border {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      bottom: 10px;
+      border: 2px solid #503d20;
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9);
+      border-radius: 4px;
+    }
+
+    .corner-ornament {
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      border: 2px solid #d4af37;
+      z-index: 11;
+      pointer-events: none;
+    }
+    .c-tl { top: 6px; left: 6px; border-right: none; border-bottom: none; }
+    .c-tr { top: 6px; right: 6px; border-left: none; border-bottom: none; }
+    .c-bl { bottom: 6px; left: 6px; border-right: none; border-top: none; }
+    .c-br { bottom: 6px; right: 6px; border-left: none; border-top: none; }
+
+    /* Контейнер сцен */
+    .scene {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      width: 100%;
+      height: 100%;
+      padding: 24px;
+      z-index: 5;
+      position: relative;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .scene.active {
+      display: flex;
+    }
+
+    h1, h2 {
+      font-family: 'Cinzel', serif;
+      color: #ffd700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      margin: 0 0 10px 0;
+      text-align: center;
+    }
+
+    p {
+      text-align: center;
+      font-size: 14px;
+      color: #c4b59f;
+      margin: 0 0 20px 0;
+      line-height: 1.5;
+    }
+
+    /* СЦЕНА 0: Логин / Выбор стола */
+    .heraldic-logo {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)) sepia(0.2) saturate(1.5);
+      animation: logoPulse 4s infinite ease-in-out;
+    }
+
+    @keyframes logoPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 4px 10px rgba(212, 175, 55, 0.2)); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 4px 20px rgba(212, 175, 55, 0.4)); }
+    }
+
+    .table-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 25px;
+    }
+
+    .table-btn {
+      padding: 14px 8px;
+      background: linear-gradient(135deg, #2a2215, #14100a);
+      border: 1.5px solid #503d20;
+      border-radius: 8px;
+      color: #c4b59f;
+      font-family: 'Cinzel', serif;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.3;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    }
+
+    .table-btn.selected {
+      background: linear-gradient(135deg, #ffd700, #aa7c11);
+      border-color: #ffd700;
+      color: #0f0f0f;
+      font-weight: 800;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+      transform: scale(1.04);
+    }
+
+    .gold-action-btn {
+      width: 100%;
+      max-width: 280px;
+      padding: 16px;
+      background: linear-gradient(135deg, #d4af37, #aa7c11);
+      border: 2px solid #ffd700;
+      border-radius: 30px;
+      color: #0c0c0c;
+      font-family: 'Cinzel', serif;
+      font-size: 18px;
+      font-weight: 900;
+      cursor: pointer;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+    }
+
+    .gold-action-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      filter: grayscale(1);
+    }
+
+    .gold-action-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.8);
+    }
+
+    /* СЦЕНА READY */
+    .massive-pulse-ready-btn {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: linear-gradient(135deg, #ffd700, #b8860b);
+      border: none;
+      color: #000;
+      font-family: 'Cinzel', serif;
+      font-size: 30px;
+      font-weight: 900;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: massivePulse 1.5s infinite alternate ease-in-out;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      box-shadow: inset 0 0 100px rgba(255, 215, 0, 0.4);
+    }
+
+    @keyframes massivePulse {
+      0% {
+        transform: scale(1);
+        filter: brightness(1);
+      }
+      100% {
+        transform: scale(1.03);
+        filter: brightness(1.25);
+        box-shadow: inset 0 0 120px rgba(255, 215, 0, 0.6), 0 0 50px rgba(255, 215, 0, 0.3);
+      }
+    }
+
+    /* СЦЕНА STANDBY */
+    .standby-monogram-box {
+      width: 160px;
+      height: 160px;
+      margin-bottom: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    
+    .standby-monogram-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.6)) sepia(0.2) saturate(1.8);
+      animation: monogramPulse 3s infinite ease-in-out;
+    }
+
+    @keyframes monogramPulse {
+      0%, 100% { transform: scale(1); filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.4)) sepia(0.2) saturate(1.8); }
+      50% { transform: scale(1.05); filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.8)) sepia(0.2) saturate(1.8); }
+    }
+
+    .glowing-standby-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-style: italic;
+      color: #ffd700;
+      text-align: center;
+      text-shadow: 0 0 10px rgba(212, 175, 55, 0.4);
+      animation: textPulse 2s infinite ease-in-out;
+    }
+
+    @keyframes textPulse {
+      0%, 100% { opacity: 0.5; text-shadow: 0 0 5px rgba(212, 175, 55, 0.2); }
+      50% { opacity: 1; text-shadow: 0 0 15px rgba(212, 175, 55, 0.6); }
+    }
+
+    /* СЦЕНА С КНОПКАМИ ОТВЕТОВ (Раунды 1, 3, 4, 5/6, 7) */
+    .quiz-layout-container {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      justify-content: space-between;
+    }
+
+    .quiz-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(80, 61, 32, 0.5);
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .quiz-header-table {
+      font-family: 'Cinzel', serif;
+      font-weight: 700;
+      color: #ffd700;
+    }
+
+    .quiz-header-score {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: bold;
+      color: #c4b59f;
+    }
+
+    /* Рисунок картины в Раунде 3 (Сверху) */
+    .round3-picture-container {
+      width: 100%;
+      height: 150px;
+      border: 2.5px solid #d4af37;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      background: #000;
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+    }
+
+    .round3-picture-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* Сетка кнопок выбора */
+    /* Сетка кнопок выбора */
+    .answers-flex-container {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .answers-flex-container.grid-2x2 {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .answer-giant-btn {
+      width: 100%;
+      flex-grow: 1;
+      min-height: 65px;
+      background: linear-gradient(135deg, #2c2113, #161008);
+      border: 2px solid #503d20;
+      border-radius: 8px;
+      color: #f0f0f0;
+      font-family: 'Cinzel', serif;
+      font-size: 20px; /* Reduced from 26px to accommodate text options comfortably */
+      font-weight: 900;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 10px;
+      line-height: 1.3;
+      transition: all 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 3px 6px rgba(0,0,0,0.5);
+    }
+
+    .answers-flex-container.grid-2x2 .answer-giant-btn {
+      font-size: 14px;
+      height: 100%;
+      aspect-ratio: auto;
+    }
+
+    /* Золотые литые кнопки для Гранд-Финала */
+    .answer-giant-btn.gold-cast {
+      background: linear-gradient(135deg, #ffd700 0%, #d4af37 50%, #aa7c11 100%) !important;
+      border: 3px solid #fff5cc !important;
+      color: #1a1100 !important;
+      font-size: 16px;
+      font-weight: 900;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+      box-shadow: 0 6px 12px rgba(255, 215, 0, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.7);
+    }
+
+    .answer-giant-btn.gold-cast:active:not(.disabled) {
+      background: linear-gradient(135deg, #aa7c11, #d4af37, #ffd700) !important;
+      transform: scale(0.96);
+    }
+
+    .answer-giant-btn:active:not(.disabled) {
+      transform: scale(0.97);
+      background: linear-gradient(135deg, #aa7c11, #ffd700);
+      color: #000;
+    }
+
+    .answer-giant-btn.clicked {
+      background: linear-gradient(135deg, #ffd700, #ff8c00);
+      border-color: #ffd700;
+      color: #000;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+      animation: buttonFlash 0.5s ease-out;
+    }
+
+    .answer-giant-btn.disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+      filter: grayscale(0.5);
+    }
+
+    @keyframes buttonFlash {
+      0% { filter: brightness(1.8); }
+      100% { filter: brightness(1.0); }
+    }
+
+    /* Раунд 2 (Фото на весь экран) */
+    .full-screen-painting-container {
+      width: 100%;
+      height: calc(100% - 40px);
+      border: 3px solid #ffd700;
+      border-radius: 8px;
+      position: relative;
+      background: #000;
+      box-shadow: inset 0 0 30px rgba(0,0,0,1), 0 5px 15px rgba(0,0,0,0.7);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .full-screen-painting-canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .painting-label {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(12, 10, 8, 0.85);
+      border-top: 1.5px solid #d4af37;
+      padding: 12px;
+      text-align: center;
+      font-family: 'Cinzel', serif;
+      color: #ffd700;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Сообщение-заглушка в конце клика */
+    .answer-submitted-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(8, 7, 5, 0.92);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+    }
+
+    .answer-submitted-overlay.active {
+      display: flex;
+    }
+
+    .submitted-crown {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 20px;
+      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.5));
+    }
+
+    /* РАЗДЕЛЕНИЕ В РАУНДАХ 5/6 (Только Текст) */
+    .split-text-instruction-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex-grow: 1;
+      text-align: center;
+      padding: 20px;
+    }
+
+    .pulsating-split-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-style: italic;
+      color: #ffd700;
+      line-height: 1.4;
+      animation: splitTextPulse 2.5s infinite ease-in-out;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    @keyframes splitTextPulse {
+      0%, 100% { transform: scale(1); opacity: 0.7; }
+      50% { transform: scale(1.05); opacity: 1; }
+    }
+
+    /* Хинты внизу экранов */
+    .bottom-hint {
+      margin-top: 15px;
+      font-size: 11px;
+      color: #6d5b45;
+      text-align: center;
+      flex-shrink: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Водяной знак Петропавловской крепости на экране логина */
+    #scene-login::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: url('крепость.png') no-repeat center center;
+      background-size: cover;
+      opacity: 0.08;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Стиль для экрана победы */
+    .victory-crown-box {
+      width: 180px;
+      height: 180px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .victory-crown-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 25px #ffd700) sepia(0.2) saturate(1.8);
+      animation: victoryFloat 3s infinite ease-in-out;
+    }
+
+    @keyframes victoryFloat {
+      0%, 100% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(2deg); }
+    }
+
+    @keyframes victoryBlink {
+      from { text-shadow: 0 0 10px #ffd700, 0 0 20px #d4af37; transform: scale(1); }
+      to { text-shadow: 0 0 25px #ffd700, 0 0 50px #ffaa00; transform: scale(1.05); }
+    }
+
+    /* Пульсирующие оверлеи верного/неверного ответа */
+    .pulse-green-success {
+      animation: phonePulseGreen 1.5s infinite alternate ease-in-out !important;
+    }
+    @keyframes phonePulseGreen {
+      0% { box-shadow: inset 0 0 30px rgba(0, 230, 118, 0.4); background: #002d1a !important; }
+      100% { box-shadow: inset 0 0 80px rgba(0, 230, 118, 0.9); background: #004d2c !important; }
+    }
+    
+    .fade-red-fail {
+      background: #330d0d !important;
+      box-shadow: inset 0 0 50px rgba(239, 68, 68, 0.8) !important;
+      animation: phonePulseRed 1.5s infinite alternate ease-in-out !important;
+    }
+    @keyframes phonePulseRed {
+      0% { box-shadow: inset 0 0 20px rgba(239, 68, 68, 0.3); }
+      100% { box-shadow: inset 0 0 60px rgba(239, 68, 68, 0.75); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Императорские рамки -->
+  <div class="parchment-border"></div>
+  <div class="corner-ornament c-tl"></div>
+  <div class="corner-ornament c-tr"></div>
+  <div class="corner-ornament c-bl"></div>
+  <div class="corner-ornament c-br"></div>
+
+  <!-- ================= СЦЕНА 0: АВТОРИЗАЦИЯ ================= -->
+  <div class="scene active" id="scene-login">
+    <img src="royal_crown.png" alt="Корона" class="heraldic-logo">
+    <h1>Тайный Вечер</h1>
+    <p>Выберите номер Вашего стола за Ассамблеей</p>
+    
+    <div class="table-grid" id="login-table-grid">
+      <!-- 10 столов -->
+    </div>
+
+    <!-- Вступать в игру кнопку скрываем, так как клик по столу сразу переводит на ГОТОВ ВОРВАТЬСЯ! -->
+    <button class="gold-action-btn" id="login-submit-btn" style="display:none;" disabled>Вступить в игру</button>
+    <div class="bottom-hint" style="margin-top: 25px;">Петровский Квиз • ⚜</div>
+  </div>
+
+  <!-- ================= СЦЕНА ГОТОВНОСТИ (READY) ================= -->
+  <div class="scene" id="scene-ready">
+    <button class="massive-pulse-ready-btn" id="ready-submit-btn">ГОТОВ ВОРВАТЬСЯ!</button>
+  </div>
+
+  <!-- ================= СЦЕНА 1: ОЖИДАНИЕ (STANDBY) ================= -->
+  <div class="scene" id="scene-standby" style="background: #000000 !important;">
+    <div class="standby-monogram-box">
+      <img src="royal_crown.png" alt="Вензель" class="standby-monogram-img">
+    </div>
+    <div class="glowing-standby-text" style="font-family: 'Playfair Display', serif; font-size: 24px; color: #ffd700; text-align: center; max-width: 90%; line-height: 1.4;">
+      «История ждет...<br>Внимание на сцену!»
+    </div>
+    <p style="margin-top: 25px; font-size: 13px; color: #503d20; font-family: 'Cinzel', serif;" id="standby-table-label">СТОЛ №—</p>
+    <button onclick="changeTable()" style="background: transparent; border: none; color: #8a7355; text-decoration: underline; font-family: 'Montserrat', sans-serif; font-size: 11px; margin-top: 15px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; outline: none;">Сменить стол</button>
+  </div>
+
+  <!-- ================= СЦЕНА 2: ВЫБОР ВАРИАНТОВ (QUIZ) ================= -->
+  <div class="scene" id="scene-quiz">
+    <div class="quiz-layout-container">
+      <div class="quiz-header">
+        <span class="quiz-header-table" id="quiz-header-table-name">СТОЛ №—</span>
+        <span class="quiz-header-score" id="quiz-header-table-score">0 монет</span>
+      </div>
+
+      <!-- Контейнер для картинки (показывается только в Раунде 3) -->
+      <div class="round3-picture-container" id="round3-pic-box" style="display: none;">
+        <canvas class="round3-picture-canvas" id="round3-canvas"></canvas>
+      </div>
+
+      <!-- Текстовое оповещение (для пассивной стороны раундов 5/6) -->
+      <div class="split-text-instruction-container" id="split-text-container" style="display: none;">
+        <div class="pulsating-split-text" id="split-text-message">
+          Смотрите на сцену! Ваш стол подсказывает ответы соседним столам!
+        </div>
+      </div>
+
+      <!-- Сетка вариантов ответа (А, Б, В, Г) -->
+      <div class="answers-flex-container" id="answer-buttons-box">
+        <button class="answer-giant-btn" data-ans="A">А</button>
+        <button class="answer-giant-btn" data-ans="B">Б</button>
+        <button class="answer-giant-btn" data-ans="C">В</button>
+        <button class="answer-giant-btn" data-ans="D">Г</button>
+      </div>
+
+      <div class="bottom-hint">Клавиатура заблокирована • Смотрите на сцену</div>
+    </div>
+
+    <!-- Заглушка отправки ответа -->
+    <div class="answer-submitted-overlay" id="submitted-overlay">
+      <img src="royal_crown.png" alt="Корона" class="submitted-crown">
+      <h2 style="font-size: 20px;">Ответ принят!</h2>
+      <p style="margin: 0;" id="submitted-answer-text">Ваш выбор: А</p>
+      <div class="glowing-standby-text" style="font-size: 14px; margin-top: 20px;">Ожидайте оглашения результатов...</div>
+    </div>
+  </div>
+
+  <!-- ================= СЦЕНА 3: ФОТО (РАУНД 2) ================= -->
+  <div class="scene" id="scene-photo">
+    <div class="quiz-layout-container">
+      <div class="quiz-header">
+        <span class="quiz-header-table" id="photo-header-table-name">СТОЛ №—</span>
+        <span class="quiz-header-score" id="photo-header-table-score">0 монет</span>
+      </div>
+
+      <div class="full-screen-painting-container">
+        <img class="full-screen-painting-canvas" id="round2-painting-img" style="display: none; width: 100%; height: 100%; object-fit: contain;">
+        <canvas class="full-screen-painting-canvas" id="round2-painting-canvas"></canvas>
+        <div class="painting-label" id="round2-painting-title">Тайная картина №—</div>
+      </div>
+
+      <div class="bottom-hint">Раунд 2: Нейро-сканирование живописи</div>
+    </div>
+  </div>
+
+  <!-- ================= СЦЕНА ПОБЕДЫ (VICTORY) ================= -->
+  <div class="scene" id="scene-victory" style="background: #000000 !important;">
+    <div class="victory-crown-box">
+      <img src="royal_crown.png" alt="Победная Корона" class="victory-crown-img">
+    </div>
+    <h1 style="font-size: 32px; animation: victoryBlink 1s infinite alternate ease-in-out;">ВИВАТ, ИМПЕРАТОРЫ!</h1>
+    <p style="font-family: 'Cinzel', serif; font-size: 16px; color: #ffd700;" id="victory-table-label">Ваш стол одержал великую победу!</p>
+  </div>
+
+  
+  <script>
+    // --- Supabase ---
+    const _sb = window.sb;
+
+    // --- Локальное состояние пульта ---
+    let TABLE_NAMES = {
+      1: "Императорский",
+      2: "Земли Центральные",
+      3: "Боярский союз",
+      4: "Купеческая гильдия",
+      5: "Академия наук",
+      6: "Адмиралтейский приказ",
+      7: "Посольская миссия",
+      8: "Царская канцелярия",
+      9: "Сенатские палаты",
+      10: "Архитекторы IT"
+    };
+
+    let tableNumber = null;
+    let currentScore = 0;
+    let selectedTableIndex = null;
+    let hasAnswered = false;
+    let chosenAnswerCode = null;
+    let lastStateVersion = null;
+
+    // Сцены
+    const scenes = {
+      login: document.getElementById('scene-login'),
+      ready: document.getElementById('scene-ready'),
+      standby: document.getElementById('scene-standby'),
+      quiz: document.getElementById('scene-quiz'),
+      photo: document.getElementById('scene-photo'),
+      victory: document.getElementById('scene-victory')
+    };
+
+    function showScene(sceneName) {
+      Object.keys(scenes).forEach(k => { if (scenes[k]) scenes[k].classList.remove('active'); });
+      if (scenes[sceneName]) scenes[sceneName].classList.add('active');
+    }
+
+    // --- Supabase: подписка на состояние квиза ---
+    function subscribeToQuiz() {
+      // Получаем текущее состояние сразу
+      loadQuizState();
+      loadScores();
+      loadTableNames();
+
+      // Realtime на состояние квиза
+      _sb.channel('phone-quiz-state')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quiz_state' }, (payload) => {
+          handleStateChange(payload.new);
+        })
+        .subscribe();
+
+      // Realtime на очки
+      _sb.channel('phone-quiz-scores')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_scores' }, () => loadScores())
+        .subscribe();
+    }
+
+    async function loadQuizState() {
+      const { data, error } = await _sb.from('quiz_state').select('*').eq('id', 1).single();
+      if (!error && data) handleStateChange(data);
+    }
+
+    async function loadScores() {
+      if (!tableNumber) return;
+      const { data } = await _sb.from('quiz_scores').select('score').eq('table_number', String(tableNumber)).single();
+      if (data) {
+        currentScore = data.score || 0;
+        document.getElementById('quiz-header-table-score').textContent = `${currentScore} монет`;
+        document.getElementById('photo-header-table-score').textContent = `${currentScore} монет`;
+      }
+    }
+
+    async function loadTableNames() {
+      const { data } = await _sb.from('quiz_connections').select('*');
+      // TABLE_NAMES с сервера не приходят, используем дефолты
+    }
+
+    // Отправка ответа в Supabase
+    async function submitAnswer(ans) {
+      if (!tableNumber) return;
+      const answerStartTime = parseInt(localStorage.getItem('quiz_answer_start') || Date.now());
+      const latency = Date.now() - answerStartTime;
+
+      // Удаляем старые ответы этого стола и вставляем новый
+      await _sb.from('quiz_answers').delete().eq('table_number', String(tableNumber));
+      const { error } = await _sb.from('quiz_answers').insert([{
+        table_number: String(tableNumber),
+        answer: ans,
+        latency: latency
+      }]);
+
+      if (!error) {
+        hasAnswered = true;
+        chosenAnswerCode = ans;
+        document.getElementById('submitted-answer-text').textContent = `Ваш выбор: ${ans}`;
+        document.getElementById('submitted-overlay').classList.add('active');
+
+        // Пинг подключения
+        await _sb.from('quiz_connections').upsert([{ table_number: String(tableNumber), last_ping: new Date().toISOString() }]);
+      }
+    }
+
+    renderTableGrid();
+    checkStoredTable();
+
+    // Клик по гигантской кнопке ГОТОВ ВОРВАТЬСЯ!
+    const readySubmitBtn = document.getElementById('ready-submit-btn');
+    readySubmitBtn.addEventListener('click', async () => {
+      if (tableNumber !== null) {
+        localStorage.setItem('quiz_table_number', tableNumber);
+
+        // Регистрируем подключение в Supabase
+        await _sb.from('quiz_connections').upsert([{ table_number: String(tableNumber), last_ping: new Date().toISOString() }]);
+
+        const tableNameText = TABLE_NAMES[tableNumber] || `Стол №${tableNumber}`;
+        document.getElementById('standby-table-label').textContent = `СТОЛ №${tableNumber} (${tableNameText})`;
+        document.getElementById('quiz-header-table-name').textContent = `СТОЛ №${tableNumber} (${tableNameText})`;
+        document.getElementById('photo-header-table-name').textContent = `СТОЛ №${tableNumber} (${tableNameText})`;
+        const victoryLabel = document.getElementById('victory-table-label');
+        if (victoryLabel) victoryLabel.textContent = `Стол №${tableNumber} (${tableNameText}) одержал великую победу!`;
+
+        subscribeToQuiz();
+        showScene('standby');
+      }
+    });
+
+    function renderTableGrid() {
+      const grid = document.getElementById('login-table-grid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      const sortedKeys = Object.keys(TABLE_NAMES).sort((a, b) => parseInt(a) - parseInt(b));
+      sortedKeys.forEach(key => {
+        const i = parseInt(key);
+        const btn = document.createElement('button');
+        btn.className = 'table-btn';
+        btn.innerHTML = `<span style="font-weight:800; font-size:12px;">СТОЛ №${key}</span><span style="font-size:9px; color:#ffd700; margin-top:2px;">(${TABLE_NAMES[key]})</span>`;
+        btn.addEventListener('click', () => { selectedTableIndex = i; tableNumber = i; showScene('ready'); });
+        grid.appendChild(btn);
+      });
+    }
+
+    // Обработчик изменения стейта
+    function handleStateChange(state) {
+      const round = state.current_round;
+      const step = state.round_step;
+
+      // Сброс оверлея ответа
+      if (step === 'question' || step === 'standby') {
+        hasAnswered = false;
+        chosenAnswerCode = null;
+        const overlay = document.getElementById('submitted-overlay');
+        overlay.classList.remove('active', 'pulse-green-success', 'fade-red-fail');
+        document.getElementById('submitted-answer-text').textContent = 'Ваш выбор: ';
+        lockAnswerButtons(false);
+        localStorage.setItem('quiz_answer_start', Date.now());
+        const glowingText = document.querySelector('#scene-standby .glowing-standby-text');
+        if (glowingText) glowingText.innerHTML = `«История ждет...<br>Внимание на сцену!»`;
+      }
+
+      if (round === 0 || step === 'standby') { showScene('standby'); return; }
+
+      if (round === 2) { showScene('photo'); showTablePainting(tableNumber); return; }
+
+      if (round === 7 && step === 'correct_answer') {
+        const flash = document.createElement('div');
+        flash.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#fff;z-index:99999;transition:opacity 1s ease-out;';
+        document.body.appendChild(flash);
+        setTimeout(() => { flash.style.opacity = '0'; setTimeout(() => flash.remove(), 1000); }, 100);
+        showScene('victory'); return;
+      }
+
+      if (step === 'correct_answer') {
+        const correctCode = state.correct_answer;
+        const overlay = document.getElementById('submitted-overlay');
+        if (correctCode && chosenAnswerCode) {
+          overlay.classList.add('active');
+          if (chosenAnswerCode === correctCode) {
+            overlay.classList.add('pulse-green-success'); overlay.classList.remove('fade-red-fail');
+            document.getElementById('submitted-answer-text').innerHTML = `<strong style="font-size:24px; color:#00e676;">ВЕРНО!</strong><br><br>Ваш выбор: "${chosenAnswerCode}"<br><span style="color:#00e676; font-size:15px; font-weight:bold;">+100 монет Ассамблеи!</span>`;
+          } else {
+            overlay.classList.add('fade-red-fail'); overlay.classList.remove('pulse-green-success');
+            document.getElementById('submitted-answer-text').innerHTML = `<strong style="font-size:24px; color:#ff4444;">НЕВЕРНО</strong><br><br>Ваш выбор: "${chosenAnswerCode}"<br><span style="color:#ffd700; font-size:15px; font-weight:bold;">Верный ответ: "${correctCode}"</span>`;
+          }
+        }
+      }
+
+      showScene('quiz');
+
+      const splitText = document.getElementById('split-text-container');
+      const buttonsBox = document.getElementById('answer-buttons-box');
+      const r3Box = document.getElementById('round3-pic-box');
+
+      if (round === 3) { r3Box.style.display = 'flex'; drawFragmentCanvas(); } else { r3Box.style.display = 'none'; }
+
+      let isTextOnly = false, textMsg = '';
+      if (round === 5 && tableNumber % 2 !== 0) { isTextOnly = true; textMsg = 'Смотрите на сцену!<br><br>Ваш стол подсказывает ответы чётным столам!'; }
+      else if (round === 6 && tableNumber % 2 === 0) { isTextOnly = true; textMsg = 'Смотрите на сцену!<br><br>Ваш стол подсказывает ответы нечётным столам!'; }
+
+      if (isTextOnly) {
+        splitText.style.display = 'flex'; buttonsBox.style.display = 'none';
+        document.getElementById('split-text-message').innerHTML = textMsg;
+      } else {
+        splitText.style.display = 'none'; buttonsBox.style.display = 'flex';
+        const btnBox = document.getElementById('answer-buttons-box');
+        if (round === 1) btnBox.classList.add('grid-2x2'); else btnBox.classList.remove('grid-2x2');
+        const buttons = document.querySelectorAll('.answer-giant-btn');
+        const activeQ = state.active_question;
+        buttons.forEach((btn, idx) => {
+          if (round === 7) btn.classList.add('gold-cast'); else btn.classList.remove('gold-cast');
+          if (activeQ && activeQ.options && activeQ.options.length > idx) {
+            btn.textContent = activeQ.options[idx]; btn.style.display = 'flex';
+          } else {
+            btn.textContent = ['А', 'Б', 'В', 'Г'][idx]; btn.style.display = 'flex';
+          }
+        });
+      }
+
+      if (step === 'answers_active') { if (!hasAnswered) lockAnswerButtons(false); }
+      else lockAnswerButtons(true);
+    }
+
+    function lockAnswerButtons(lock) {
+      document.querySelectorAll('.answer-giant-btn').forEach(btn => {
+        if (lock) { btn.classList.add('disabled'); }
+        else { btn.classList.remove('disabled', 'clicked'); }
+      });
+    }
+
+    // Регистрация клика по ответу
+    document.querySelectorAll('.answer-giant-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (btn.classList.contains('disabled') || hasAnswered) return;
+        btn.classList.add('clicked');
+        lockAnswerButtons(true);
+        const ans = btn.getAttribute('data-ans');
+        await submitAnswer(ans);
+      });
+    });
+
+    function showTablePainting(tbl) {
+      const img = document.getElementById('round2-painting-img');
+      const canvas = document.getElementById('round2-painting-canvas');
+      const title = document.getElementById('round2-painting-title');
+      const tableNameText = TABLE_NAMES[tbl] || `Стол №${tbl}`;
+      title.textContent = `Тайная живопись стола №${tbl} (${tableNameText})`;
+      if (img) { img.src = `photo_${tbl}.png`; img.style.display = 'block'; }
+      if (canvas) canvas.style.display = 'none';
+    }
+
+    function drawFragmentCanvas() {
+      const canvas = document.getElementById('round3-canvas');
+      if (!canvas) return;
+      canvas.width = 300; canvas.height = 150;
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      img.src = `photo_${tableNumber || 1}.png`;
+      img.onload = () => {
+        const sWidth = img.width * 0.316, sHeight = img.height * 0.316;
+        const sx = (img.width - sWidth) / 2, sy = (img.height - sHeight) / 2;
+        ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, 300, 150);
+        ctx.strokeStyle = '#d4af37'; ctx.lineWidth = 4; ctx.strokeRect(0, 0, 300, 150);
+      };
+    }
+
+    function checkStoredTable() {
+      const storedTable = localStorage.getItem('quiz_table_number');
+      if (storedTable) {
+        tableNumber = parseInt(storedTable, 10);
+        selectedTableIndex = tableNumber;
+        const tableNameText = TABLE_NAMES[tableNumber] || `Стол №${tableNumber}`;
+        document.getElementById('standby-table-label').textContent = `СТОЛ №${tableNumber} (${tableNameText})`;
+        document.getElementById('quiz-header-table-name').textContent = `СТОЛ №${tableNumber} (${tableNameText})`;
+        document.getElementById('photo-header-table-name').textContent = `СТОЛ №${tableNumber} (${tableNameText})`;
+        const victoryLabel = document.getElementById('victory-table-label');
+        if (victoryLabel) victoryLabel.textContent = `Стол №${tableNumber} (${tableNameText}) одержал великую победу!`;
+        subscribeToQuiz();
+        showScene('standby');
+      } else {
+        showScene('login');
+      }
+    }
+
+    function changeTable() {
+      localStorage.removeItem('quiz_table_number');
+      tableNumber = null; selectedTableIndex = null;
+      showScene('login');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Петровская Ассамблея — Суфлер Глашатая</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+</head>
+<body class="herald-body">
+
+  <!-- Оверлей для автоматической активации звука фанфар кликом -->
+  <div id="audio-unlock-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(8, 18, 36, 0.98); z-index: 10000; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; transition: opacity 0.5s ease; border: 3px double var(--gold-antique); margin: 0; box-shadow: inset 0 0 100px rgba(0,0,0,0.9);">
+    <div style="font-size: 5rem; color: var(--gold-bright); margin-bottom: 25px; filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.4)); animation: float Crest 4s infinite ease-in-out;">⚜</div>
+    <div style="font-family: 'Alice', serif; font-size: 2.3rem; color: var(--gold-bright); text-align: center; max-width: 700px; line-height: 1.5; padding: 0 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.8);">
+      Кликните в любом месте экрана для активации звукового сопровождения суфлера
+    </div>
+    <div style="font-family: 'Cormorant Garamond', serif; font-size: 1.25rem; color: #a89498; margin-top: 20px; text-transform: uppercase; letter-spacing: 2px;">
+      Это необходимо для автоматического запуска фанфар при регистрации гостей
+    </div>
+    <div style="margin-top: 40px; border: 1px solid var(--gold-antique); padding: 10px 25px; color: var(--gold-bright); font-family: 'Alice', serif; font-size: 1.2rem; border-radius: 4px; background: rgba(195,155,82,0.1); box-shadow: 0 0 15px rgba(255,215,0,0.15);">
+      АКТИВИРОВАТЬ ЗВУК 🔊
+    </div>
+  </div>
+
+  <!-- Рамка в царском стиле -->
+  <div class="herald-frame"></div>
+  <div class="herald-corner hc-tl"></div>
+  <div class="herald-corner hc-tr"></div>
+  <div class="herald-corner hc-bl"></div>
+  <div class="herald-corner hc-br"></div>
+
+  <!-- Кнопка статуса звука -->
+  <button class="audio-control-btn" id="sound-status-btn" style="bottom: 25px; left: 25px; right: auto;">
+    ЗВУК: ВЫКЛЮЧЕН 🔇
+  </button>
+
+  <!-- Индикатор очереди -->
+  <div class="herald-queue-panel" id="queue-panel" style="display: none;">
+    <div class="herald-queue-title">Очередь объявлений</div>
+    <div class="herald-queue-list" id="queue-list"></div>
+  </div>
+
+  <!-- Центральное окно объявлений -->
+  <div class="herald-announcement-box" id="announcement-box">
+    <div class="herald-box-corner hbc-tl"></div>
+    <div class="herald-box-corner hbc-tr"></div>
+    <div class="herald-box-corner hbc-bl"></div>
+    <div class="herald-box-corner hbc-br"></div>
+    
+    <div class="herald-crest">
+      <svg viewBox="0 0 100 60" style="width: 100px; height: auto; fill: var(--gold-bright); filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.4)); margin: 0 auto 10px auto; display: block;">
+        <path d="M10 50 L90 50 L85 25 L65 40 L50 15 L35 40 L15 25 Z" />
+        <circle cx="10" cy="50" r="2" />
+        <circle cx="90" cy="50" r="2" />
+        <circle cx="15" cy="25" r="3" fill="#fff" />
+        <circle cx="50" cy="15" r="4" fill="#fff" />
+        <circle cx="85" cy="25" r="3" fill="#fff" />
+        <rect x="20" y="52" width="60" height="4" rx="2" />
+      </svg>
+    </div>
+    <h2 class="herald-title" id="announcement-subtitle">Прибытие гостей</h2>
+    <div style="margin: 10px 0 20px 0;"><span class="status-badge" id="announcement-status-badge" style="display: none; font-size: 1.1rem; padding: 6px 18px;">STATUS</span></div>
+    <div class="herald-text" id="announcement-text">
+      <!-- Текст обновляется динамически -->
+    </div>
+    <div class="herald-vivat" id="vivat-badge" style="display: none;">ВИВАТ! 🎉</div>
+  </div>
+
+  <!-- Сообщение в режиме ожидания -->
+  <div class="herald-idle-message" id="idle-message">
+    <div style="font-size: 4rem; margin-bottom: 20px; opacity: 0.5;">⚜</div>
+    Ассамблея ожидает прибытия достопочтенных гостей...
+  </div>
+
+  <script>
+    // Supabase клиент
+    const _sb = window.sb;
+    // BroadcastChannel — fallback для оффлайн работы в одной сети
+    const channel = new BroadcastChannel('assembly_event_channel');
+
+    // BroadcastChannel слушатель (для связи с hostess.html)
+    channel.onmessage = (event) => {
+      if (event.data && event.data.type === 'guest_arrived') {
+        handleArrival(event.data.guest);
+      } else if (event.data && event.data.type === 'guests_reset') {
+        resetAll();
+      }
+    };
+
+    // Supabase Realtime — главный канал
+    _sb.channel('herald-guests')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'guests' }, (payload) => {
+        if (payload.new && payload.new.is_arrived && !payload.old.is_arrived) {
+          // Новый гость прибыл
+          handleArrival({
+            id: payload.new.id,
+            fullName: payload.new.full_name,
+            city: payload.new.city || '',
+            tableNumber: payload.new.table_number || '',
+            status: payload.new.status || 'Silver',
+            lat: payload.new.lat || 55.0,
+            lng: payload.new.lng || 37.0,
+            isArrived: true
+          });
+        }
+      })
+      .subscribe();
+
+    // Очередь гостей на объявление
+    let announcementQueue = [];
+    let isAnnouncing = false;
+    let audioEnabled = false;
+
+    // Инициализация аудиофайла фанфар
+    const fanfareAudio = new Audio('ФАНФАРЫ - ГЛАШАТАИ_(mp3seven.net).mp3');
+    fanfareAudio.preload = 'auto';
+
+    // Разблокировка звука
+    const unlockOverlay = document.getElementById('audio-unlock-overlay');
+    const soundStatusBtn = document.getElementById('sound-status-btn');
+
+    unlockOverlay.addEventListener('click', () => {
+      audioEnabled = true;
+      unlockOverlay.style.opacity = '0';
+      setTimeout(() => {
+        unlockOverlay.style.display = 'none';
+      }, 500);
+      
+      soundStatusBtn.textContent = 'ЗВУК: ВКЛЮЧЕН 🔊';
+      soundStatusBtn.style.color = '#8ae4bc';
+      soundStatusBtn.style.borderColor = '#8ae4bc';
+
+      // Проигрываем и сразу ставим на паузу для инициализации AudioContext на мобильных/Safari
+      fanfareAudio.play().then(() => {
+        fanfareAudio.pause();
+        fanfareAudio.currentTime = 0;
+      }).catch(e => console.log("Аудио инициализировано"));
+    });
+
+    // Функция форматирования имен
+    function formatNameWithoutPatronymic(name) {
+      if (!name) return '';
+      const parts = name.split(/\s+/);
+      return parts.filter((part, idx) => {
+        const clean = part.toLowerCase().replace(/[^а-яёa-z]/g, '');
+        const isPatronymicSuffix = clean.endsWith('ович') || 
+                                   clean.endsWith('евич') || 
+                                   clean.endsWith('овна') || 
+                                   clean.endsWith('евна') || 
+                                   (clean.endsWith('ич') && clean !== 'прокопович' && clean !== 'кович') || 
+                                   clean.endsWith('вна');
+        if (isPatronymicSuffix && idx > 0 && (idx < parts.length - 1 || parts.length > 2)) {
+          return false;
+        }
+        return true;
+      }).join(' ');
+    }
+
+    // Склонение городов в родительный падеж (из какого города?)
+    function getCityInGenitive(city) {
+      if (!city) return '';
+      const trimmed = city.trim();
+      const lower = trimmed.toLowerCase();
+
+      if (lower === 'нижний новгород') return 'Нижнего Новгорода';
+      if (lower === 'великий новгород') return 'Великого Новгорода';
+      if (lower === 'ростов-на-дону') return 'Ростова-на-Дону';
+      if (lower === 'санкт-петербург') return 'Санкт-Петербурга';
+
+      if (lower.endsWith('о') || lower.endsWith('е') || lower.endsWith('и') || lower.endsWith('ы')) {
+        return trimmed;
+      }
+
+      if (trimmed.endsWith('а')) {
+        const base = trimmed.slice(0, -1);
+        const lastChar = base.slice(-1).toLowerCase();
+        if (['г', 'к', 'х', 'ж', 'ч', 'ш', 'щ'].includes(lastChar)) {
+          return base + 'и';
+        }
+        return base + 'ы';
+      }
+
+      if (trimmed.endsWith('я')) {
+        return trimmed.slice(0, -1) + 'и';
+      }
+
+      if (trimmed.endsWith('ь')) {
+        const base = trimmed.slice(0, -1);
+        if (lower.endsWith('славль')) {
+          return base + 'я';
+        }
+        return base + 'и';
+      }
+
+      const lastChar = trimmed.slice(-1).toLowerCase();
+      if ('бвгджзклмнпрстфхцчшщ'.includes(lastChar)) {
+        return trimmed + 'а';
+      }
+
+      return trimmed;
+    }
+
+    // Склонение отдельных слов ФИО в родительный падеж (кого?)
+    function getWordInGenitive(word, isFemale, isFirstWord, isLastWord) {
+      const lower = word.toLowerCase();
+
+      // 1. Известные титулы и роли
+      if (lower === 'император') return 'Императора';
+      if (lower === 'императрица') return 'Императрицы';
+      if (lower === 'князь') return 'Князя';
+      if (lower === 'княгиня') return 'Княгини';
+      if (lower === 'архитектор') return 'Архитектора';
+      if (lower === 'заводчик') return 'Заводчика';
+      if (lower === 'барон') return 'Барона';
+      if (lower === 'граф') return 'Графа';
+      if (lower === 'графиня') return 'Графини';
+      if (lower === 'статс-дама') return 'Статс-дамы';
+      if (lower === 'вице-канцлер') return 'Вице-канцлера';
+      if (lower === 'капитан-командор') return 'Капитан-командора';
+      if (lower === 'сенатор') return 'Сенатора';
+      if (lower === 'кабинет-министр') return 'Кабинет-министра';
+      if (lower === 'архиепископ') return 'Архиепископа';
+      if (lower === 'экономист') return 'Экономиста';
+      if (lower === 'фаворитка') return 'Фаворитки';
+      if (lower === 'цесаревна') return 'Цесаревны';
+      
+      if (lower.startsWith('генерал-')) {
+        const parts = word.split('-');
+        return parts[0] + '-' + getWordInGenitive(parts[1], false, false, false);
+      }
+
+      // 2. Исключения и несклоняемые
+      if (['трезини', 'доменико', 'лефорт', 'брюс', 'гордон', 'шереметьевский', 'монс'].includes(lower)) {
+        return word;
+      }
+
+      // Беглые гласные
+      if (lower === 'петр' || lower === 'пётр') {
+        return word.startsWith('П') ? 'Петра' : 'петра';
+      }
+      if (lower === 'павел') {
+        return word.startsWith('П') ? 'Павла' : 'павла';
+      }
+
+      // 3. Известные имена собственного типа на -ий, -ей
+      if (['дмитрий', 'василий', 'артемий', 'георгий', 'григорий'].includes(lower)) {
+        return word.slice(0, -2) + 'ия';
+      }
+      if (lower.endsWith('ей')) {
+        return word.slice(0, -2) + 'ея';
+      }
+
+      // 4. Прилагательные и адъективные фамилии
+      if (lower.endsWith('ший') || lower.endsWith('чий') || lower.endsWith('щий') || lower.endsWith('жий')) {
+        return word.slice(0, -2) + 'его';
+      }
+      if (lower.endsWith('ий') || lower.endsWith('ый') || lower.endsWith('ой')) {
+        return word.slice(0, -2) + 'ого';
+      }
+      if (isFemale && lower.endsWith('ая')) {
+        return word.slice(0, -2) + 'вой';
+      }
+
+      // 5. Женские имена (Анна, Екатерина, Елизавета, Наталья) vs Фамилии (Лопухина, Орлова)
+      if (isFemale) {
+        if (['екатерина', 'елизавета', 'анна', 'наталья'].includes(lower)) {
+          if (lower === 'наталья') return 'Натальи';
+          if (lower === 'анна') return 'Анны';
+          return word.slice(0, -1) + 'ы';
+        }
+        if (lower.endsWith('ва') || lower.endsWith('на')) {
+          return word.slice(0, -1) + 'ой';
+        }
+      }
+
+      // 6. Имена и фамилии на -а, -я
+      if (lower.endsWith('а')) {
+        const base = word.slice(0, -1);
+        const lastChar = base.slice(-1).toLowerCase();
+        if (['г', 'к', 'х', 'ж', 'ч', 'ш', 'щ'].includes(lastChar)) {
+          return base + 'и';
+        }
+        return base + 'ы';
+      }
+      if (lower.endsWith('я')) {
+        return word.slice(0, -1) + 'и';
+      }
+
+      // 7. Окончание на мягкий знак -ь
+      if (lower.endsWith('ь')) {
+        if (!isFemale) {
+          return word.slice(0, -1) + 'я';
+        }
+        return word.slice(0, -1) + 'и';
+      }
+
+      // 8. Мужские имена/фамилии на твердый согласный
+      if (!isFemale) {
+        const lastChar = lower.slice(-1);
+        if ('бвгджзклмнпрстфхцчшщ'.includes(lastChar)) {
+          return word + 'а';
+        }
+      }
+
+      return word;
+    }
+
+    // Главная функция склонения ФИО гостя (без отчества)
+    function getNameInGenitive(fullName) {
+      if (!fullName) return '';
+      const cleanName = formatNameWithoutPatronymic(fullName);
+      const words = cleanName.split(/\s+/);
+
+      let isFemale = false;
+      words.forEach(w => {
+        const lower = w.toLowerCase();
+        if (['императрица', 'статс-дама', 'княгиня', 'графиня'].includes(lower)) {
+          isFemale = true;
+        }
+        if (lower.endsWith('ва') || lower.endsWith('на') || lower.endsWith('ая')) {
+          if (lower !== 'никита' && lower !== 'фома' && lower !== 'савва' && lower !== 'лука') {
+            isFemale = true;
+          }
+        }
+      });
+
+      return words.map((w, idx) => {
+        return getWordInGenitive(w, isFemale, idx === 0, idx === words.length - 1);
+      }).join(' ');
+    }
+
+    function checkIsFemale(fullName) {
+      if (!fullName) return false;
+      const cleanName = formatNameWithoutPatronymic(fullName);
+      const words = cleanName.split(/\s+/);
+      let isFemale = false;
+      words.forEach(w => {
+        const lower = w.toLowerCase();
+        if (['императрица', 'статс-дама', 'княгиня', 'графиня', 'цесаревна', 'царевна'].includes(lower)) {
+          isFemale = true;
+        }
+        if (lower.endsWith('ва') || lower.endsWith('на') || lower.endsWith('ая')) {
+          if (lower !== 'никита' && lower !== 'фома' && lower !== 'савва' && lower !== 'лука') {
+            isFemale = true;
+          }
+        }
+      });
+      return isFemale;
+    }
+
+    function getGenderedTemplate(template, isFemale) {
+      if (!isFemale) return template;
+      return template
+        .replace(/достопочтенного/g, 'достопочтенную')
+        .replace(/дорогого гостя/g, 'дорогую гостью')
+        .replace(/дорогого/g, 'дорогую')
+        .replace(/благородного/g, 'благородную')
+        .replace(/почтенного/g, 'почтенную')
+        .replace(/славного/g, 'славную')
+        .replace(/великого/g, 'великую')
+        .replace(/великодушного/g, 'великодушную')
+        .replace(/прибывшего/g, 'прибывшую')
+        .replace(/пожаловавшего/g, 'пожаловавшую')
+        .replace(/приехавшего/g, 'приехавшую')
+        .replace(/путешественника/g, 'путешественницу')
+        .replace(/Его место/g, 'Ее место');
+    }
+
+    function getStatusForGuest(guest) {
+      if (guest.status) return guest.status;
+      const name = (guest.fullName || '').toLowerCase();
+      if (name.includes('пётр великий') || name.includes('петр великий') || name.includes('екатерина алексеевна') || name.includes('екатерина i')) return 'RUBY';
+      if (name.includes('меншиков')) return 'PEARL';
+      if (name.includes('шереметев') || name.includes('шафиров')) return 'JADE';
+      if (name.includes('апраксин') || name.includes('беринг') || name.includes('ягужинский')) return 'TITANIUM';
+      if (name.includes('долгоруков') || name.includes('трезини') || name.includes('лопухина')) return 'PLATINUM';
+      if (name.includes('демидов') || name.includes('посошков') || name.includes('прокопович')) return 'GOLD';
+      return 'Silver';
+    }
+
+    // 15 шаблонов объявлений для глашатая (все под родительный падеж гостя)
+    const HERALD_TEXTS = [
+      'Приветствуем достопочтенного <span class="highlight-name">{name}</span>, прибывшего из города <span class="highlight-city">{city}</span>! Просим за Стол №{table}',
+      'Объявляем о прибытии дорогого гостя — <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Стол №{table}',
+      'Встречайте благородного <span class="highlight-name">{name}</span>, прибывшего к нам из города <span class="highlight-city">{city}</span>! Его место — Стол №{table}',
+      'Рады приветствовать почтенного <span class="highlight-name">{name}</span>, пожаловавшего из города <span class="highlight-city">{city}</span>! Стол №{table}',
+      'Ассамблея с честью принимает <span class="highlight-name">{name}</span>, приехавшего из города <span class="highlight-city">{city}</span>! Проходите за Стол №{table}',
+      'Встречайте с почестями <span class="highlight-name">{name}</span>, прибывшего к нам из города <span class="highlight-city">{city}</span>! Просим за Стол №{table}',
+      'Какая радость видеть <span class="highlight-name">{name}</span>, пожаловавшего к нам из города <span class="highlight-city">{city}</span>! Стол №{table}',
+      'Просим поприветствовать благородного <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Вас ожидает Стол №{table}',
+      'Приветствуем славного путешественника — <span class="highlight-name">{name}</span>, прибывшего из города <span class="highlight-city">{city}</span>! Стол №{table}',
+      'Рады видеть в нашем зале великого <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Просим за Стол №{table}',
+      'Наше торжество украсило прибытие <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Стол №{table}',
+      'Ассамблея встречает почетного гостя — <span class="highlight-name">{name}</span>, проделавшего долгий путь из города <span class="highlight-city">{city}</span>! Стол №{table}',
+      'Приветствуем великодушного <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Просим к Столу №{table}',
+      'Радостно встречаем дорогого <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Займите Стол №{table}',
+      'С глубоким почтением принимаем <span class="highlight-name">{name}</span> из города <span class="highlight-city">{city}</span>! Ваше место — Стол №{table}'
+    ];
+
+    // Обработка входящего гостя
+    function handleArrival(guest) {
+      // Исключаем дубли в очереди
+      if (announcementQueue.some(g => g.id === guest.id)) return;
+      
+      announcementQueue.push(guest);
+      updateQueuePanel();
+      
+      // Обновляем локальную базу гостей, если она есть
+      try {
+        let stored = localStorage.getItem('assembly_guests');
+        if (stored) {
+          let guestsList = JSON.parse(stored);
+          let index = guestsList.findIndex(g => g.id === guest.id);
+          if (index !== -1) {
+            guestsList[index].isArrived = true;
+            localStorage.setItem('assembly_guests', JSON.stringify(guestsList));
+          }
+        }
+      } catch (e) {}
+
+      if (!isAnnouncing) {
+        processQueue();
+      }
+    }
+
+    // Отрисовка панели очереди
+    function updateQueuePanel() {
+      const panel = document.getElementById('queue-panel');
+      const list = document.getElementById('queue-list');
+      
+      if (announcementQueue.length > (isAnnouncing ? 1 : 0)) {
+        panel.style.display = 'flex';
+        list.innerHTML = '';
+        
+        // Показываем гостей в очереди (кроме того, который сейчас объявляется)
+        const startIndex = isAnnouncing ? 1 : 0;
+        for (let i = startIndex; i < announcementQueue.length; i++) {
+          const item = document.createElement('div');
+          item.className = 'herald-queue-item';
+          item.innerHTML = `⚜ ${formatNameWithoutPatronymic(announcementQueue[i].fullName)} (${announcementQueue[i].city})`;
+          list.appendChild(item);
+        }
+      } else {
+        panel.style.display = 'none';
+      }
+    }
+
+    // Обработка очереди объявлений
+    let phase1Timeout = null;
+    let phase2Timeout = null;
+
+    function processQueue() {
+      if (announcementQueue.length === 0) {
+        isAnnouncing = false;
+        document.getElementById('announcement-box').classList.remove('active', 'fanfare-active');
+        document.getElementById('idle-message').style.display = 'block';
+        document.getElementById('vivat-badge').style.display = 'none';
+        document.getElementById('announcement-status-badge').style.display = 'none';
+        updateQueuePanel();
+        return;
+      }
+
+      isAnnouncing = true;
+      const guest = announcementQueue[0];
+      updateQueuePanel();
+
+      document.getElementById('idle-message').style.display = 'none';
+      const box = document.getElementById('announcement-box');
+      const textEl = document.getElementById('announcement-text');
+      const subEl = document.getElementById('announcement-subtitle');
+      const vivatEl = document.getElementById('vivat-badge');
+      const statusBadge = document.getElementById('announcement-status-badge');
+
+      // --- ФАЗА 1: ФАНФАРЫ (0 - 11 секунд) ---
+      box.classList.remove('active');
+      box.classList.add('fanfare-active');
+      subEl.textContent = 'СЛЫШНЫ ФАНФАРЫ...';
+      vivatEl.style.display = 'none';
+      if (statusBadge) statusBadge.style.display = 'none';
+      textEl.innerHTML = `<span style="font-family: 'Playfair Display', serif; font-style: italic; color: var(--gold-antique); font-size: 2.2rem; line-height: 1.5;">Слышны трубные гласы глашатаев!<br>К нам спешит гость из города ${guest.city}...</span>`;
+
+      // Проигрываем фанфары
+      if (audioEnabled) {
+        fanfareAudio.currentTime = 0;
+        fanfareAudio.play().catch(e => console.log("Ошибка воспроизведения звука:", e));
+      }
+
+      // Переход на Фазу 2 ровно через 11 секунд
+      phase1Timeout = setTimeout(() => {
+        
+        // --- ФАЗА 2: ЧТЕНИЕ ГЛАШАТАЯ (11 секунд - 31 секунда, длительность 20 секунд) ---
+        box.classList.remove('fanfare-active');
+        box.classList.add('active');
+        subEl.textContent = 'ГЛАШАТАЙ ОБЪЯВЛЯЕТ:';
+        
+        // Выводим статус
+        if (statusBadge) {
+          statusBadge.className = 'status-badge';
+          const rawStatus = getStatusForGuest(guest).toLowerCase().trim();
+          let statusClass = 'status-silver';
+          let statusLabel = 'Silver';
+          
+          if (rawStatus === 'ruby' || rawStatus === '7') {
+            statusClass = 'status-ruby';
+            statusLabel = 'RUBY';
+          } else if (rawStatus === 'pearl' || rawStatus === '6') {
+            statusClass = 'status-pearl';
+            statusLabel = 'PEARL';
+          } else if (rawStatus === 'jade' || rawStatus === '5') {
+            statusClass = 'status-jade';
+            statusLabel = 'JADE';
+          } else if (rawStatus === 'titanium' || rawStatus === '4') {
+            statusClass = 'status-titanium';
+            statusLabel = 'TITANIUM';
+          } else if (rawStatus === 'platinum' || rawStatus === '3') {
+            statusClass = 'status-platinum';
+            statusLabel = 'PLATINUM';
+          } else if (rawStatus === 'gold' || rawStatus === '2') {
+            statusClass = 'status-gold';
+            statusLabel = 'GOLD';
+          } else {
+            statusClass = 'status-silver';
+            statusLabel = 'Silver';
+          }
+          
+          statusBadge.textContent = statusLabel;
+          statusBadge.classList.add(statusClass);
+          statusBadge.style.display = 'inline-block';
+        }
+
+        // Выбираем случайный текст и адаптируем по полу
+        const isFemale = checkIsFemale(guest.fullName);
+        const baseTemplate = HERALD_TEXTS[Math.floor(Math.random() * HERALD_TEXTS.length)];
+        const template = getGenderedTemplate(baseTemplate, isFemale);
+
+        const genitiveName = getNameInGenitive(guest.fullName);
+        const genitiveCity = getCityInGenitive(guest.city);
+        const tableNum = guest.tableNumber || '—';
+
+        textEl.innerHTML = template
+          .replace('{name}', genitiveName)
+          .replace('{city}', genitiveCity)
+          .replace('{table}', tableNum);
+
+        vivatEl.style.display = 'block';
+
+        // Завершение объявления ровно через 20 секунд (итого 31 секунда)
+        phase2Timeout = setTimeout(() => {
+          // Плавно скрываем карточку (класс active убирается, карточка сжимается и исчезает)
+          box.classList.remove('active');
+          if (statusBadge) statusBadge.style.display = 'none';
+          
+          // Ждем завершения анимации исчезновения (800ms) перед тем как переходить к следующему гостю
+          setTimeout(() => {
+            announcementQueue.shift();
+            processQueue();
+          }, 800);
+
+        }, 20000); // Показ карточки длится ровно 20 секунд
+
+      }, 11000); // Фанфары и движение длятся ровно 11 секунд
+    }
+
+    // Полный сброс системы при отмене или очистке
+    function resetAll() {
+      // Очищаем таймауты
+      clearTimeout(phase1Timeout);
+      clearTimeout(phase2Timeout);
+      
+      // Останавливаем аудио
+      fanfareAudio.pause();
+      fanfareAudio.currentTime = 0;
+      
+      // Очищаем очередь и сбрасываем состояние
+      announcementQueue = [];
+      isAnnouncing = false;
+      
+      document.getElementById('announcement-box').classList.remove('active', 'fanfare-active');
+      document.getElementById('idle-message').style.display = 'block';
+      document.getElementById('vivat-badge').style.display = 'none';
+      
+      updateQueuePanel();
+    }
+  </script>
+</body>
+</html>

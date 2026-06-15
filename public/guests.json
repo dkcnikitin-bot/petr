@@ -1,0 +1,202 @@
+[
+  {
+    "id": 1,
+    "fullName": "Император Пётр Великий",
+    "city": "Санкт-Петербург",
+    "lat": 59.9343,
+    "lng": 30.3351,
+    "isArrived": false,
+    "tableNumber": "1 (Царскій)",
+    "status": "RUBY"
+  },
+  {
+    "id": 2,
+    "fullName": "Императрица Екатерина Алексеевна",
+    "city": "Санкт-Петербург",
+    "lat": 59.9343,
+    "lng": 30.3351,
+    "isArrived": false,
+    "tableNumber": "1 (Царскій)",
+    "status": "RUBY"
+  },
+  {
+    "id": 3,
+    "fullName": "Светлейший князь Александр Меншиков",
+    "city": "Санкт-Петербург",
+    "lat": 59.93,
+    "lng": 30.32,
+    "isArrived": false,
+    "tableNumber": "1 (Царскій)",
+    "status": "PEARL"
+  },
+  {
+    "id": 4,
+    "fullName": "Генерал-фельдмаршал Борис Шереметев",
+    "city": "Москва",
+    "lat": 55.7558,
+    "lng": 37.6173,
+    "isArrived": false,
+    "tableNumber": "2",
+    "status": "JADE"
+  },
+  {
+    "id": 5,
+    "fullName": "Вице-канцлер Пётр Шафиров",
+    "city": "Москва",
+    "lat": 55.751,
+    "lng": 37.61,
+    "isArrived": false,
+    "tableNumber": "2",
+    "status": "JADE"
+  },
+  {
+    "id": 6,
+    "fullName": "Генерал-адмирал Фёдор Апраксин",
+    "city": "Воронеж",
+    "lat": 51.6608,
+    "lng": 39.2003,
+    "isArrived": false,
+    "tableNumber": "2",
+    "status": "TITANIUM"
+  },
+  {
+    "id": 7,
+    "fullName": "Капитан-командор Витус Беринг",
+    "city": "Тобольск",
+    "lat": 58.2,
+    "lng": 68.25,
+    "isArrived": false,
+    "tableNumber": "3",
+    "status": "TITANIUM"
+  },
+  {
+    "id": 8,
+    "fullName": "Князь Дмитрий Kantemir",
+    "city": "Дмитров",
+    "lat": 56.3424,
+    "lng": 37.5204,
+    "isArrived": false,
+    "tableNumber": "3",
+    "status": "Silver"
+  },
+  {
+    "id": 9,
+    "fullName": "Генерал-прокурор Павел Ягужинский",
+    "city": "Санкт-Петербург",
+    "lat": 59.94,
+    "lng": 30.34,
+    "isArrived": false,
+    "tableNumber": "1 (Царскій)",
+    "status": "TITANIUM"
+  },
+  {
+    "id": 10,
+    "fullName": "Князь Василий Долгоруков",
+    "city": "Казань",
+    "lat": 55.8304,
+    "lng": 49.0661,
+    "isArrived": false,
+    "tableNumber": "3",
+    "status": "PLATINUM"
+  },
+  {
+    "id": 11,
+    "fullName": "Архитектор Доменико Трезини",
+    "city": "Санкт-Петербург",
+    "lat": 59.945,
+    "lng": 30.3,
+    "isArrived": false,
+    "tableNumber": "4",
+    "status": "PLATINUM"
+  },
+  {
+    "id": 12,
+    "fullName": "Статс-дама Наталья Лопухина",
+    "city": "Москва",
+    "lat": 55.76,
+    "lng": 37.62,
+    "isArrived": false,
+    "tableNumber": "2",
+    "status": "PLATINUM"
+  },
+  {
+    "id": 13,
+    "fullName": "Заводчик Никита Демидов",
+    "city": "Тула",
+    "lat": 54.1961,
+    "lng": 37.6182,
+    "isArrived": false,
+    "tableNumber": "4",
+    "status": "GOLD"
+  },
+  {
+    "id": 14,
+    "fullName": "Архиепископ Феофан Прокопович",
+    "city": "Новгород",
+    "lat": 58.5252,
+    "lng": 31.2755,
+    "isArrived": false,
+    "tableNumber": "4",
+    "status": "GOLD"
+  },
+  {
+    "id": 15,
+    "fullName": "Кабинет-министр Артемий Волынский",
+    "city": "Астрахань",
+    "lat": 46.3497,
+    "lng": 48.0408,
+    "isArrived": false,
+    "tableNumber": "4",
+    "status": "Silver"
+  },
+  {
+    "id": 16,
+    "fullName": "Фельдмаршал Михаил Голицын",
+    "city": "Выборг",
+    "lat": 60.71,
+    "lng": 28.749,
+    "isArrived": false,
+    "tableNumber": "2",
+    "status": "Silver"
+  },
+  {
+    "id": 17,
+    "fullName": "Экономист Иван Посошков",
+    "city": "Новгород",
+    "lat": 58.53,
+    "lng": 31.28,
+    "isArrived": false,
+    "tableNumber": "5",
+    "status": "GOLD"
+  },
+  {
+    "id": 18,
+    "fullName": "Барон Андрей Остерман",
+    "city": "Москва",
+    "lat": 55.74,
+    "lng": 37.63,
+    "isArrived": false,
+    "tableNumber": "2",
+    "status": "Silver"
+  },
+  {
+    "id": 19,
+    "fullName": "Фаворитка Анна Монс",
+    "city": "Москва",
+    "lat": 55.77,
+    "lng": 37.6,
+    "isArrived": false,
+    "tableNumber": "5",
+    "status": "Silver"
+  },
+  {
+    "id": 20,
+    "fullName": "Цесаревна Елизавета Петровна",
+    "city": "Санкт-Петербург",
+    "lat": 59.936,
+    "lng": 30.33,
+    "isArrived": false,
+    "tableNumber": "1 (Царскій)",
+    "status": "Silver"
+  }
+]

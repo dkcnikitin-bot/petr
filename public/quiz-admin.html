@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Пульт Модератора — Тайный Вечер</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0c;
+      color: #e2e8f0;
+      font-family: 'Montserrat', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Кибер-барочная рамка */
+    .admin-container {
+      display: grid;
+      grid-template-columns: 280px 1fr 320px;
+      height: 100vh;
+      min-height: 600px;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Cinzel', serif;
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+      margin: 0 0 15px 0;
+    }
+
+    /* БОКОВАЯ ПАНЕЛЬ СЛЕВА: Столы и статусы */
+    .sidebar-left {
+      background: #0f1013;
+      border-right: 2px solid #2d2618;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .table-status-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .table-status-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      background: rgba(30, 24, 15, 0.4);
+      border: 1px solid #4a3e26;
+      border-radius: 6px;
+    }
+
+    .status-indicator {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 6px #ef4444;
+    }
+
+    .status-indicator.online {
+      background: #10b981;
+      box-shadow: 0 0 6px #10b981;
+    }
+
+    .table-info-name {
+      font-weight: 700;
+      font-size: 14px;
+      color: #c4b59f;
+    }
+
+    .table-conn-count {
+      font-size: 12px;
+      background: #27272a;
+      padding: 2px 8px;
+      border-radius: 10px;
+      color: #ffd700;
+    }
+
+    /* ОСНОВНАЯ ПАНЕЛЬ ПО ЦЕНТРУ: Раунды и управление */
+    .main-panel {
+      padding: 25px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    /* Индикатор текущего состояния */
+    .state-info-bar {
+      background: linear-gradient(135deg, #1b160e, #0c0a06);
+      border: 2px solid #ffd700;
+      padding: 15px 25px;
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    }
+
+    .round-card-box {
+      background: #111216;
+      border: 1.5px solid #2d2618;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    }
+
+    .round-card-box.active {
+      border-color: #ffd700;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+    }
+
+    .steps-btn-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .step-btn {
+      flex-grow: 1;
+      padding: 12px 16px;
+      background: #18191e;
+      border: 1.5px solid #4a3e26;
+      border-radius: 6px;
+      color: #c4b59f;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    .step-btn:hover {
+      background: #242630;
+      border-color: #ffd700;
+      color: #ffd700;
+    }
+
+    .step-btn.active-step {
+      background: linear-gradient(135deg, #d4af37, #aa7c11);
+      border-color: #ffd700;
+      color: #000;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+    }
+
+    /* Лог ответов */
+    .answers-log-section {
+      background: #111216;
+      border: 1.5px solid #2d2618;
+      border-radius: 8px;
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .answers-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .answers-table th, .answers-table td {
+      text-align: left;
+      padding: 10px 15px;
+      border-bottom: 1px solid #24252c;
+    }
+
+    .answers-table th {
+      font-family: 'Cinzel', serif;
+      color: #d4af37;
+      font-size: 13px;
+    }
+
+    .answers-table tr.correct-ans-row {
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+    .answers-table tr.incorrect-ans-row {
+      background: rgba(239, 68, 68, 0.05);
+    }
+
+    .badge-correct {
+      color: #10b981;
+      font-weight: 800;
+    }
+
+    .badge-incorrect {
+      color: #ef4444;
+      font-weight: 800;
+    }
+
+    /* БОКОВАЯ ПАНЕЛЬ СПРАВА: Счета и обходные действия */
+    .sidebar-right {
+      background: #0f1013;
+      border-left: 2px solid #2d2618;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow-y: auto;
+    }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      background: rgba(30, 24, 15, 0.3);
+      border: 1px dashed #4a3e26;
+      border-radius: 6px;
+    }
+
+    .score-controls {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .score-adj-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      background: #1c1d24;
+      border: 1px solid #4a3e26;
+      color: #ffd700;
+      cursor: pointer;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+
+    .score-adj-btn:hover {
+      background: #ffd700;
+      color: #000;
+    }
+
+    .score-val-text {
+      width: 50px;
+      text-align: center;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    /* Кнопки глобального действия */
+    .action-btn-danger {
+      background: linear-gradient(135deg, #ef4444, #991b1b);
+      border: 1.5px solid #ef4444;
+      color: #fff;
+      font-weight: bold;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+    }
+
+    .action-btn-danger:hover {
+      filter: brightness(1.2);
+    }
+
+    .action-btn-royal {
+      background: linear-gradient(135deg, #ffd700, #aa7c11);
+      border: 1.5px solid #ffd700;
+      color: #000;
+      font-weight: bold;
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 4px 10px rgba(255, 215, 0, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .action-btn-royal:hover {
+      filter: brightness(1.2);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    /* Модуль Лазера в Раунде 2 */
+    .laser-control-panel {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .laser-btn {
+      padding: 10px;
+      background: rgba(0, 230, 118, 0.05);
+      border: 1.5px solid #00e676;
+      border-radius: 6px;
+      color: #00e676;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 11px;
+      text-transform: uppercase;
+      transition: all 0.2s ease;
+    }
+
+    .laser-btn:hover {
+      background: #00e676;
+      color: #000;
+      box-shadow: 0 0 10px rgba(0, 230, 118, 0.4);
+    }
+
+    .sub-q-btn {
+      padding: 6px 12px;
+      background: #1e2029;
+      border: 1px solid #4a3e26;
+      border-radius: 4px;
+      color: #ffd700;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s ease;
+    }
+    .sub-q-btn:hover {
+      background: #ffd700;
+      color: #000;
+    }
+    .sub-q-btn.active-sub {
+      background: #ffd700;
+      color: #000;
+      border-color: #ffd700;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+    }
+  
+    /* Навигация табов */
+    .tab-nav-btn {
+      background: #18191e;
+      border: 1.5px solid #4a3e26;
+      border-radius: 6px;
+      color: #c4b59f;
+      font-weight: bold;
+      padding: 10px 20px;
+      cursor: pointer;
+      font-family: 'Cinzel', serif;
+      font-size: 13px;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tab-nav-btn:hover {
+      border-color: #ffd700;
+      color: #ffd700;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.15);
+    }
+    .tab-nav-btn.active {
+      background: linear-gradient(135deg, #d4af37, #aa7c11);
+      border-color: #ffd700;
+      color: #000;
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.35);
+    }
+    .editor-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #18191e;
+      border: 1.5px solid #4a3e26;
+      color: #fff;
+      border-radius: 6px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 14px;
+      transition: all 0.2s ease;
+    }
+    .editor-input:focus {
+      border-color: #ffd700;
+      outline: none;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
+    }
+</style>
+</head>
+<body>
+
+  <div class="admin-container">
+    
+    <!-- ================= ЛЕВАЯ КОЛОНКА: СВЯЗЬ ================= -->
+    <div class="sidebar-left">
+      <h2>СВЯЗЬ</h2>
+      <p style="font-size:12px; color:#888;">Количество подключенных пультов за столами (обновляется реал-тайм):</p>
+      
+      <div class="table-status-list" id="sidebar-table-list">
+        <!-- 10 столов -->
+      </div>
+
+      <div style="margin-top: auto; display:flex; flex-direction:column; gap:10px;">
+        <button class="step-btn" style="border-color:#d4af37; color:#ffd700;" onclick="resetPhonesToStandby()">
+          Сброс телефонов на Standby
+        </button>
+        <button class="action-btn-danger" onclick="resetAllScores()">
+          Обнулить все очки
+        </button>
+      </div>
+    </div>
+
+    <!-- ================= ЦЕНТРАЛЬНАЯ КОЛОНКА: УПРАВЛЕНИЕ И ЛОГ ================= -->
+    <div class="main-panel">
+      
+      <!-- Вкладки навигации панели модератора -->
+      <div class="admin-nav-tabs" style="display:flex; gap:12px; margin-bottom:15px; border-bottom:2px solid #2d2618; padding-bottom:12px; flex-shrink:0;">
+        <button class="tab-nav-btn active" id="tab-btn-game" onclick="switchTab('game')">Панель Игры</button>
+        <button class="tab-nav-btn" id="tab-btn-questions" onclick="switchTab('questions')">Редактор Вопросов</button>
+        <button class="tab-nav-btn" id="tab-btn-tables" onclick="switchTab('tables')">Управление Столами</button>
+      </div>
+
+      <!-- Панель управления потоком игры (СЛЕДУЮЩИЙ ШАГ) -->
+      <div id="flow-control-panel" style="background: linear-gradient(135deg, #1d170e, #0e0a05); border: 2.5px solid #d4af37; padding: 18px 24px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.6); flex-shrink:0; margin-bottom: 20px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div style="font-family: 'Cinzel', serif; font-size:15px; color:#ffd700; font-weight:bold; letter-spacing:0.5px;">⚜ УПРАВЛЕНИЕ ПОТОКОМ ИГРЫ:</div>
+          <div style="font-size:12px; color:#c4b59f;">Ответило столов: <strong id="answered-count-text" style="color:#ffd700; font-size:14px;">0</strong> из <strong id="total-connected-text" style="color:#ffd700; font-size:14px;">0</strong> подключенных</div>
+        </div>
+        <button class="action-btn-royal" style="width: auto; padding: 12px 30px; font-size: 14px; font-weight:900; letter-spacing:1px;" onclick="triggerNextGameStep()" id="flow-next-step-btn">СЛЕДУЮЩИЙ ШАГ ➔</button>
+      </div>
+
+      <!-- Карточка предпросмотра текущего вопроса -->
+      <div class="round-card-box" id="active-question-preview-box" style="display:none; border-color:#ffd700; padding:18px 24px; margin-top:-10px; margin-bottom:20px; background:rgba(30, 24, 16, 0.5);">
+        <h4 style="margin: 0 0 10px 0; font-family:'Cinzel', serif; font-size:12px; color:#888; text-transform:uppercase; letter-spacing:0.5px;">Текущий Вопрос на Экране:</h4>
+        <div style="font-size: 17px; font-weight: 700; color: #ffd700; margin-bottom:12px; line-height:1.4;" id="preview-q-text"></div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; font-size:13px;" id="preview-options-list">
+          <!-- Заполняется JS -->
+        </div>
+      </div>
+
+      <!-- ================= ВКЛАДКА 1: УПРАВЛЕНИЕ ИГРОЙ ================= -->
+      <div id="panel-game" class="tab-panel" style="display:flex; flex-direction:column; gap:25px; flex-grow:1;">
+        
+        <!-- Индикатор стейта -->
+        <div class="state-info-bar">
+          <div>
+            <div style="font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px;">Текущий этап</div>
+            <h2 id="current-state-title" style="margin: 5px 0 0 0; font-size: 22px;">Ожидание / Запуск</h2>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 11px; text-transform: uppercase; color: #888; letter-spacing: 1px;">Таймер</div>
+            <h2 id="current-timer-val" style="margin: 5px 0 0 0; font-size: 26px; color: #ffd700;">—</h2>
+          </div>
+        </div>
+
+        <!-- Контейнер для динамических карточек раундов -->
+        <div id="rounds-control-container" style="display:flex; flex-direction:column; gap:20px;">
+          <!-- Карточки раундов генерируются через JS -->
+        </div>
+
+        <!-- ЛОГ ОТВЕТОВ -->
+        <div class="answers-log-section" style="flex-grow:1;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1.5px solid #2d2618; padding-bottom:10px;">
+            <h3>ЛОГ ОТВЕТОВ КЛИЕНТОВ (В РЕАЛЬНОМ ВРЕМЕНИ)</h3>
+            <button class="step-btn" style="padding: 5px 12px; font-size:10px;" onclick="awardBulkCorrect()">
+              Начислить +100 верным
+            </button>
+          </div>
+          
+          <table class="answers-table">
+            <thead>
+              <tr>
+                <th>Стол</th>
+                <th>Выбранный вариант</th>
+                <th>Скорость клика (мс)</th>
+                <th>Результат</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody id="answers-log-tbody">
+              <!-- Заполняется JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ================= ВКЛАДКА 2: РЕДАКТОР ВОПРОСОВ ================= -->
+      <div id="panel-questions" class="tab-panel" style="display:none; flex-direction:column; gap:20px;">
+        <div class="round-card-box">
+          <h3>Редактор Вопросов Квиза</h3>
+          <p style="font-size:12px; color:#888; margin-bottom:15px;">Здесь вы можете изменить формулировки вопросов, варианты ответов и указать верные варианты.</p>
+          
+          <div style="display:flex; gap:15px; margin-bottom:20px;">
+            <div style="width:230px; display:flex; flex-direction:column; gap:8px;">
+              <span style="font-size:12px; font-weight:bold; color:#d4af37;">Выбрать Раунд:</span>
+              <select id="editor-round-select" onchange="loadRoundQuestionsInEditor()" class="editor-input">
+                <option value="1">Раунд 1 (Нейро-Бояре)</option>
+                <option value="2">Раунд 2 (Ожившие Полотна)</option>
+                <option value="3">Раунд 3 (Разбитые Зеркала)</option>
+                <option value="4">Раунд 4 (Блиц)</option>
+                <option value="5">Раунд 5 (Секретный Альянс)</option>
+                <option value="6">Раунд 6 (Дерзкие Послы)</option>
+                <option value="7">Раунд 7 (Гранд-Финал)</option>
+              </select>
+            </div>
+            
+            <div style="flex-grow:1; display:flex; flex-direction:column; gap:8px;">
+              <span style="font-size:12px; font-weight:bold; color:#d4af37;">Вопросы Раунда:</span>
+              <div style="display:flex; gap:10px;">
+                <select id="editor-question-select" onchange="loadQuestionDetailsInEditor()" class="editor-input">
+                  <!-- Loaded questions list -->
+                </select>
+                <button class="step-btn" style="width:auto; padding:0 15px;" onclick="addNewQuestionToEditor()">+ Новый Вопрос</button>
+                <button class="action-btn-danger" style="width:auto; padding:0 15px;" onclick="deleteQuestionFromEditor()">Удалить</button>
+              </div>
+            </div>
+          </div>
+          
+          <div id="editor-question-details-box" style="border-top:1.5px solid #2d2618; padding-top:20px; display:none; flex-direction:column; gap:15px;">
+            <div>
+              <span style="font-size:12px; font-weight:bold; color:#ffd700;">Текст Вопроса:</span>
+              <textarea id="editor-q-text" rows="3" class="editor-input" style="margin-top:5px; resize:vertical;"></textarea>
+            </div>
+            
+            <div id="editor-options-block" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+              <div>
+                <span style="font-size:12px; font-weight:bold; color:#c4b59f;">Вариант А:</span>
+                <input type="text" id="editor-opt-a" class="editor-input" style="margin-top:5px;">
+              </div>
+              <div>
+                <span style="font-size:12px; font-weight:bold; color:#c4b59f;">Вариант Б:</span>
+                <input type="text" id="editor-opt-b" class="editor-input" style="margin-top:5px;">
+              </div>
+              <div>
+                <span style="font-size:12px; font-weight:bold; color:#c4b59f;">Вариант В:</span>
+                <input type="text" id="editor-opt-c" class="editor-input" style="margin-top:5px;">
+              </div>
+              <div>
+                <span style="font-size:12px; font-weight:bold; color:#c4b59f;">Вариант Г:</span>
+                <input type="text" id="editor-opt-d" class="editor-input" style="margin-top:5px;">
+              </div>
+            </div>
+            
+            <div style="width:250px;">
+              <span style="font-size:12px; font-weight:bold; color:#ffd700;">Верный Ответ:</span>
+              <select id="editor-q-correct" class="editor-input" style="margin-top:5px;">
+                <option value="">Без выбора (Открытый вопрос)</option>
+                <option value="A">Вариант А</option>
+                <option value="B">Вариант Б</option>
+                <option value="C">Вариант В</option>
+                <option value="D">Вариант Г</option>
+              </select>
+            </div>
+            
+            <div style="margin-top:10px;">
+              <button class="action-btn-royal" style="padding:10px 20px; font-size:11px;" onclick="applyQuestionChangeInEditor()">Применить изменения к вопросу</button>
+            </div>
+          </div>
+          
+          <div style="margin-top:30px; border-top:2px solid #2d2618; padding-top:20px; display:flex; gap:15px;">
+            <button class="action-btn-royal" style="background:linear-gradient(135deg, #10b981, #059669); border-color:#10b981;" onclick="saveQuestionsEditor()">Сохранить все изменения вопросов</button>
+            <button class="step-btn" style="width:auto;" onclick="resetQuestionsEditor()">Сбросить изменения</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ВКЛАДКА 3: УПРАВЛЕНИЕ СТОЛАМИ ================= -->
+      <div id="panel-tables" class="tab-panel" style="display:none; flex-direction:column; gap:20px;">
+        <div class="round-card-box">
+          <h3>Управление Столами Ассамблеи</h3>
+          <p style="font-size:12px; color:#888; margin-bottom:15px;">Изменения вступят в силу для всех пультов гостей, экрана сцены и пульта модератора после сохранения.</p>
+          
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:20px;" id="tables-editor-list">
+            <!-- Сюда динамически рендерятся поля ввода столов -->
+          </div>
+          
+          <div style="border-top:1.5px solid #2d2618; padding-top:15px; margin-top:15px;">
+            <h4>Добавить Новый Стол</h4>
+            <div style="display:flex; gap:10px; align-items:center; margin-top:10px;">
+              <input type="number" id="new-table-id" placeholder="№ Стола (например, 11)" class="editor-input" style="width:180px;">
+              <input type="text" id="new-table-name" placeholder="Название стола (например, IT-Опричники)" class="editor-input">
+              <button class="step-btn" style="width:auto; padding:0 25px; height:42px;" onclick="addNewTableToEditor()">Добавить</button>
+            </div>
+          </div>
+          
+          <div style="margin-top:30px; border-top:2px solid #2d2618; padding-top:20px; display:flex; gap:15px;">
+            <button class="action-btn-royal" style="background:linear-gradient(135deg, #10b981, #059669); border-color:#10b981;" onclick="saveTablesEditor()">Сохранить Конфигурацию Столов</button>
+            <button class="step-btn" style="width:auto;" onclick="resetTablesEditor()">Сбросить изменения</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+<!-- ================= ПРАВАЯ КОЛОНКА: СЧЕТА ================= -->
+    <div class="sidebar-right">
+      <h2>СЧЕТА СТОЛОВ</h2>
+      <p style="font-size:12px; color:#888;">Ручное изменение баланса столов (Emergency Override):</p>
+      
+      <div style="display:flex; flex-direction:column; gap:8px;" id="sidebar-scores-list">
+        <!-- 10 строк со счетами -->
+      </div>
+
+      <button class="action-btn-royal" style="margin-top:20px; width:100%;" onclick="triggerLeaderboardShow()">
+        Вывести гонку на сцену
+      </button>
+      <div class="bottom-hint" style="text-align:center; margin-top:auto;">IT-Консоль Квиза⚜</div>
+    </div>
+
+  </div>
+
+    
+  <script>
+    // --- Supabase клиент ---
+    const _sb = window.sb;
+    let TABLE_NAMES = {};
+    let QUIZ_QUESTIONS = {};
+
+    let localState = {};
+    let localScores = {};
+    let localConnections = {};
+    let localAnswers = [];
+    let localSubQuestionIndex = 0;
+
+    let editorTablesCopy = {};
+    let editorQuestionsCopy = {};
+
+    // --- Получение начального состояния из Supabase ---
+    async function initAdmin() {
+      // Загрузить текущее состояние квиза
+      const { data: stateData } = await _sb.from('quiz_state').select('*').eq('id', 1).single();
+      if (stateData) {
+        localState = {
+          currentRound: stateData.current_round,
+          roundStep: stateData.round_step,
+          subQuestionIndex: stateData.sub_question_index,
+          timerLimit: stateData.timer_limit,
+          timerRemaining: stateData.timer_remaining,
+          correctAnswer: stateData.correct_answer,
+          activeQuestion: stateData.active_question,
+          laserMode: stateData.laser_mode
+        };
+        localSubQuestionIndex = stateData.sub_question_index || 0;
+        updateUIState();
+      }
+
+      // Очки
+      const { data: scoresData } = await _sb.from('quiz_scores').select('*');
+      if (scoresData) {
+        localScores = {};
+        scoresData.forEach(r => { localScores[r.table_number] = r.score; });
+      }
+
+      // Подключения
+      const { data: connData } = await _sb.from('quiz_connections').select('*');
+      if (connData) {
+        localConnections = {};
+        const cutoff = new Date(Date.now() - 30000);
+        connData.forEach(r => {
+          localConnections[r.table_number] = new Date(r.last_ping) > cutoff ? 1 : 0;
+        });
+      }
+
+      // Ответы
+      const { data: ansData } = await _sb.from('quiz_answers').select('*');
+      if (ansData) {
+        localAnswers = ansData.map(a => ({ tableNumber: a.table_number, answer: a.answer, latency: a.latency || 0 }));
+      }
+
+      // Дефолтные столы
+      TABLE_NAMES = {
+        1: "Императорский", 2: "Земли Центральные", 3: "Боярский союз",
+        4: "Купеческая гильдия", 5: "Академия наук", 6: "Адмиралтейский приказ",
+        7: "Посольская миссия", 8: "Царская канцелярия", 9: "Сенатские палаты", 10: "Архитекторы IT"
+      };
+      editorTablesCopy = JSON.parse(JSON.stringify(TABLE_NAMES));
+      QUIZ_QUESTIONS = {};
+      editorQuestionsCopy = {};
+
+      renderSidebarTablesAndScores();
+      renderTablesEditor();
+      renderRoundControlCards();
+      updateUIScores();
+      updateUIConnections();
+      updateUIAnswersLog();
+
+      // --- Supabase Realtime подписки ---
+      _sb.channel('admin-quiz-state')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quiz_state' }, (payload) => {
+          const d = payload.new;
+          localState = {
+            currentRound: d.current_round, roundStep: d.round_step,
+            subQuestionIndex: d.sub_question_index, timerLimit: d.timer_limit,
+            timerRemaining: d.timer_remaining, correctAnswer: d.correct_answer,
+            activeQuestion: d.active_question, laserMode: d.laser_mode
+          };
+          localSubQuestionIndex = d.sub_question_index || 0;
+          updateUIState();
+          // Таймер
+          if (d.timer_remaining > 0) {
+            document.getElementById('current-timer-val').textContent = d.timer_remaining + ' сек';
+          } else {
+            document.getElementById('current-timer-val').textContent = '—';
+          }
+        })
+        .subscribe();
+
+      _sb.channel('admin-quiz-scores')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_scores' }, async () => {
+          const { data } = await _sb.from('quiz_scores').select('*');
+          if (data) { localScores = {}; data.forEach(r => { localScores[r.table_number] = r.score; }); }
+          updateUIScores();
+        })
+        .subscribe();
+
+      _sb.channel('admin-quiz-answers')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_answers' }, async () => {
+          const { data } = await _sb.from('quiz_answers').select('*');
+          if (data) localAnswers = data.map(a => ({ tableNumber: a.table_number, answer: a.answer, latency: a.latency || 0 }));
+          updateUIAnswersLog();
+          updateAnswerProgress();
+        })
+        .subscribe();
+
+      _sb.channel('admin-quiz-conns')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'quiz_connections' }, async () => {
+          const { data } = await _sb.from('quiz_connections').select('*');
+          if (data) {
+            localConnections = {};
+            const cutoff = new Date(Date.now() - 30000);
+            data.forEach(r => { localConnections[r.table_number] = new Date(r.last_ping) > cutoff ? 1 : 0; });
+          }
+          updateUIConnections(); updateAnswerProgress();
+        })
+        .subscribe();
+    }
+
+    initAdmin();
+
+    // Служебная функция обновления состояния квиза в Supabase
+    async function updateQuizState(patch) {
+      const { error } = await _sb.from('quiz_state').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', 1);
+      if (error) console.error('Ошибка обновления стейта:', error);
+    }
+
+    // --- НАВИГАЦИЯ ТАБОВ ---
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-panel').forEach(panel => panel.style.display = 'none');
+      document.querySelectorAll('.tab-nav-btn').forEach(btn => btn.classList.remove('active'));
+      
+      if (tabName === 'game') {
+        document.getElementById('panel-game').style.display = 'flex';
+        document.getElementById('tab-btn-game').classList.add('active');
+        renderRoundControlCards(); // Refresh control cards
+      } else if (tabName === 'questions') {
+        document.getElementById('panel-questions').style.display = 'flex';
+        document.getElementById('tab-btn-questions').classList.add('active');
+        loadRoundQuestionsInEditor();
+      } else if (tabName === 'tables') {
+        document.getElementById('panel-tables').style.display = 'flex';
+        document.getElementById('tab-btn-tables').classList.add('active');
+        renderTablesEditor();
+      }
+    }
+
+    // --- РЕНДЕРИНГ БОКОВОЙ ПАНЕЛИ СТОЛОВ И СЧЕТОВ ---
+    function renderSidebarTablesAndScores() {
+      const sidebarTables = document.getElementById('sidebar-table-list');
+      const sidebarScores = document.getElementById('sidebar-scores-list');
+      if (!sidebarTables || !sidebarScores) return;
+      
+      sidebarTables.innerHTML = '';
+      sidebarScores.innerHTML = '';
+      
+      const sortedKeys = Object.keys(TABLE_NAMES).sort((a, b) => parseInt(a) - parseInt(b));
+      sortedKeys.forEach(key => {
+        // Status Row
+        const row = document.createElement('div');
+        row.className = 'table-status-row';
+        row.id = `conn-row-${key}`;
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div class="status-indicator" id="conn-indicator-${key}"></div>
+            <span class="table-info-name">Стол ${key} (${TABLE_NAMES[key]})</span>
+          </div>
+          <span class="table-conn-count" id="conn-count-${key}">0 пульт.</span>
+        `;
+        sidebarTables.appendChild(row);
+
+        // Score Row
+        const sRow = document.createElement('div');
+        sRow.className = 'score-row';
+        sRow.innerHTML = `
+          <span class="table-info-name" style="font-size:11px;">Ст. ${key} (${TABLE_NAMES[key]})</span>
+          <div class="score-controls">
+            <button class="score-adj-btn" onclick="adjustScore(${key}, -100)">-</button>
+            <span class="score-val-text" id="score-val-${key}">0</span>
+            <button class="score-adj-btn" onclick="adjustScore(${key}, 100)">+</button>
+          </div>
+        `;
+        sidebarScores.appendChild(sRow);
+      });
+    }
+
+    // --- ДИНАМИЧЕСКИЙ РЕНДЕРИНГ КАРТОЧЕК УПРАВЛЕНИЯ РАУНДАМИ ---
+    function renderRoundControlCards() {
+      const container = document.getElementById('rounds-control-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      const roundsMeta = {
+        1: { title: 'Раунд 1: Нейро-Бояре (Авто-раунд или пошаговый)', step1: 'Показать Вопрос', step2: 'Пульты + Старт 5с', step3: 'Верный Ответ', hasAuto: true },
+        2: { title: 'Раунд 2: Нейро-сканирование живописи (Скан + Баллы)', step1: 'Показать заставку', step2: 'Включить картины на пультах', hasLaser: true },
+        3: { title: 'Раунд 3: Ускользающий фрагмент (Фрагмент + А, Б, В, Г)', step1: 'Показать фрагмент', step2: 'Пульты + Старт 5с', step3: 'Верный Ответ (А)' },
+        4: { title: 'Раунд 4: Прорубить окно: БЛИЦ', step1: 'Показать Вопрос', step2: 'Пульты + Старт 5с', step3: 'Верный Ответ' },
+        5: { title: 'Раунд 5: Секретный Альянс', step1: 'Показать Указ', step2: 'Пульты + Старт 5с', step3: 'Верный Ответ' },
+        6: { title: 'Раунд 6: Дерзкие Послы', step1: 'Показать Начало', step2: 'Пульты + Старт 5с', step3: 'Верный Ответ' },
+        7: { title: 'Раунд 7: Гранд-Финал (Финальный супер-вопрос)', step1: 'Показать Вопрос', step2: 'Пульты + Старт 5с', step3: 'Финал: Открыть ворота победителя' }
+      };
+
+      for (let r = 1; r <= 7; r++) {
+        const card = document.createElement('div');
+        card.className = 'round-card-box';
+        card.id = `round-card-${r}`;
+        
+        let subQuestionsHtml = '';
+        const qList = QUIZ_QUESTIONS[r] || [];
+        
+        // Рендерим кнопки подуказателей, если вопросов больше одного
+        if (qList.length > 1 || r === 1 || r === 4 || r === 5 || r === 6) {
+          subQuestionsHtml += `<div style="margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap;">`;
+          qList.forEach((q, idx) => {
+            const label = (r === 1) ? `Портрет ${idx + 1}` : (r === 6 ? `Фраза ${idx + 1}` : `Вопрос ${idx + 1}`);
+            subQuestionsHtml += `<button class="sub-q-btn btn-r${r}" onclick="setSubQ(${r}, ${idx})">${label}</button>`;
+          });
+          subQuestionsHtml += `</div>`;
+        }
+
+        let stepsHtml = `<div class="steps-btn-group">`;
+        stepsHtml += `<button class="step-btn" id="btn-${r}-1" onclick="setState(${r}, 'question')">1. ${roundsMeta[r].step1}</button>`;
+        stepsHtml += `<button class="step-btn" id="btn-${r}-2" onclick="setState(${r}, 'answers_active')">2. ${roundsMeta[r].step2}</button>`;
+        if (roundsMeta[r].step3) {
+          stepsHtml += `<button class="step-btn" id="btn-${r}-3" onclick="setState(${r}, 'correct_answer')">3. ${roundsMeta[r].step3}</button>`;
+        }
+        
+        if (roundsMeta[r].hasAuto) {
+          stepsHtml += `<button class="step-btn" style="background: #a17c18; color: #000; border-color:#d4af37;" id="btn-${r}-auto" onclick="startAutoRound1()">Авто-Гонка 5 мин</button>`;
+        }
+        stepsHtml += `</div>`;
+
+        let laserHtml = '';
+        if (roundsMeta[r].hasLaser) {
+          laserHtml += `<div class="laser-control-panel">`;
+          const sortedKeys = Object.keys(TABLE_NAMES).sort((a, b) => parseInt(a) - parseInt(b));
+          sortedKeys.forEach(key => {
+            laserHtml += `<button class="laser-btn" onclick="triggerLaser(${key})">Лазер: Стол ${key} (${TABLE_NAMES[key]})</button>`;
+          });
+          laserHtml += `</div>`;
+        }
+
+        card.innerHTML = `
+          <h3>${roundsMeta[r].title}</h3>
+          ${subQuestionsHtml}
+          ${stepsHtml}
+          ${laserHtml}
+        `;
+        container.appendChild(card);
+      }
+    }
+
+    // --- УПРАВЛЕНИЕ СТЕЙТ-МАШИНОЙ ---
+    function setSubQ(round, subIdx) {
+      localSubQuestionIndex = subIdx;
+      document.querySelectorAll(`.btn-r${round}`).forEach((btn, index) => {
+        if (index === subIdx) btn.classList.add('active-sub');
+        else btn.classList.remove('active-sub');
+      });
+      updateQuizState({ sub_question_index: subIdx });
+    }
+
+    function setState(round, step) {
+      let timerLimit = 30;
+      if (round === 1) timerLimit = 5;
+      else if (round === 3) timerLimit = 60;
+      else if (round === 4) timerLimit = 10;
+
+      const activeQ = (QUIZ_QUESTIONS[round] || [])[localSubQuestionIndex] || null;
+      updateQuizState({
+        current_round: round,
+        round_step: step,
+        timer_limit: timerLimit,
+        timer_remaining: step === 'answers_active' ? timerLimit : 0,
+        correct_answer: activeQ ? (activeQ.correct || '') : '',
+        active_question: activeQ,
+        sub_question_index: localSubQuestionIndex,
+        answers_locked: step !== 'answers_active'
+      });
+
+      // При новом вопросе очищаем ответы
+      if (step === 'question' || step === 'standby') {
+        _sb.from('quiz_answers').delete().neq('id', 0).then();
+      }
+    }
+
+    async function adjustScore(tableNumber, points) {
+      const current = localScores[String(tableNumber)] || 0;
+      await _sb.from('quiz_scores').upsert([{ table_number: String(tableNumber), score: current + points }]);
+    }
+
+    async function resetAllScores() {
+      if (confirm('Вы уверены, что хотите обнулить счета всех столов?')) {
+        const keys = Object.keys(TABLE_NAMES);
+        const updates = keys.map(k => ({ table_number: String(k), score: 0 }));
+        await _sb.from('quiz_scores').upsert(updates);
+        alert('Очки обнулены!');
+      }
+    }
+
+    function resetPhonesToStandby() {
+      updateQuizState({ current_round: 0, round_step: 'standby', sub_question_index: 0 });
+    }
+
+    function triggerLeaderboardShow() {
+      updateQuizState({ round_step: 'leaderboard' });
+    }
+
+    function triggerLaser(tableNumber) {
+      const similarity = 92 + Math.floor(Math.random() * 8);
+      updateQuizState({ laser_mode: `table_${tableNumber}_${similarity}` });
+      setTimeout(async () => {
+        const current = localScores[String(tableNumber)] || 0;
+        await _sb.from('quiz_scores').upsert([{ table_number: String(tableNumber), score: current + 200 }]);
+      }, 3000);
+    }
+
+    // Автоматический прогон Раунда 1 (10 портретов по 5 сек каждый)
+    let autoRoundInterval = null;
+    function startAutoRound1() {
+      const autoBtn = document.getElementById('btn-1-auto');
+      if (autoRoundInterval) {
+        clearInterval(autoRoundInterval);
+        autoRoundInterval = null;
+        if (autoBtn) {
+          autoBtn.textContent = "Авто-Гонка 5 мин";
+          autoBtn.style.background = '#a17c18';
+          autoBtn.style.color = '#000';
+        }
+        return;
+      }
+      
+      if (autoBtn) {
+        autoBtn.textContent = "ОСТАНОВИТЬ";
+        autoBtn.style.background = '#ef4444';
+        autoBtn.style.color = '#fff';
+      }
+      
+      let currentSub = 0;
+      const qList = QUIZ_QUESTIONS[1] || [];
+      const totalSub = qList.length || 10;
+      
+      function runNext() {
+        if (currentSub >= totalSub) {
+          clearInterval(autoRoundInterval);
+          autoRoundInterval = null;
+          if (autoBtn) {
+            autoBtn.textContent = "Авто-Гонка 5 мин";
+            autoBtn.style.background = '#a17c18';
+            autoBtn.style.color = '#000';
+          }
+          updateQuizState({ current_round: 1, round_step: 'standby' });
+          return;
+        }
+        setSubQ(1, currentSub);
+        setState(1, 'question');
+        setTimeout(() => {
+          updateQuizState({ current_round: 1, round_step: 'answers_active', timer_limit: 5, timer_remaining: 5, sub_question_index: currentSub });
+        }, 2000);
+        currentSub++;
+      }
+      
+      runNext();
+      autoRoundInterval = setInterval(runNext, 7000);
+    }
+
+    // Пакетное начисление баллов правильным столам
+    async function awardBulkCorrect() {
+      const correctCode = localState.correctAnswer;
+      if (!correctCode) { alert('Правильный ответ не задан!'); return; }
+      const awards = localAnswers.filter(a => a.answer === correctCode);
+      if (awards.length === 0) { alert('Нет правильных ответов.'); return; }
+      for (const a of awards) {
+        const current = localScores[String(a.tableNumber)] || 0;
+        await _sb.from('quiz_scores').upsert([{ table_number: String(a.tableNumber), score: current + 100 }]);
+      }
+      alert(`Начислено +100 столам: ${awards.map(a => a.tableNumber).join(', ')}`);
+    }
+
+    // --- РЕДАКТОР СТОЛОВ ---
+    function renderTablesEditor() {
+      const listDiv = document.getElementById('tables-editor-list');
+      if (!listDiv) return;
+      listDiv.innerHTML = '';
+
+      const sortedKeys = Object.keys(editorTablesCopy).sort((a, b) => parseInt(a) - parseInt(b));
+      sortedKeys.forEach(key => {
+        const item = document.createElement('div');
+        item.style.display = 'flex';
+        item.style.gap = '8px';
+        item.style.alignItems = 'center';
+        item.style.background = 'rgba(255,255,255,0.03)';
+        item.style.padding = '8px';
+        item.style.borderRadius = '6px';
+        item.style.border = '1px solid #2d2618';
+        
+        item.innerHTML = `
+          <span style="font-weight:bold; color:#ffd700; width:70px;">Стол ${key}:</span>
+          <input type="text" class="editor-input" value="${editorTablesCopy[key]}" onchange="updateEditorTableName('${key}', this.value)" style="flex-grow:1; padding:6px 10px;">
+          <button class="action-btn-danger" style="padding:6px 12px; font-size:10px;" onclick="deleteTableFromEditor('${key}')">Удалить</button>
+        `;
+        listDiv.appendChild(item);
+      });
+    }
+
+    function updateEditorTableName(key, val) {
+      editorTablesCopy[key] = val;
+    }
+
+    function deleteTableFromEditor(key) {
+      if (confirm(`Удалить стол ${key} (${editorTablesCopy[key]}) из списка?`)) {
+        delete editorTablesCopy[key];
+        renderTablesEditor();
+      }
+    }
+
+    function addNewTableToEditor() {
+      const idInput = document.getElementById('new-table-id');
+      const nameInput = document.getElementById('new-table-name');
+      
+      const id = idInput.value.trim();
+      const name = nameInput.value.trim();
+      
+      if (!id || !name) {
+        alert('Введите номер и название стола!');
+        return;
+      }
+      
+      if (editorTablesCopy[id]) {
+        alert('Стол с таким номером уже существует!');
+        return;
+      }
+      
+      editorTablesCopy[id] = name;
+      idInput.value = '';
+      nameInput.value = '';
+      
+      renderTablesEditor();
+    }
+
+    function saveTablesEditor() {
+      if (confirm('Сохранить конфигурацию столов?')) {
+        TABLE_NAMES = JSON.parse(JSON.stringify(editorTablesCopy));
+        renderSidebarTablesAndScores();
+        renderRoundControlCards();
+        alert('Конфигурация столов сохранена (локально)!');
+      }
+    }
+
+    function resetTablesEditor() {
+      editorTablesCopy = JSON.parse(JSON.stringify(TABLE_NAMES));
+      renderTablesEditor();
+    }
+
+    // --- РЕДАКТОР ВОПРОСОВ ---
+    function loadRoundQuestionsInEditor() {
+      const round = document.getElementById('editor-round-select').value;
+      const qSelect = document.getElementById('editor-question-select');
+      if (!qSelect) return;
+      qSelect.innerHTML = '';
+      
+      const questions = editorQuestionsCopy[round] || [];
+      if (questions.length === 0) {
+        qSelect.innerHTML = '<option value="">Нет вопросов в этом раунде</option>';
+        document.getElementById('editor-question-details-box').style.display = 'none';
+        return;
+      }
+
+      questions.forEach((q, idx) => {
+        const option = document.createElement('option');
+        option.value = idx;
+        option.textContent = `Вопрос ${idx + 1}: ${q.text.substring(0, 50)}${q.text.length > 50 ? '...' : ''}`;
+        qSelect.appendChild(option);
+      });
+
+      loadQuestionDetailsInEditor();
+    }
+
+    function loadQuestionDetailsInEditor() {
+      const round = document.getElementById('editor-round-select').value;
+      const idx = document.getElementById('editor-question-select').value;
+      const detailsBox = document.getElementById('editor-question-details-box');
+      
+      if (idx === "" || !editorQuestionsCopy[round] || !editorQuestionsCopy[round][idx]) {
+        detailsBox.style.display = 'none';
+        return;
+      }
+
+      const q = editorQuestionsCopy[round][idx];
+      detailsBox.style.display = 'flex';
+
+      document.getElementById('editor-q-text').value = q.text;
+      
+      const optionsBlock = document.getElementById('editor-options-block');
+      
+      if (round == 2) {
+        // В Раунде 2 вариантов ответов нет, это скан-раунд
+        optionsBlock.style.display = 'none';
+        document.getElementById('editor-q-correct').parentElement.style.display = 'none';
+      } else {
+        optionsBlock.style.display = 'grid';
+        document.getElementById('editor-q-correct').parentElement.style.display = 'block';
+        
+        document.getElementById('editor-opt-a').value = q.options && q.options[0] !== undefined ? q.options[0] : '';
+        document.getElementById('editor-opt-b').value = q.options && q.options[1] !== undefined ? q.options[1] : '';
+        document.getElementById('editor-opt-c').value = q.options && q.options[2] !== undefined ? q.options[2] : '';
+        document.getElementById('editor-opt-d').value = q.options && q.options[3] !== undefined ? q.options[3] : '';
+        document.getElementById('editor-q-correct').value = q.correct || '';
+      }
+    }
+
+    function applyQuestionChangeInEditor() {
+      const round = document.getElementById('editor-round-select').value;
+      const idx = document.getElementById('editor-question-select').value;
+      
+      if (idx === "" || !editorQuestionsCopy[round] || !editorQuestionsCopy[round][idx]) return;
+
+      const qText = document.getElementById('editor-q-text').value.trim();
+      if (!qText) {
+        alert('Введите текст вопроса!');
+        return;
+      }
+
+      editorQuestionsCopy[round][idx].text = qText;
+
+      if (round != 2) {
+        const optA = document.getElementById('editor-opt-a').value.trim();
+        const optB = document.getElementById('editor-opt-b').value.trim();
+        const optC = document.getElementById('editor-opt-c').value.trim();
+        const optD = document.getElementById('editor-opt-d').value.trim();
+        const correct = document.getElementById('editor-q-correct').value;
+
+        editorQuestionsCopy[round][idx].options = [optA, optB, optC, optD];
+        editorQuestionsCopy[round][idx].correct = correct;
+      }
+
+      alert('Изменения временно применены к текущему вопросу. Не забудьте сохранить все изменения вопросов!');
+      loadRoundQuestionsInEditor();
+      document.getElementById('editor-question-select').value = idx;
+      loadQuestionDetailsInEditor();
+    }
+
+    function addNewQuestionToEditor() {
+      const round = document.getElementById('editor-round-select').value;
+      if (!editorQuestionsCopy[round]) {
+        editorQuestionsCopy[round] = [];
+      }
+
+      const newQ = {
+        text: 'Новый Вопрос',
+        options: round == 2 ? [] : ['Вариант А', 'Вариант Б', 'Вариант В', 'Вариант Г'],
+        correct: round == 2 ? '' : 'A'
+      };
+
+      editorQuestionsCopy[round].push(newQ);
+      loadRoundQuestionsInEditor();
+      
+      // Select the last question
+      const newIdx = editorQuestionsCopy[round].length - 1;
+      document.getElementById('editor-question-select').value = newIdx;
+      loadQuestionDetailsInEditor();
+    }
+
+    function deleteQuestionFromEditor() {
+      const round = document.getElementById('editor-round-select').value;
+      const idx = document.getElementById('editor-question-select').value;
+      
+      if (idx === "" || !editorQuestionsCopy[round] || !editorQuestionsCopy[round][idx]) return;
+
+      if (confirm('Вы уверены, что хотите удалить этот вопрос?')) {
+        editorQuestionsCopy[round].splice(idx, 1);
+        loadRoundQuestionsInEditor();
+      }
+    }
+
+    function saveQuestionsEditor() {
+      if (confirm('Сохранить изменения вопросов?')) {
+        QUIZ_QUESTIONS = JSON.parse(JSON.stringify(editorQuestionsCopy));
+        renderRoundControlCards();
+        alert('Вопросы сохранены (локально)!');
+      }
+    }
+
+    function resetQuestionsEditor() {
+      editorQuestionsCopy = JSON.parse(JSON.stringify(QUIZ_QUESTIONS));
+      loadRoundQuestionsInEditor();
+    }
+
+    // --- Обновление элементов интерфейса игры ---
+    function updateUIState() {
+      const round = localState.currentRound;
+      const step = localState.roundStep;
+
+      updateActiveQuestionPreview();
+      updateAnswerProgress();
+      updateFlowButtonLabel();
+
+      if (round === 0) {
+        document.getElementById('current-state-title').textContent = "Ожидание начала / Standby";
+      } else {
+        document.getElementById('current-state-title').textContent = `Р. ${round} (Подв. ${localSubQuestionIndex + 1}): ${step.toUpperCase()}`;
+      }
+
+      if (step !== 'answers_active') {
+        document.getElementById('current-timer-val').textContent = '—';
+      }
+
+      document.querySelectorAll('.round-card-box').forEach(card => card.classList.remove('active'));
+      const activeCard = document.getElementById(`round-card-${round}`);
+      if (activeCard) activeCard.classList.add('active');
+
+      document.querySelectorAll('.steps-btn-group .step-btn').forEach(btn => btn.classList.remove('active-step'));
+      if (round > 0) {
+        let stepIdx = 1;
+        if (step === 'answers_active') stepIdx = 2;
+        if (step === 'correct_answer') stepIdx = 3;
+        const btn = document.getElementById(`btn-${round}-${stepIdx}`);
+        if (btn) btn.classList.add('active-step');
+      }
+    }
+
+    function updateUIScores() {
+      for (const table in localScores) {
+        const span = document.getElementById(`score-val-${table}`);
+        if (span) span.textContent = localScores[table];
+      }
+    }
+
+    function updateUIConnections() {
+      for (const table in localConnections) {
+        const count = localConnections[table];
+        const indicator = document.getElementById(`conn-indicator-${table}`);
+        const text = document.getElementById(`conn-count-${table}`);
+        
+        if (text) text.textContent = `${count} пульт.`;
+        if (indicator) {
+          if (count > 0) {
+            indicator.classList.add('online');
+          } else {
+            indicator.classList.remove('online');
+          }
+        }
+      }
+    }
+
+    function updateUIAnswersLog() {
+      const tbody = document.getElementById('answers-log-tbody');
+      tbody.innerHTML = '';
+
+      if (localAnswers.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#666;">Ответов пока нет... Активируйте пульты!</td></tr>`;
+        return;
+      }
+
+      const correctCode = localState.correctAnswer;
+
+      localAnswers.forEach(ans => {
+        const tr = document.createElement('tr');
+        
+        const isCorrect = correctCode ? (ans.answer === correctCode) : null;
+        let resultCell = '—';
+        if (isCorrect === true) {
+          tr.className = 'correct-ans-row';
+          resultCell = '<span class="badge-correct">ВЕРНО</span>';
+        } else if (isCorrect === false) {
+          tr.className = 'incorrect-ans-row';
+          resultCell = '<span class="badge-incorrect">НЕВЕРНО</span>';
+        }
+
+        const tableName = TABLE_NAMES[ans.tableNumber] || `Стол ${ans.tableNumber}`;
+
+        tr.innerHTML = `
+          <td style="font-weight:bold; color:#ffd700;">Стол ${ans.tableNumber} (${tableName})</td>
+          <td>Вариант "${ans.answer}"</td>
+          <td>${ans.latency.toLocaleString()} мс</td>
+          <td>${resultCell}</td>
+          <td>
+            <button class="score-adj-btn" style="width:auto; padding:0 8px; font-size:10px;" onclick="adjustScore(${ans.tableNumber}, 100)">
+              +100
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // --- УПРАВЛЕНИЕ УДОБСТВОМ И ПОТОКОМ ИГРЫ ---
+    
+    function triggerNextGameStep() {
+      const round = localState.currentRound;
+      const step = localState.roundStep;
+      const subIdx = localState.subQuestionIndex || 0;
+      const qList = QUIZ_QUESTIONS[round] || [];
+      
+      if (round === 0) { updateQuizState({ current_round: 1, round_step: 'question', sub_question_index: 0 }); return; }
+      if (step === 'standby') { setState(round, 'question'); return; }
+      if (step === 'question') { setState(round, 'answers_active'); return; }
+      if (step === 'answers_active') { setState(round, 'correct_answer'); return; }
+      if (step === 'correct_answer' || step === 'correct_answer_wait') {
+        if (subIdx + 1 < qList.length) { setSubQ(round, subIdx + 1); setState(round, 'question'); }
+        else {
+          if (round < 7) updateQuizState({ current_round: round + 1, round_step: 'standby', sub_question_index: 0 });
+          else updateQuizState({ current_round: 0, round_step: 'standby', sub_question_index: 0 });
+        }
+      }
+    }
+
+    function updateFlowButtonLabel() {
+      const btn = document.getElementById('flow-next-step-btn');
+      if (!btn) return;
+
+      const round = localState.currentRound;
+      const step = localState.roundStep;
+      const subIdx = localState.subQuestionIndex;
+      const qList = QUIZ_QUESTIONS[round] || [];
+
+      if (round === 0) {
+        btn.textContent = "НАЧАТЬ КВИЗ ➔";
+        return;
+      }
+
+      if (step === 'standby') {
+        btn.textContent = `ПОКАЗАТЬ ВОПРОС ${subIdx + 1} ➔`;
+      } else if (step === 'question') {
+        btn.textContent = "ВКЛЮЧИТЬ ПУЛЬТЫ (30с) ➔";
+      } else if (step === 'answers_active') {
+        btn.textContent = "ПОКАЗАТЬ ВЕРНЫЙ ОТВЕТ ➔";
+      } else if (step === 'correct_answer' || step === 'correct_answer_wait') {
+        if (subIdx + 1 < qList.length) {
+          btn.textContent = `ПЕРЕЙТИ К ВОПРОСУ ${subIdx + 2} ➔`;
+        } else {
+          if (round < 7) {
+            btn.textContent = `ПЕРЕЙТИ К РАУНДУ ${round + 1} ➔`;
+          } else {
+            btn.textContent = "ЗАВЕРШИТЬ КВИЗ ➔";
+          }
+        }
+      }
+    }
+
+    function updateAnswerProgress() {
+      const ansText = document.getElementById('answered-count-text');
+      const connText = document.getElementById('total-connected-text');
+      if (!ansText || !connText) return;
+
+      let totalConnected = 0;
+      for (const key in localConnections) {
+        if (localConnections[key] > 0) {
+          totalConnected++;
+        }
+      }
+
+      ansText.textContent = localAnswers.length;
+      connText.textContent = totalConnected;
+    }
+
+    function updateActiveQuestionPreview() {
+      const previewBox = document.getElementById('active-question-preview-box');
+      if (!previewBox) return;
+
+      const round = localState.currentRound;
+      if (round === 0 || !localState.activeQuestion) {
+        previewBox.style.display = 'none';
+        return;
+      }
+      previewBox.style.display = 'block';
+      document.getElementById('preview-q-text').textContent = localState.activeQuestion.text;
+      const optsList = document.getElementById('preview-options-list');
+      optsList.innerHTML = '';
+      const correctCode = localState.correctAnswer;
+      const opts = localState.activeQuestion.options || [];
+      if (opts.length > 0) {
+        opts.forEach((opt, idx) => {
+          const code = ['A', 'B', 'C', 'D'][idx];
+          const item = document.createElement('div');
+          item.style.cssText = 'padding:8px 12px; border-radius:6px; background:rgba(255,255,255,0.03); border:1px solid #2d2618;';
+          if (code === correctCode) {
+            item.style.borderColor = '#00e676'; item.style.color = '#00e676'; item.style.background = 'rgba(0, 230, 118, 0.05)';
+            item.innerHTML = `<strong>${code}) ${opt}</strong> <span style="font-size:10px; color:#00e676; margin-left:5px;">(ВЕРНО)</span>`;
+          } else {
+            item.textContent = `${code}) ${opt}`;
+          }
+          optsList.appendChild(item);
+        });
+      } else {
+        optsList.innerHTML = '<div style="grid-column: span 2; color:#888; font-style:italic;">Раунд без выбора вариантов</div>';
+      }
+    }
+  </script>
+</body>
+</html>
