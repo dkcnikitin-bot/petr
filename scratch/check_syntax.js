@@ -7,6 +7,7 @@ const htmlFiles = [
   'public/quiz-admin.html',
   'public/quiz-screen.html',
   'public/hostess.html',
+  'public/organizer.html',
   'public/herald.html'
 ];
 

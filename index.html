@@ -25,11 +25,16 @@
       padding: 0;
     }
 
+    html, body {
+      height: auto !important;
+      min-height: 100vh;
+      overflow-y: auto !important;
+    }
+
     body {
       font-family: 'Cormorant Garamond', serif;
       background: var(--bg-velvet);
       color: #fdf5e6;
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       align-items: center;

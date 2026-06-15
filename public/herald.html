@@ -99,7 +99,7 @@
             fullName: payload.new.full_name,
             city: payload.new.city || '',
             tableNumber: payload.new.table_number || '',
-            status: payload.new.status || 'Silver',
+            status: payload.new.status || '0',
             lat: payload.new.lat || 55.0,
             lng: payload.new.lng || 37.0,
             isArrived: true
@@ -142,7 +142,8 @@
     // Функция форматирования имен
     function formatNameWithoutPatronymic(name) {
       if (!name) return '';
-      const parts = name.split(/\s+/);
+      const cleanName = name.replace(/\(.*?\)/g, '').trim();
+      const parts = cleanName.split(/\s+/);
       return parts.filter((part, idx) => {
         const clean = part.toLowerCase().replace(/[^а-яёa-z]/g, '');
         const isPatronymicSuffix = clean.endsWith('ович') || 
@@ -377,7 +378,7 @@
       if (name.includes('апраксин') || name.includes('беринг') || name.includes('ягужинский')) return 'TITANIUM';
       if (name.includes('долгоруков') || name.includes('трезини') || name.includes('лопухина')) return 'PLATINUM';
       if (name.includes('демидов') || name.includes('посошков') || name.includes('прокопович')) return 'GOLD';
-      return 'Silver';
+      return '0';
     }
 
     // 15 шаблонов объявлений для глашатая (все под родительный падеж гостя)
@@ -520,6 +521,9 @@
           } else if (rawStatus === 'gold' || rawStatus === '2') {
             statusClass = 'status-gold';
             statusLabel = 'GOLD';
+          } else if (rawStatus === '0' || rawStatus === 'почетный гость' || rawStatus === 'guest') {
+            statusClass = 'status-guest';
+            statusLabel = 'ПОЧЕТНЫЙ ГОСТЬ';
           } else {
             statusClass = 'status-silver';
             statusLabel = 'Silver';

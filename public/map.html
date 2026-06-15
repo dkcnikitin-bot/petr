@@ -200,25 +200,25 @@
     };
 
     // Supabase Realtime — подписка на гостей
-    _sb.channel('map-guests')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'guests' }, (payload) => {
-        if (payload.new && payload.new.is_arrived && !payload.old.is_arrived) {
-          handleArrival({
-            id: payload.new.id,
-            fullName: payload.new.full_name,
-            city: payload.new.city || '',
-            tableNumber: payload.new.table_number || '',
-            status: payload.new.status || 'Silver',
-            lat: payload.new.lat || 55.0,
-            lng: payload.new.lng || 37.0,
-            isArrived: true
-          });
-        }
-        // Если изменение не is_arrived — перезагружаем все
-        if (!payload.new.is_arrived || (payload.old && !payload.old.is_arrived)) {
-          reloadGuestsData();
-        }
-      })
+      _sb.channel('map-guests')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'guests' }, (payload) => {
+          if (payload.new && payload.new.is_arrived && !payload.old.is_arrived) {
+            handleArrival({
+              id: payload.new.id,
+              fullName: payload.new.full_name,
+              city: payload.new.city || '',
+              tableNumber: payload.new.table_number || '',
+              status: payload.new.status || '0',
+              lat: payload.new.lat || 55.0,
+              lng: payload.new.lng || 37.0,
+              isArrived: true
+            });
+          }
+          // Если изменение не is_arrived — перезагружаем все
+          if (!payload.new.is_arrived || (payload.old && !payload.old.is_arrived)) {
+            reloadGuestsData();
+          }
+        })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'guests' }, () => reloadGuestsData())
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'guests' }, () => reloadGuestsData())
       .subscribe();
@@ -226,7 +226,8 @@
     // Вспомогательная функция для удаления отчеств
     function formatNameWithoutPatronymic(name) {
       if (!name) return '';
-      const parts = name.split(/\s+/);
+      const cleanName = name.replace(/\(.*?\)/g, '').trim();
+      const parts = cleanName.split(/\s+/);
       return parts.filter((part, idx) => {
         const clean = part.toLowerCase().replace(/[^а-яёa-z]/g, '');
         const isPatronymicSuffix = clean.endsWith('ович') || 
@@ -291,11 +292,21 @@
       try {
         const { data, error } = await _sb.from('guests').select('*').order('id');
         if (error) throw error;
-        allGuests = (data || []).map(g => ({
-          id: g.id, fullName: g.full_name, city: g.city || '',
-          tableNumber: g.table_number || '', status: g.status || 'Silver',
-          lat: g.lat || 55.0, lng: g.lng || 37.0, isArrived: g.is_arrived || false
-        }));
+        
+        // Получаем ID всех гостей в очереди анимации
+        const queueIds = animationQueue.map(g => g.id);
+        
+        allGuests = (data || []).map(g => {
+          const isArrivedInDb = g.is_arrived || false;
+          // Если гость в очереди анимации, локально он считается еще не прибывшим
+          const isArrivedLocal = isArrivedInDb && !queueIds.includes(g.id);
+          
+          return {
+            id: g.id, fullName: g.full_name, city: g.city || '',
+            tableNumber: g.table_number || '', status: g.status || '0',
+            lat: g.lat || 55.0, lng: g.lng || 37.0, isArrived: isArrivedLocal
+          };
+        });
         drawStaticMarkers();
         updateArrivalsList();
       } catch (e) {
@@ -553,10 +564,15 @@
               requestAnimationFrame(tickSpark);
             } else {
               map.removeLayer(sparkMarker);
-              onCarriageArrival(guest);
             }
           }
           requestAnimationFrame(tickSpark);
+
+          // Точный запуск фазы карточки ровно через 8 секунд после старта кареты
+          sparkTimeout = setTimeout(() => {
+            map.removeLayer(sparkMarker);
+            onCarriageArrival(guest);
+          }, 8000);
 
         }, 3000);
       }
@@ -589,7 +605,7 @@
       if (name.includes('апраксин') || name.includes('беринг') || name.includes('ягужинский')) return 'TITANIUM';
       if (name.includes('долгоруков') || name.includes('трезини') || name.includes('лопухина')) return 'PLATINUM';
       if (name.includes('демидов') || name.includes('посошков') || name.includes('прокопович')) return 'GOLD';
-      return 'Silver';
+      return '0';
     }
 
     // Момент прибытия кареты (11-я секунда)
@@ -879,8 +895,8 @@
         if (fortressEl) fortressEl.style.setProperty('--hologram-shift-x', '0vw');
         if (peterEl) peterEl.style.setProperty('--hologram-shift-x', '0vw');
 
-        // Эффектное 3D вращение при затухании и улете в глубину
-        plaqueInner.style.transition = 'transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1)';
+        // Эффектное 3D вращение при затухании и улете в глубину (длительность увеличена до 0.8s)
+        plaqueInner.style.transition = 'transform 0.8s cubic-bezier(0.25, 0.8, 0.25, 1)';
         plaqueInner.style.setProperty('--card-base-rot-y', '80deg'); // сильный разворот при улете
         plaqueInner.style.setProperty('--card-base-rot-x', '-25deg');
         plaqueInner.style.setProperty('--card-scale', '0.1');
@@ -900,9 +916,22 @@
           plaqueInner.style.removeProperty('--card-scale');
           plaqueInner.style.transform = '';
 
-          animationQueue.shift();
+          const finishedGuest = animationQueue.shift();
+          
+          // Теперь этот гость действительно считается прибывшим на карте
+          if (finishedGuest) {
+            const localG = allGuests.find(g => g.id === finishedGuest.id);
+            if (localG) {
+              localG.isArrived = true;
+            }
+          }
+          
+          // Перерисовываем маркеры и список прибывших
+          drawStaticMarkers();
+          updateArrivalsList();
+
           processAnimationQueue();
-        }, 600);
+        }, 800);
 
       }, 20000);
     }
@@ -949,15 +978,7 @@
       map.setView([57.5, 42.0], 4.5);
     }
 
-    // Обновление данных (без сброса прибывших)
-    function reloadGuestsData() {
-      let stored = localStorage.getItem('assembly_guests');
-      if (stored) {
-        allGuests = JSON.parse(stored);
-        drawStaticMarkers();
-        updateArrivalsList();
-      }
-    }
+    // reloadGuestsData переопределен выше асинхронно
 
     // Функция генерации летящих искр от СПб к приземляющейся карточке гостя
     function spawnSparks(startX, startY, endX, endY) {

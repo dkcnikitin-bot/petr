@@ -52,6 +52,7 @@
         <div class="search-wrapper">
           <input type="text" id="search-input" class="search-input" placeholder="Поиск по имени или городу...">
         </div>
+        <button class="reset-db-btn" id="register-mass-delete-btn" style="background: linear-gradient(135deg, #e55050, #c0392b); border: 1px solid #c0392b; color: #fff; padding: 10px 18px; font-size: 0.9rem; border-radius: 6px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(192, 57, 43, 0.4); margin-top: 0; display: none; transition: all 0.3s ease;" onclick="deleteSelectedGuests()">Удалить выбранных (0)</button>
         <button class="add-vip-btn" id="open-add-modal-btn">
           + Добавить гостя
         </button>
@@ -69,6 +70,7 @@
         <table class="guest-table">
           <thead>
             <tr>
+              <th style="width: 40px; text-align: center;"><input type="checkbox" id="register-select-all" onchange="toggleSelectAllRegister()"></th>
               <th>ФИО</th>
               <th>Стол</th>
               <th>Город</th>
@@ -77,7 +79,7 @@
           </thead>
           <tbody id="guest-table-body">
             <tr>
-              <td colspan="4" style="text-align: center; color: #a89498;">Загрузка списка гостей...</td>
+              <td colspan="5" style="text-align: center; color: #a89498;">Загрузка списка гостей...</td>
             </tr>
           </tbody>
         </table>
@@ -109,20 +111,28 @@
 
           <h2 style="margin-top: 30px;">Сброс системы</h2>
           <p style="font-size: 0.85rem; color: #a89498; margin-bottom: 15px;">Вы можете сбросить статусы прибытия всех гостей на "не прибыл":</p>
-          <button class="reset-db-btn" id="reset-db-btn" style="padding: 10px 20px; font-size: 0.9rem;">Сбросить статусы всех гостей</button>
+          <button class="reset-db-btn" id="reset-db-btn" style="padding: 10px 20px; font-size: 0.9rem; margin-bottom: 20px;">Сбросить статусы всех гостей</button>
+          
+          <h2 style="margin-top: 20px; color: #ff6b6b;">Очистить список</h2>
+          <p style="font-size: 0.85rem; color: #a89498; margin-bottom: 15px;">Удалить ВСЕХ гостей из базы данных безвозвратно:</p>
+          <button class="reset-db-btn" id="clear-db-btn" style="padding: 10px 20px; font-size: 0.9rem; background: #ff6b6b; border-color: #ff6b6b; color: #fff; margin-top: 0;">Удалить всех гостей</button>
         </div>
 
         <!-- Правая часть: Управление базой и удаление -->
         <div class="admin-card" style="display: flex; flex-direction: column;">
           <h2>База данных гостей (<span id="admin-guest-count">0</span>)</h2>
-          <div class="search-wrapper" style="margin-bottom: 15px;">
-            <input type="text" id="admin-search-input" class="search-input" placeholder="Поиск гостей..." style="padding: 10px 14px; font-size: 0.9rem;">
+          <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <div class="search-wrapper" style="flex: 1;">
+              <input type="text" id="admin-search-input" class="search-input" placeholder="Поиск гостей..." style="padding: 10px 14px; font-size: 0.9rem;">
+            </div>
+            <button class="reset-db-btn" id="mass-delete-btn" style="background: #ff6b6b; border-color: #ff6b6b; color: #fff; padding: 10px 15px; font-size: 0.9rem; margin-top: 0; opacity: 0.5; cursor: not-allowed;" onclick="deleteSelectedGuests()" disabled>Удалить выбранных (0)</button>
           </div>
           
           <div class="table-container" style="flex: 1; max-height: 400px; background: rgba(0,0,0,0.3);">
             <table class="guest-table" style="font-size: 0.9rem;">
               <thead>
                 <tr>
+                  <th style="width: 40px; text-align: center;"><input type="checkbox" id="admin-select-all" onchange="toggleSelectAll()"></th>
                   <th>ФИО</th>
                   <th>Стол</th>
                   <th>Город</th>
@@ -220,27 +230,30 @@
     <div class="vip-modal" style="max-width: 650px;">
       <h2>Настройка импорта списка гостей</h2>
       
-      <div class="form-group">
-        <label>Выберите колонки из вашей таблицы:</label>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
-          <div>
-            <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">ФИО / Имя</label>
-            <select id="map-col-name" class="form-select"></select>
-          </div>
-          <div>
-            <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">Город</label>
-            <select id="map-col-city" class="form-select"></select>
-          </div>
-          <div>
-            <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">Номер стола</label>
-            <select id="map-col-table" class="form-select"></select>
-          </div>
-          <div>
-            <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">Статус</label>
-            <select id="map-col-status" class="form-select"></select>
+        <div id="grid-import-info" style="display: none; padding: 12px; background: rgba(195,155,82,0.15); border-left: 3px solid var(--gold-antique); border-radius: 4px; color: var(--gold-bright); font-family: 'Alice', serif; margin-bottom: 15px; font-size: 0.95rem;">
+          ⚜ Обнаружен формат сетки столов. Гости, столы, города и статусы распознаны автоматически!
+        </div>
+        <div class="form-group" id="column-mapping-selectors">
+          <label>Выберите колонки из вашей таблицы:</label>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 8px;">
+            <div>
+              <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">ФИО / Имя</label>
+              <select id="map-col-name" class="form-select"></select>
+            </div>
+            <div>
+              <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">Город</label>
+              <select id="map-col-city" class="form-select"></select>
+            </div>
+            <div>
+              <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">Номер стола</label>
+              <select id="map-col-table" class="form-select"></select>
+            </div>
+            <div>
+              <label style="font-size: 0.8rem; color: #a89498; margin-bottom: 4px;">Статус</label>
+              <select id="map-col-status" class="form-select"></select>
+            </div>
           </div>
         </div>
-      </div>
 
       <p style="font-size: 0.95rem; color: #ccc; margin-bottom: 10px; margin-top: 20px;">
         Всего распознано строк в таблице: <strong id="import-count-val" style="color: var(--gold-bright);">0</strong>.
@@ -304,7 +317,8 @@
     // Вспомогательная функция для удаления отчеств из ФИО гостя
     function formatNameWithoutPatronymic(name) {
       if (!name) return '';
-      const parts = name.split(/\s+/);
+      const cleanName = name.replace(/\(.*?\)/g, '').trim();
+      const parts = cleanName.split(/\s+/);
       return parts.filter((part, idx) => {
         const clean = part.toLowerCase().replace(/[^а-яёa-z]/g, '');
         const isPatronymicSuffix = clean.endsWith('ович') || 
@@ -564,7 +578,7 @@
     }
 
     function getStatusForGuest(guest) {
-      if (guest.status) return guest.status;
+      if (guest.status && guest.status !== '0') return guest.status;
       const name = (guest.fullName || '').toLowerCase();
       if (name.includes('пётр великий') || name.includes('петр великий') || name.includes('екатерина алексеевна') || name.includes('екатерина i')) return 'RUBY';
       if (name.includes('меншиков')) return 'PEARL';
@@ -572,7 +586,206 @@
       if (name.includes('апраксин') || name.includes('беринг') || name.includes('ягужинский')) return 'TITANIUM';
       if (name.includes('долгоруков') || name.includes('трезини') || name.includes('лопухина')) return 'PLATINUM';
       if (name.includes('демидов') || name.includes('посошков') || name.includes('прокопович')) return 'GOLD';
-      return 'Silver';
+      return '0';
+    }
+
+    // Вспомогательные функции группировки по столам
+    function groupGuestsByTable(guests) {
+      const groups = {};
+      guests.forEach(g => {
+        const t = String(g.tableNumber || '').trim();
+        if (!groups[t]) groups[t] = [];
+        groups[t].push(g);
+      });
+      return groups;
+    }
+
+    function getSortedTableKeys(groups) {
+      return Object.keys(groups).sort((a, b) => {
+        if (!a) return 1; // Без стола в конец списка
+        if (!b) return -1;
+        
+        const numA = parseInt(a, 10);
+        const numB = parseInt(b, 10);
+        
+        const isNumA = !isNaN(numA) && /^\d+$/.test(a);
+        const isNumB = !isNaN(numB) && /^\d+$/.test(b);
+        
+        if (isNumA && isNumB) return numA - numB;
+        if (isNumA) return -1;
+        if (isNumB) return 1;
+        
+        return a.localeCompare(b);
+      });
+    }
+
+    // Массовый выбор и удаление
+    let selectedGuestIds = [];
+
+    function toggleSelectGuest(id) {
+      const idx = selectedGuestIds.indexOf(id);
+      if (idx === -1) {
+        selectedGuestIds.push(id);
+      } else {
+        selectedGuestIds.splice(idx, 1);
+      }
+      updateMassDeleteButtonState();
+      
+      // Синхронизируем состояние чекбоксов в DOM без полной перерисовки
+      const checkboxes = document.querySelectorAll(`input[class$="-guest-checkbox"][data-id="${id}"]`);
+      checkboxes.forEach(cb => {
+        cb.checked = (idx === -1);
+      });
+      
+      updateSelectAllCheckboxState();
+      updateRegisterSelectAllCheckboxState();
+    }
+
+    function toggleSelectAll() {
+      const selectAllCheckbox = document.getElementById('admin-select-all');
+      const search = adminSearchInput.value.toLowerCase().trim();
+      const visibleGuests = allGuests.filter(g => {
+        return g.fullName.toLowerCase().includes(search) || 
+               g.city.toLowerCase().includes(search) ||
+               (g.tableNumber || '').toLowerCase().includes(search);
+      });
+      const visibleIds = visibleGuests.map(g => g.id);
+
+      if (selectAllCheckbox.checked) {
+        visibleIds.forEach(id => {
+          if (!selectedGuestIds.includes(id)) selectedGuestIds.push(id);
+        });
+      } else {
+        selectedGuestIds = selectedGuestIds.filter(id => !visibleIds.includes(id));
+      }
+      renderTable();
+      renderAdminTable();
+      updateMassDeleteButtonState();
+    }
+
+    function toggleSelectAllRegister() {
+      const selectAllCheckbox = document.getElementById('register-select-all');
+      const search = searchInput.value.toLowerCase().trim();
+      const guestsToShow = allGuests.filter(g => {
+        const matchSearch = g.fullName.toLowerCase().includes(search) || 
+                            g.city.toLowerCase().includes(search) ||
+                            (g.tableNumber || '').toLowerCase().includes(search);
+        let matchFilter = true;
+        if (currentFilter === 'waiting') matchFilter = !g.isArrived;
+        else if (currentFilter === 'arrived') matchFilter = g.isArrived;
+        return matchSearch && matchFilter;
+      });
+      const visibleIds = guestsToShow.map(g => g.id);
+
+      if (selectAllCheckbox.checked) {
+        visibleIds.forEach(id => {
+          if (!selectedGuestIds.includes(id)) selectedGuestIds.push(id);
+        });
+      } else {
+        selectedGuestIds = selectedGuestIds.filter(id => !visibleIds.includes(id));
+      }
+      renderTable();
+      renderAdminTable();
+      updateMassDeleteButtonState();
+    }
+
+    function updateSelectAllCheckboxState() {
+      const selectAllCheckbox = document.getElementById('admin-select-all');
+      if (!selectAllCheckbox) return;
+      
+      const search = adminSearchInput.value.toLowerCase().trim();
+      const visibleGuests = allGuests.filter(g => {
+        return g.fullName.toLowerCase().includes(search) || 
+               g.city.toLowerCase().includes(search) ||
+               (g.tableNumber || '').toLowerCase().includes(search);
+      });
+      
+      if (visibleGuests.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        const allSelected = visibleGuests.every(g => selectedGuestIds.includes(g.id));
+        const someSelected = visibleGuests.some(g => selectedGuestIds.includes(g.id));
+        
+        selectAllCheckbox.checked = allSelected;
+        selectAllCheckbox.indeterminate = someSelected && !allSelected;
+      }
+    }
+
+    function updateRegisterSelectAllCheckboxState() {
+      const selectAllCheckbox = document.getElementById('register-select-all');
+      if (!selectAllCheckbox) return;
+      
+      const search = searchInput.value.toLowerCase().trim();
+      const guestsToShow = allGuests.filter(g => {
+        const matchSearch = g.fullName.toLowerCase().includes(search) || 
+                            g.city.toLowerCase().includes(search) ||
+                            (g.tableNumber || '').toLowerCase().includes(search);
+        let matchFilter = true;
+        if (currentFilter === 'waiting') matchFilter = !g.isArrived;
+        else if (currentFilter === 'arrived') matchFilter = g.isArrived;
+        return matchSearch && matchFilter;
+      });
+      
+      if (guestsToShow.length === 0) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+      } else {
+        const allSelected = guestsToShow.every(g => selectedGuestIds.includes(g.id));
+        const someSelected = guestsToShow.some(g => selectedGuestIds.includes(g.id));
+        
+        selectAllCheckbox.checked = allSelected;
+        selectAllCheckbox.indeterminate = someSelected && !allSelected;
+      }
+    }
+
+    function updateMassDeleteButtonState() {
+      const deleteBtn = document.getElementById('mass-delete-btn');
+      const regDeleteBtn = document.getElementById('register-mass-delete-btn');
+      
+      if (deleteBtn) {
+        if (selectedGuestIds.length > 0) {
+          deleteBtn.disabled = false;
+          deleteBtn.style.opacity = '1';
+          deleteBtn.style.cursor = 'pointer';
+          deleteBtn.textContent = `Удалить выбранных (${selectedGuestIds.length})`;
+        } else {
+          deleteBtn.disabled = true;
+          deleteBtn.style.opacity = '0.5';
+          deleteBtn.style.cursor = 'not-allowed';
+          deleteBtn.textContent = `Удалить выбранных (0)`;
+        }
+      }
+      
+      if (regDeleteBtn) {
+        if (selectedGuestIds.length > 0) {
+          regDeleteBtn.style.display = 'inline-block';
+          regDeleteBtn.textContent = `Удалить выбранных (${selectedGuestIds.length})`;
+        } else {
+          regDeleteBtn.style.display = 'none';
+        }
+      }
+    }
+
+    async function deleteSelectedGuests() {
+      if (selectedGuestIds.length === 0) return;
+      if (confirm(`Вы уверены, что хотите удалить выбранных гостей (${selectedGuestIds.length} чел.)?`)) {
+        const { error } = await _sb.from('guests').delete().in('id', selectedGuestIds);
+        if (error) {
+          console.error('Ошибка массового удаления:', error);
+          alert('Ошибка удаления: ' + error.message);
+          return;
+        }
+        
+        allGuests = allGuests.filter(g => !selectedGuestIds.includes(g.id));
+        selectedGuestIds = [];
+        updateStats();
+        renderTable();
+        renderAdminTable();
+        updateMassDeleteButtonState();
+        alert('Выбранные гости успешно удалены!');
+        channel.postMessage({ type: 'guests_updated' });
+      }
     }
 
 
@@ -640,12 +853,13 @@
       adminGuestCount.textContent = total;
     }
 
-    // Отрисовка основной таблицы (Регистрация)
+    // Отрисовка основной таблицы (Регистрация) с группировкой по столам
     function renderTable() {
       const search = searchInput.value.toLowerCase().trim();
       const guestsToShow = allGuests.filter(g => {
         const matchSearch = g.fullName.toLowerCase().includes(search) || 
-                            g.city.toLowerCase().includes(search);
+                            g.city.toLowerCase().includes(search) ||
+                            (g.tableNumber || '').toLowerCase().includes(search);
         let matchFilter = true;
         if (currentFilter === 'waiting') matchFilter = !g.isArrived;
         else if (currentFilter === 'arrived') matchFilter = g.isArrived;
@@ -658,62 +872,104 @@
         return;
       }
 
-      // Сортировка: сначала не прибывшие, затем по алфавиту имен
-      guestsToShow.sort((a, b) => {
-        if (a.isArrived !== b.isArrived) return a.isArrived ? 1 : -1;
-        return a.fullName.localeCompare(b.fullName);
-      });
+      // Группировка
+      const groups = groupGuestsByTable(guestsToShow);
+      const sortedTables = getSortedTableKeys(groups);
 
-      guestsToShow.forEach(guest => {
-        const tr = document.createElement('tr');
-        tr.className = `guest-row ${guest.isArrived ? 'arrived-success' : ''}`;
-        tr.id = `guest-row-${guest.id}`;
+      sortedTables.forEach(tableNum => {
+        const tableGuests = groups[tableNum];
+        tableGuests.sort((a, b) => a.fullName.localeCompare(b.fullName));
 
-        const arrivedContent = guest.isArrived 
-          ? `<div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
-               <span style="color: #8ae4bc; font-weight: 600; font-size: 0.95rem;">✓ Прибыл</span>
-               <button class="undo-arrival-btn" onclick="cancelArrival(${guest.id})">Отменить ↩</button>
-             </div>`
-          : `<button class="register-btn" onclick="registerArrival(${guest.id})">Регистрация</button>`;
-
-        tr.innerHTML = `
-          <td><div class="name-cell">${formatNameWithoutPatronymic(guest.fullName)} ${getStatusBadgeHtml(guest)}</div></td>
-          <td><div class="table-cell" style="color: var(--gold-bright); font-weight: bold; font-family: 'Alice', serif;">${guest.tableNumber || '—'}</div></td>
-          <td><div class="city-cell">${guest.city}</div></td>
-          <td style="text-align: center;">${arrivedContent}</td>
+        // Разделитель-заголовок стола
+        const headerTr = document.createElement('tr');
+        headerTr.innerHTML = `
+          <td colspan="4" style="background: rgba(195, 155, 82, 0.12); color: var(--gold-bright); font-weight: bold; font-family: 'Alice', serif; font-size: 1.05rem; padding: 8px 12px; border-bottom: 1px solid rgba(195,155,82,0.25);">
+            ⚜ Стол: ${tableNum || 'Не указан'} (${tableGuests.length} чел.)
+          </td>
         `;
-        tableBody.appendChild(tr);
+        tableBody.appendChild(headerTr);
+
+        tableGuests.forEach(guest => {
+          const tr = document.createElement('tr');
+          tr.className = `guest-row ${guest.isArrived ? 'arrived-success' : ''}`;
+          tr.id = `guest-row-${guest.id}`;
+
+          const arrivedContent = guest.isArrived 
+            ? `<div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                 <span style="color: #8ae4bc; font-weight: 600; font-size: 0.95rem;">✓ Прибыл</span>
+                 <button class="undo-arrival-btn" onclick="cancelArrival(${guest.id})">Отменить ↩</button>
+               </div>`
+            : `<button class="register-btn" onclick="registerArrival(${guest.id})">Регистрация</button>`;
+
+          const isChecked = selectedGuestIds.includes(guest.id) ? 'checked' : '';
+
+          tr.innerHTML = `
+            <td style="width: 40px; text-align: center;">
+              <input type="checkbox" class="register-guest-checkbox" data-id="${guest.id}" ${isChecked} onchange="toggleSelectGuest(${guest.id})">
+            </td>
+            <td><div class="name-cell">${formatNameWithoutPatronymic(guest.fullName)} ${getStatusBadgeHtml(guest)}</div></td>
+            <td><div class="table-cell" style="color: var(--gold-bright); font-weight: bold; font-family: 'Alice', serif;">${guest.tableNumber || '—'}</div></td>
+            <td><div class="city-cell">${guest.city}</div></td>
+            <td style="text-align: center;">${arrivedContent}</td>
+          `;
+          tableBody.appendChild(tr);
+        });
       });
+      updateRegisterSelectAllCheckboxState();
     }
 
-    // Отрисовка административной таблицы (Управление и удаление)
+    // Отрисовка административной таблицы (Управление и удаление) с группировкой и чекбоксами
     function renderAdminTable() {
       const search = adminSearchInput.value.toLowerCase().trim();
       const guestsToShow = allGuests.filter(g => {
-        return g.fullName.toLowerCase().includes(search) || g.city.toLowerCase().includes(search);
+        return g.fullName.toLowerCase().includes(search) || 
+               g.city.toLowerCase().includes(search) ||
+               (g.tableNumber || '').toLowerCase().includes(search);
       });
 
       adminTableBody.innerHTML = '';
       if (guestsToShow.length === 0) {
-        adminTableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #a89498; padding: 20px;">Список пуст</td></tr>`;
+        adminTableBody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #a89498; padding: 20px;">Список пуст</td></tr>`;
         return;
       }
 
-      guestsToShow.sort((a, b) => a.fullName.localeCompare(b.fullName));
+      // Группировка
+      const groups = groupGuestsByTable(guestsToShow);
+      const sortedTables = getSortedTableKeys(groups);
 
-      guestsToShow.forEach(guest => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong style="color: #fdf5e6;">${formatNameWithoutPatronymic(guest.fullName)}</strong> ${getStatusBadgeHtml(guest)} ${guest.isArrived ? '<span style="color: #8ae4bc; font-size: 0.75rem;">(прибыл)</span>' : ''}</td>
-          <td><span style="color: var(--gold-bright); font-weight: bold;">${guest.tableNumber || '—'}</span></td>
-          <td><span style="font-style: italic; color: var(--gold-antique);">${guest.city}</span></td>
-          <td style="text-align: center; white-space: nowrap;">
-            <button class="edit-btn" onclick="editGuest(${guest.id})">Изменить</button>
-            <button class="delete-btn" onclick="deleteGuest(${guest.id})">Удалить</button>
+      sortedTables.forEach(tableNum => {
+        const tableGuests = groups[tableNum];
+        tableGuests.sort((a, b) => a.fullName.localeCompare(b.fullName));
+
+        // Заголовок группы в админке
+        const headerTr = document.createElement('tr');
+        headerTr.innerHTML = `
+          <td colspan="5" style="background: rgba(255, 255, 255, 0.02); color: var(--gold-antique); font-weight: bold; font-family: 'Alice', serif; font-size: 0.95rem; padding: 6px 12px; border-bottom: 1px solid rgba(195,155,82,0.15);">
+            ⚜ Стол: ${tableNum || 'Не указан'} (${tableGuests.length} чел.)
           </td>
         `;
-        adminTableBody.appendChild(tr);
+        adminTableBody.appendChild(headerTr);
+
+        tableGuests.forEach(guest => {
+          const isChecked = selectedGuestIds.includes(guest.id) ? 'checked' : '';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td style="width: 40px; text-align: center;">
+              <input type="checkbox" class="admin-guest-checkbox" data-id="${guest.id}" ${isChecked} onchange="toggleSelectGuest(${guest.id})">
+            </td>
+            <td><strong style="color: #fdf5e6;">${formatNameWithoutPatronymic(guest.fullName)}</strong> ${getStatusBadgeHtml(guest)} ${guest.isArrived ? '<span style="color: #8ae4bc; font-size: 0.75rem;">(прибыл)</span>' : ''}</td>
+            <td><span style="color: var(--gold-bright); font-weight: bold;">${guest.tableNumber || '—'}</span></td>
+            <td><span style="font-style: italic; color: var(--gold-antique);">${guest.city}</span></td>
+            <td style="text-align: center; white-space: nowrap;">
+              <button class="edit-btn" onclick="editGuest(${guest.id})">Изменить</button>
+              <button class="delete-btn" onclick="deleteGuest(${guest.id})">Удалить</button>
+            </td>
+          `;
+          adminTableBody.appendChild(tr);
+        });
       });
+      
+      updateSelectAllCheckboxState();
     }
 
     // ==========================================
@@ -741,65 +997,478 @@
           </div>
         `;
       }
+
+      channel.postMessage({ type: 'guest_arrived', guest: guest });
       updateStats();
-      setTimeout(() => {
-        if (currentFilter === 'waiting') {
-          if (tr) tr.classList.add('fading-out');
-          setTimeout(renderTable, 400);
-        } else { renderTable(); }
-      }, 1000);
     }
 
     async function cancelArrival(id) {
-      const { error } = await _sb.from('guests').update({ is_arrived: false }).eq('id', id);
-      if (error) { console.error('Ошибка отмены прибытия:', error); return; }
       const guest = allGuests.find(g => g.id === id);
-      if (guest) guest.isArrived = false;
-      updateStats(); renderTable(); renderAdminTable();
+      if (!guest) return;
+
+      const { error } = await _sb.from('guests').update({ is_arrived: false }).eq('id', id);
+      if (error) { console.error('Ошибка отмены регистрации:', error); return; }
+
+      guest.isArrived = false;
+
+      const tr = document.getElementById(`guest-row-${id}`);
+      if (tr) {
+        tr.classList.remove('arrived-success');
+        const statusCell = tr.querySelector('td:last-child');
+        statusCell.innerHTML = `
+          <button class="register-btn" onclick="registerArrival(${id})">Регистрация</button>
+        `;
+      }
+
+      channel.postMessage({ type: 'guests_updated' });
+      updateStats();
+      renderTable();
+      renderAdminTable();
     }
 
     async function deleteGuest(id) {
-      if (confirm('Вы уверены, что хотите удалить этого гостя?')) {
-        const { error } = await _sb.from('guests').delete().eq('id', id);
-        if (error) { console.error('Ошибка удаления гостя:', error); return; }
-        allGuests = allGuests.filter(g => g.id !== id);
-        updateStats(); renderTable(); renderAdminTable();
+      if (!confirm('Вы уверены, что хотите удалить этого гостя?')) return;
+      
+      const { error } = await _sb.from('guests').delete().eq('id', id);
+      if (error) { console.error('Ошибка удаления гостя:', error); return; }
+
+      allGuests = allGuests.filter(g => g.id !== id);
+      
+      const idx = selectedGuestIds.indexOf(id);
+      if (idx !== -1) {
+        selectedGuestIds.splice(idx, 1);
+        updateMassDeleteButtonState();
       }
+
+      updateStats();
+      renderTable();
+      renderAdminTable();
+
+      channel.postMessage({ type: 'guests_updated' });
     }
 
-    // ==========================================
-    // ФУНКЦИЯ ИМПОРТА EXCEL / CSV
-    // ==========================================
-    
-    // Обработка Drag & Drop
-    ['dragenter', 'dragover'].forEach(eventName => {
-      dropzone.addEventListener(eventName, (e) => {
+    // Кнопка полной очистки базы данных
+    const clearDbBtn = document.getElementById('clear-db-btn');
+    if (clearDbBtn) {
+      clearDbBtn.addEventListener('click', async () => {
+        if (confirm('Вы уверены, что хотите УДАЛИТЬ ВСЕХ гостей из базы данных? Это действие абсолютно необратимо!')) {
+          const { error } = await _sb.from('guests').delete().neq('id', 0);
+          if (error) { alert('Ошибка удаления: ' + error.message); return; }
+          alert('Все гости удалены из базы данных.');
+          allGuests = [];
+          selectedGuestIds = [];
+          updateStats();
+          renderTable();
+          renderAdminTable();
+          updateMassDeleteButtonState();
+          channel.postMessage({ type: 'guests_reset' });
+        }
+      });
+    }
+
+    // Драг-н-дроп и выбор файлов для импорта
+    if (dropzone) {
+      dropzone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropzone.classList.add('dragover');
-      }, false);
-    });
-
-    ['dragleave', 'drop'].forEach(eventName => {
-      dropzone.addEventListener(eventName, (e) => {
+      });
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+      dropzone.addEventListener('drop', (e) => {
         e.preventDefault();
         dropzone.classList.remove('dragover');
-      }, false);
-    });
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          processFile(files[0]);
+        }
+      });
+    }
+    if (fileInput) {
+      fileInput.addEventListener('change', (e) => {
+        if (fileInput.files.length > 0) {
+          processFile(fileInput.files[0]);
+        }
+      });
+    }
 
-    dropzone.addEventListener('drop', (e) => {
-      const dt = e.dataTransfer;
-      const files = dt.files;
-      if (files.length > 0) {
-        fileInput.files = files;
-        processFile(files[0]);
+    // Хелпер нормализации городов
+    function cleanCityName(city) {
+      if (!city) return 'Санкт-Петербург';
+      const clean = city.trim();
+      const lower = clean.toLowerCase();
+      if (
+        lower === 'спб' || 
+        lower.startsWith('спб') || 
+        lower.startsWith('с-пб') ||
+        lower.startsWith('с.пб') ||
+        lower.startsWith('питер') || 
+        lower.includes('петербург') ||
+        lower.includes('петрбург')
+      ) {
+        return 'Санкт-Петербург';
       }
-    }, false);
+      return clean.split(/\s+/).map(word => {
+        if (word.toLowerCase() === 'на') return 'на';
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      }).join(' ');
+    }
 
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files.length > 0) {
-        processFile(e.target.files[0]);
+    // Хелпер очистки и нормализации статусов
+    function cleanImportStatus(status) {
+      const norm = (status || '').trim().toLowerCase();
+      if (norm === 'ruby' || norm === 'рубин' || norm === '7') return 'RUBY';
+      if (norm === 'pearl' || norm === 'перл' || norm === '6') return 'PEARL';
+      if (norm === 'jade' || norm === 'джейд' || norm === '5') return 'JADE';
+      if (norm === 'titanium' || norm === 'titan' || norm === 'титан' || norm === '4') return 'TITANIUM';
+      if (norm === 'platinum' || norm === 'платинум' || norm === '3') return 'PLATINUM';
+      if (norm === 'gold' || norm === 'золото' || norm === '2') return 'GOLD';
+      if (norm === 'silver' || norm === 'серебро' || norm === '1') return 'Silver';
+      return '0';
+    }
+
+    // Парсер сеточной разметки рассадки гостей
+    function parseSeatingGrid(rows) {
+      const guests = [];
+      const anchors = [];
+      
+      // 1. Поиск ячеек-якорей столов
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        if (!row) continue;
+        for (let c = 0; c < row.length; c++) {
+          const val = row[c];
+          if (val === undefined || val === null) continue;
+          const str = String(val).trim();
+          
+          const hasTable = /стол/i.test(str);
+          const hasList = /^список$/i.test(str);
+          
+          if (hasTable || hasList) {
+            anchors.push({ r, c, val: str });
+          }
+        }
       }
-    });
+      
+      if (anchors.length === 0) {
+        return null; // Не сеточный файл, используем стандартную логику
+      }
+      
+      // Сортируем якоря для последовательного разбиения
+      anchors.sort((a, b) => a.r - b.r || a.c - b.c);
+      
+      // 2. Обработка каждого стола в изолированном 2D-боксе
+      anchors.forEach(anchor => {
+        const rStart = anchor.r;
+        const cStart = anchor.c;
+        
+        let tableNum = "";
+        if (/стол/i.test(anchor.val)) {
+          const match = anchor.val.match(/\d+/);
+          tableNum = match ? match[0] : anchor.val;
+        } else if (/список/i.test(anchor.val)) {
+          const valBelow = rows[rStart + 1] ? rows[rStart + 1][cStart] : null;
+          if (valBelow !== null && valBelow !== undefined && valBelow !== "") {
+            const strBelow = String(valBelow).trim();
+            if (/^\d+$/.test(strBelow)) {
+              tableNum = strBelow;
+            }
+          }
+        }
+        
+        // Находим правую границу колонки (до следующего стола на этой строке или близкой к ней)
+        let cEnd = rows[rStart].length;
+        anchors.forEach(other => {
+          if (other.c > cStart && Math.abs(other.r - rStart) < 6 && other.c < cEnd) {
+            cEnd = other.c;
+          }
+        });
+        
+        // Находим нижнюю границу строки (до следующего стола в этой же колонке)
+        let rEnd = rows.length;
+        anchors.forEach(other => {
+          if (other.r > rStart && other.c >= cStart && other.c < cEnd && other.r < rEnd) {
+            rEnd = other.r;
+          }
+        });
+        
+        // Определяем типы столбцов
+        let nameCol = cStart;
+        let statusCol = -1;
+        let paymentCol = -1;
+        let cityCol = -1;
+        
+        let headerRowFound = -1;
+        for (let r = rStart; r <= rStart + 2 && r < rEnd; r++) {
+          for (let c = cStart; c < cEnd; c++) {
+            const val = rows[r][c];
+            if (!val) continue;
+            const str = String(val).toLowerCase();
+            if (str.includes("список") || str.includes("фио") || str.includes("имя") || str.includes("гость")) {
+              nameCol = c;
+              headerRowFound = r;
+            } else if (str.includes("статус") || str.includes("status")) {
+              statusCol = c;
+              headerRowFound = r;
+            } else if (str.includes("оплата") || str.includes("сумма") || str.includes("payment")) {
+              paymentCol = c;
+              headerRowFound = r;
+            } else if (str.includes("город") || str.includes("city")) {
+              cityCol = c;
+              headerRowFound = r;
+            }
+          }
+          if (headerRowFound !== -1) break;
+        }
+        
+        // Автоопределение колонки имени при отсутствии заголовков
+        if (headerRowFound === -1 || nameCol === cStart) {
+          let bestCol = cStart;
+          let maxNames = 0;
+          for (let c = cStart; c < cEnd; c++) {
+            let nameCount = 0;
+            for (let r = rStart + 1; r < Math.min(rStart + 6, rEnd); r++) {
+              if (!rows[r]) continue;
+              const val = rows[r][c];
+              if (val && typeof val === 'string') {
+                const str = val.trim();
+                if (str.length > 4 && /^[a-zа-яё\s.,()"-]+$/i.test(str) && str.split(/\s+/).length >= 1) {
+                  nameCount++;
+                }
+              }
+            }
+            if (nameCount > maxNames) {
+              maxNames = nameCount;
+              bestCol = c;
+            }
+          }
+          nameCol = bestCol;
+        }
+
+        // Автоопределение колонки оплаты (только числа >= 100)
+        if (paymentCol === -1) {
+          for (let c = cStart; c < cEnd; c++) {
+            if (c === nameCol) continue;
+            let numberCount = 0;
+            let totalCount = 0;
+            for (let r = rStart + 1; r < rEnd; r++) {
+              if (!rows[r]) continue;
+              const val = rows[r][c];
+              if (val !== undefined && val !== null && val !== "") {
+                totalCount++;
+                const num = Number(val);
+                if (!isNaN(num) && num >= 100) {
+                  numberCount++;
+                }
+              }
+            }
+            if (totalCount > 0 && numberCount / totalCount > 0.5) {
+              paymentCol = c;
+              break;
+            }
+          }
+        }
+
+        // Автоопределение города
+        if (cityCol === -1) {
+          const knownCities = Object.keys(CITY_COORDINATES);
+          for (let c = cStart; c < cEnd; c++) {
+            if (c === nameCol || c === statusCol || c === paymentCol) continue;
+            let cityCount = 0;
+            for (let r = rStart + 1; r < Math.min(rStart + 6, rEnd); r++) {
+              if (!rows[r]) continue;
+              const val = rows[r][c];
+              if (val && typeof val === 'string') {
+                const str = val.trim().toLowerCase();
+                if (knownCities.includes(str) || str === 'спб' || str === 'санкт-петербург' || str.includes('новгород') || str.includes('ярославль')) {
+                  cityCount++;
+                }
+              }
+            }
+            if (cityCount > 0) {
+              cityCol = c;
+              break;
+            }
+          }
+        }
+        
+        const dataStartRow = headerRowFound !== -1 ? headerRowFound + 1 : rStart + 1;
+        let realDataStartRow = dataStartRow;
+        if (/список/i.test(anchor.val) && tableNum && dataStartRow === rStart + 1) {
+          realDataStartRow = rStart + 2;
+        }
+        
+        // Извлечение гостей стола
+        let isFirstInBlock = true;
+        for (let r = realDataStartRow; r < rEnd; r++) {
+          const row = rows[r];
+          if (!row) continue;
+          
+          const nameVal = row[nameCol];
+          if (nameVal === undefined || nameVal === null) continue;
+          
+          const nameStr = String(nameVal).trim();
+          if (nameStr === "" || /^\d+$/.test(nameStr) || nameStr.length < 3) continue;
+          if (/стол/i.test(nameStr) || /^список$/i.test(nameStr)) {
+            break;
+          }
+          
+          let status = "0";
+          if (statusCol !== -1 && row[statusCol] !== undefined && row[statusCol] !== null) {
+            status = cleanImportStatus(String(row[statusCol]).trim());
+          }
+          
+          let payment = 0;
+          if (paymentCol !== -1 && row[paymentCol] !== undefined && row[paymentCol] !== null) {
+            const pVal = parseFloat(String(row[paymentCol]).replace(/[^\d.]/g, ''));
+            if (!isNaN(pVal)) payment = pVal;
+          }
+          
+          let city = "Санкт-Петербург";
+          if (cityCol !== -1 && row[cityCol] !== undefined && row[cityCol] !== null) {
+            const cVal = String(row[cityCol]).trim();
+            if (cVal) city = cleanCityName(cVal);
+          }
+          
+          let finalName = nameStr;
+          if (isFirstInBlock) {
+            finalName = nameStr + " (Ответственный)";
+            isFirstInBlock = false;
+          }
+          
+          guests.push({
+            fullName: finalName,
+            city: city,
+            tableNumber: tableNum,
+            status: status,
+            payment: payment,
+            isArrived: false
+          });
+        }
+      });
+      
+      return guests;
+    }
+
+    // Парсер side-by-side списков (как в гости.xlsx)
+    function parseGostiRobust(rows) {
+      const guests = [];
+      const headerRow = rows[0] || [];
+      const listBlocks = [];
+      
+      headerRow.forEach((val, c) => {
+        if (val && typeof val === 'string') {
+          const str = val.trim().toLowerCase();
+          if (str.includes('список') || str.includes('фио') || str.includes('имя')) {
+            listBlocks.push(c);
+          }
+        }
+      });
+
+      const maxCols = Math.max(...rows.map(r => r ? r.length : 0));
+      const knownCities = ['спб', 'спб.', 'питер', 'санкт-петербург', 'санкт петербург', 'москва', 'воронеж', 'уфа', 'вологда', 'липецк', 'кировоград', 'грязовец', 'каменск-ураль', 'пенза', 'щелкова', 'белокуриха', 'екатеринбург', 'чебоксары', 'белгород', 'новочебоксарск', 'йошкар-ола', 'казань', 'выборг', 'нарьян-мар', 'калуга', 'челябинск', 'тольятти'];
+
+      listBlocks.forEach((cStart, idx) => {
+        const cEnd = idx < listBlocks.length - 1 ? listBlocks[idx + 1] : maxCols;
+        
+        let nameCol = cStart;
+        let statusCol = -1;
+        let paymentCol = -1;
+        let cityCol = -1;
+        
+        for (let c = cStart; c < cEnd; c++) {
+          const val = headerRow[c];
+          if (!val) continue;
+          const str = String(val).trim().toLowerCase();
+          if (str.includes('список') || str.includes('фио') || str.includes('имя')) {
+            nameCol = c;
+          } else if (str.includes('статус') || str.includes('status')) {
+            statusCol = c;
+          } else if (str.includes('оплат') || str.includes('сумма')) {
+            paymentCol = c;
+          } else if (str.includes('город') || str.includes('city')) {
+            cityCol = c;
+          }
+        }
+        
+        const colStats = [];
+        for (let c = cStart; c < cEnd; c++) {
+          if (c === nameCol) continue;
+          
+          let total = 0;
+          let statusMatches = 0;
+          let cityMatches = 0;
+          let paymentMatches = 0;
+          
+          for (let r = 1; r < rows.length; r++) {
+            if (!rows[r]) continue;
+            const val = rows[r][c];
+            if (val !== undefined && val !== null && val !== '') {
+              total++;
+              const str = String(val).trim().toLowerCase();
+              
+              const normStat = normalizeStatus(str);
+              if (normStat !== 'guest' && !/^\d+$/.test(str)) {
+                statusMatches++;
+              }
+              
+              const isKnownCity = knownCities.some(kc => str.includes(kc));
+              if (isKnownCity) {
+                cityMatches++;
+              }
+              
+              const num = Number(val);
+              if (!isNaN(num) && num >= 100) {
+                paymentMatches++;
+              }
+            }
+          }
+          
+          colStats.push({
+            col: c,
+            total,
+            statusScore: total > 0 ? statusMatches / total : 0,
+            cityScore: total > 0 ? cityMatches / total : 0,
+            paymentScore: total > 0 ? paymentMatches / total : 0
+          });
+        }
+        
+        colStats.forEach(stat => {
+          if (stat.cityScore > 0.3) {
+            cityCol = stat.col;
+          } else if (stat.statusScore > 0.3) {
+            statusCol = stat.col;
+          } else if (stat.paymentScore > 0.3) {
+            paymentCol = stat.col;
+          }
+        });
+
+        for (let r = 1; r < rows.length; r++) {
+          const row = rows[r];
+          if (!row) continue;
+          const nameVal = row[nameCol];
+          if (nameVal === undefined || nameVal === null) continue;
+          
+          const name = String(nameVal).trim();
+          if (name === "" || /^\d+$/.test(name) || name.length < 3) continue;
+          
+          let status = statusCol !== -1 && row[statusCol] !== undefined && row[statusCol] !== null ? String(row[statusCol]).trim() : '0';
+          let city = cityCol !== -1 && row[cityCol] !== undefined && row[cityCol] !== null ? String(row[cityCol]).trim() : 'Санкт-Петербург';
+          let payment = paymentCol !== -1 && row[paymentCol] !== undefined && row[paymentCol] !== null ? parseFloat(String(row[paymentCol]).replace(/[^\d.]/g, '')) || 0 : 0;
+          
+          guests.push({
+            fullName: name,
+            status: cleanImportStatus(status),
+            city: cleanCityName(city),
+            tableNumber: '',
+            payment: payment,
+            isArrived: false
+          });
+        }
+      });
+      
+      return guests;
+    }
 
     let importedRows = [];
 
@@ -815,53 +1484,35 @@
           
           importedRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
           
-          if (importedRows.length < 2) {
+          if (importedRows.length < 1) {
             alert("Файл пуст или содержит некорректные строки");
             return;
           }
 
-          // Извлекаем заголовки первой строки
-          const headers = importedRows[0].map(h => String(h || '').trim());
-          
-          // Заполняем выпадающие списки выбора колонок
+          const headers = importedRows[0] || [];
           const nameSelect = document.getElementById('map-col-name');
           const citySelect = document.getElementById('map-col-city');
           const tableSelect = document.getElementById('map-col-table');
           const statusSelect = document.getElementById('map-col-status');
           
-          nameSelect.innerHTML = '';
-          citySelect.innerHTML = '';
-          tableSelect.innerHTML = '<option value="-1">— Пропустить —</option>'; // Номер стола необязателен
-          statusSelect.innerHTML = '<option value="-1">— Пропустить —</option>'; // Статус необязателен
+          nameSelect.innerHTML = '<option value="-1">-- Не выбрано --</option>';
+          citySelect.innerHTML = '<option value="-1">-- Не выбрано --</option>';
+          tableSelect.innerHTML = '<option value="-1">-- Не выбрано --</option>';
+          statusSelect.innerHTML = '<option value="-1">-- Не выбрано --</option>';
           
           headers.forEach((h, idx) => {
-            const optName = document.createElement('option');
-            optName.value = idx;
-            optName.textContent = h;
-            nameSelect.appendChild(optName);
-            
-            const optCity = document.createElement('option');
-            optCity.value = idx;
-            optCity.textContent = h;
-            citySelect.appendChild(optCity);
-            
-            const optTable = document.createElement('option');
-            optTable.value = idx;
-            optTable.textContent = h;
-            tableSelect.appendChild(optTable);
-            
-            const optStatus = document.createElement('option');
-            optStatus.value = idx;
-            optStatus.textContent = h;
-            statusSelect.appendChild(optStatus);
+            const label = h ? String(h).trim() : `Колонка ${idx + 1}`;
+            nameSelect.innerHTML += `<option value="${idx}">${label}</option>`;
+            citySelect.innerHTML += `<option value="${idx}">${label}</option>`;
+            tableSelect.innerHTML += `<option value="${idx}">${label}</option>`;
+            statusSelect.innerHTML += `<option value="${idx}">${label}</option>`;
           });
           
-          // Пытаемся автоматически сопоставить колонки
-          const lowerHeaders = headers.map(h => h.toLowerCase());
+          const lowerHeaders = headers.map(h => h ? String(h).toLowerCase() : '');
           
-          const nameIdx = lowerHeaders.findIndex(h => h.includes('фио') || h.includes('имя') || h.includes('name') || h.includes('гость'));
+          const nameIdx = lowerHeaders.findIndex(h => h.includes('фио') || h.includes('имя') || h.includes('name') || h.includes('гость') || h.includes('список'));
           const cityIdx = lowerHeaders.findIndex(h => h.includes('город') || h.includes('city') || h.includes('земля') || h.includes('место'));
-          const tableIdx = lowerHeaders.findIndex(h => h.includes('стол') || h.includes('table') || h.includes('место'));
+          const tableIdx = lowerHeaders.findIndex(h => h.includes('стол') || h.includes('table'));
           const statusIdx = lowerHeaders.findIndex(h => h.includes('статус') || h.includes('status') || h.includes('звание') || h.includes('ранг'));
           
           if (nameIdx !== -1) nameSelect.value = nameIdx;
@@ -869,10 +1520,7 @@
           if (tableIdx !== -1) tableSelect.value = tableIdx;
           if (statusIdx !== -1) statusSelect.value = statusIdx;
           
-          // Вызываем первичное построение списка и таблицы превью
           updateImportPreview();
-          
-          // Показываем модальное окно импорта
           importModal.classList.add('active');
 
         } catch (err) {
@@ -892,22 +1540,47 @@
       
       tempImportList = [];
       
-      for (let i = 1; i < importedRows.length; i++) {
-        const row = importedRows[i];
-        if (!row[nameIdx]) continue; // Если имя пустое — пропускаем
-        
-        const fullName = String(row[nameIdx] || '').trim();
-        const city = String(row[cityIdx] || '').trim() || 'Санкт-Петербург';
-        const tableNumber = tableIdx !== -1 && row[tableIdx] ? String(row[tableIdx]).trim() : '';
-        const status = statusIdx !== -1 && row[statusIdx] ? String(row[statusIdx]).trim() : '';
-        
-        tempImportList.push({
-          fullName: fullName,
-          city: city,
-          tableNumber: tableNumber,
-          status: status,
-          isArrived: false
+      // Сначала пытаемся распарсить как сетку (места за столами)
+      const gridGuests = parseSeatingGrid(importedRows);
+      if (gridGuests && gridGuests.length > 0) {
+        tempImportList = gridGuests;
+      } else {
+        // Проверяем, не является ли это side-by-side списком (как гости.xlsx)
+        // Ищем количество колонок, содержащих "СПИСОК" или "ФИО" в Row 0
+        const headerRow = importedRows[0] || [];
+        let listBlocksCount = 0;
+        headerRow.forEach(val => {
+          if (val && typeof val === 'string') {
+            const str = val.trim().toLowerCase();
+            if (str.includes('список') || str.includes('фио') || str.includes('имя')) {
+              listBlocksCount++;
+            }
+          }
         });
+
+        if (listBlocksCount > 1) {
+          tempImportList = parseGostiRobust(importedRows);
+        } else {
+          // Обычный плоский импорт
+          for (let i = 1; i < importedRows.length; i++) {
+            const row = importedRows[i];
+            if (!row[nameIdx]) continue;
+            
+            const fullName = String(row[nameIdx] || '').trim();
+            if (fullName === "" || /^\d+$/.test(fullName) || fullName.length < 3) continue;
+            const city = String(row[cityIdx] || '').trim() || 'Санкт-Петербург';
+            const tableNumber = tableIdx !== -1 && row[tableIdx] ? String(row[tableIdx]).trim() : '';
+            const status = statusIdx !== -1 && row[statusIdx] ? String(row[statusIdx]).trim() : '0';
+            
+            tempImportList.push({
+              fullName: fullName,
+              city: cleanCityName(city),
+              tableNumber: tableNumber,
+              status: cleanImportStatus(status),
+              isArrived: false
+            });
+          }
+        }
       }
       
       // Обновляем счетчик
@@ -917,11 +1590,12 @@
       importPreviewBody.innerHTML = '';
       tempImportList.slice(0, 5).forEach(guest => {
         const tr = document.createElement('tr');
+        const displayStatus = guest.status === '0' ? 'Почетный гость' : guest.status;
         tr.innerHTML = `
           <td>${guest.fullName}</td>
           <td><span style="color: var(--gold-bright); font-weight: bold;">${guest.tableNumber || '—'}</span></td>
           <td>${guest.city}</td>
-          <td>${guest.status || 'Авто'}</td>
+          <td>${displayStatus || 'Авто'}</td>
         `;
         importPreviewBody.appendChild(tr);
       });
@@ -992,10 +1666,11 @@
         const normGuestsForDb = tempImportList.map(g => {
           const normCity = g.city.toLowerCase();
           const coords = geocodedCities[normCity] || { lat: 59.9343, lng: 30.3351 };
-          const finalStatus = g.status ? g.status.trim() : getStatusForGuest(g);
+          const rawStatus = (g.status && g.status.trim() !== '' && g.status.trim() !== '0') ? g.status.trim() : getStatusForGuest(g);
+          const finalStatus = cleanImportStatus(rawStatus);
           return {
-            full_name: g.fullName, city: g.city, table_number: g.tableNumber,
-            status: finalStatus, lat: coords.lat, lng: coords.lng, is_arrived: false, payment: 0
+            full_name: g.fullName, city: cleanCityName(g.city), table_number: g.tableNumber,
+            status: finalStatus, lat: coords.lat, lng: coords.lng, is_arrived: false, payment: g.payment || 0
           };
         });
         
