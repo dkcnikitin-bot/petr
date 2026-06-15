@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Петровская Ассамблея — Навигационный Портал</title>
+  
+  <!-- Шрифт для заголовков и текстов (путь изменен на public/style.css) -->
+  <link rel="stylesheet" href="public/style.css">
+  
+  <style>
+    :root {
+      --bg-velvet: radial-gradient(circle at center, #0a1c36 0%, #030814 100%);
+      --gold-bright: #ffd700;
+      --gold-antique: #c39b52;
+      --gold-glow: rgba(255, 215, 0, 0.35);
+      --glass-bg: rgba(8, 18, 36, 0.65);
+      --glass-border: rgba(195, 155, 82, 0.25);
+      --transition-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Cormorant Garamond', serif;
+      background: var(--bg-velvet);
+      color: #fdf5e6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-x: hidden;
+      padding: 40px 20px;
+      position: relative;
+    }
+
+    /* Фоновый холст для золотых искр */
+    #sparkles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.8;
+    }
+
+    /* Рамка в императорском стиле */
+    .portal-frame {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      bottom: 15px;
+      border: 2px solid var(--gold-antique);
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.8);
+    }
+    
+    .portal-frame::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      right: 4px;
+      bottom: 4px;
+      border: 1px double var(--gold-antique);
+    }
+
+    /* Декоративные уголки */
+    .corner {
+      position: fixed;
+      width: 40px;
+      height: 40px;
+      border: 3px double var(--gold-antique);
+      z-index: 11;
+      pointer-events: none;
+    }
+    .c-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+    .c-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+    .c-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+    .c-br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+    /* Контент-контейнер */
+    .main-container {
+      max-width: 1200px;
+      width: 100%;
+      z-index: 5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    /* Шапка портала */
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      position: relative;
+    }
+
+    .crest {
+      font-size: 4.5rem;
+      color: var(--gold-bright);
+      text-shadow: 0 0 15px var(--gold-glow);
+      margin-bottom: 10px;
+      animation: float 4s infinite ease-in-out;
+      display: inline-block;
+    }
+
+    h1 {
+      font-family: 'Ruslan Display', 'Playfair Display', serif;
+      font-size: 3.2rem;
+      letter-spacing: 4px;
+      color: var(--gold-bright);
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 20px var(--gold-glow);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      font-family: 'Alice', serif;
+      font-size: 1.4rem;
+      color: var(--gold-antique);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-shadow: 0 1px 5px rgba(0, 0, 0, 0.8);
+      margin-bottom: 20px;
+    }
+
+    .divider {
+      width: 200px;
+      height: 2px;
+      background: linear-gradient(to right, transparent, var(--gold-antique), transparent);
+      margin: 15px auto;
+      position: relative;
+    }
+    
+    .divider::before {
+      content: '⚜';
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: var(--gold-antique);
+      background: #06152a;
+      padding: 0 10px;
+      font-size: 0.9rem;
+    }
+
+    .quote {
+      font-style: italic;
+      font-size: 1.15rem;
+      color: rgba(253, 245, 230, 0.75);
+      max-width: 600px;
+      margin: 10px auto;
+      line-height: 1.6;
+    }
+
+    /* Секции и сетка */
+    .section-container {
+      width: 100%;
+      margin-bottom: 45px;
+    }
+
+    .section-title {
+      font-family: 'Alice', serif;
+      font-size: 1.8rem;
+      color: var(--gold-bright);
+      border-bottom: 1px solid rgba(195, 155, 82, 0.35);
+      padding-bottom: 10px;
+      margin-bottom: 25px;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .section-title span.symbol {
+      color: var(--gold-antique);
+      font-size: 1.4rem;
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 30px;
+      width: 100%;
+    }
+
+    /* Стили карточек-ссылок */
+    .portal-card {
+      background: var(--glass-bg);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 28px;
+      text-decoration: none;
+      color: #fdf5e6;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      transition: var(--transition-smooth);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* Анимированная рамка при наведении */
+    .portal-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, transparent 50%, rgba(255, 215, 0, 0.05) 100%);
+      opacity: 0;
+      transition: var(--transition-smooth);
+      z-index: 1;
+    }
+
+    .portal-card::after {
+      content: '';
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      right: 5px;
+      bottom: 5px;
+      border: 1px solid rgba(195, 155, 82, 0.1);
+      border-radius: 8px;
+      pointer-events: none;
+      transition: var(--transition-smooth);
+    }
+
+    .portal-card:hover {
+      transform: translateY(-8px) scale(1.02);
+      border-color: var(--gold-bright);
+      box-shadow: 0 15px 40px rgba(255, 215, 0, 0.15), 0 0 15px var(--gold-glow);
+    }
+
+    .portal-card:hover::before {
+      opacity: 1;
+    }
+
+    .portal-card:hover::after {
+      border-color: rgba(255, 215, 0, 0.3);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card-icon {
+      font-size: 2.2rem;
+      color: var(--gold-bright);
+      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+      transition: var(--transition-smooth);
+    }
+
+    .portal-card:hover .card-icon {
+      transform: scale(1.15) rotate(5deg);
+    }
+
+    .role-badge {
+      font-family: 'Alice', serif;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      background: rgba(195, 155, 82, 0.15);
+      border: 1px solid rgba(195, 155, 82, 0.35);
+      color: var(--gold-bright);
+    }
+
+    .role-badge.primary {
+      background: rgba(255, 215, 0, 0.2);
+      border-color: var(--gold-bright);
+      font-weight: bold;
+    }
+
+    .role-badge.mobile {
+      background: rgba(167, 243, 208, 0.1);
+      border-color: #34d399;
+      color: #a7f3d0;
+    }
+
+    .card-title {
+      font-family: 'Alice', serif;
+      font-size: 1.45rem;
+      color: var(--gold-bright);
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 2;
+      transition: var(--transition-smooth);
+    }
+
+    .portal-card:hover .card-title {
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+    }
+
+    .card-description {
+      font-size: 1rem;
+      line-height: 1.5;
+      color: rgba(253, 245, 230, 0.8);
+      position: relative;
+      z-index: 2;
+      flex-grow: 1;
+    }
+
+    /* Футер портала */
+    footer {
+      margin-top: 60px;
+      text-align: center;
+      color: rgba(253, 245, 230, 0.5);
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+      z-index: 5;
+    }
+
+    /* Анимации */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* Адаптивность для мобильных телефонов */
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 2.2rem;
+      }
+      .subtitle {
+        font-size: 1.1rem;
+      }
+      body {
+        padding: 30px 15px;
+      }
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Золотые искры -->
+  <canvas id="sparkles-canvas"></canvas>
+
+  <!-- Императорские рамки -->
+  <div class="portal-frame"></div>
+  <div class="corner c-tl"></div>
+  <div class="corner c-tr"></div>
+  <div class="corner c-bl"></div>
+  <div class="corner c-br"></div>
+
+  <div class="main-container">
+    <header>
+      <div class="crest">👑</div>
+      <h1>Петровская Ассамблея</h1>
+      <div class="subtitle">Главная Навигационная Панель</div>
+      
+      <div class="divider"></div>
+      
+      <div class="quote">
+        «Ассамблея — вольное собрание, в котором дозволяется не только дело делать, но и забавляться честно, друг с другом знакомиться и рассуждать о делах.»
+        <div style="font-size: 0.85rem; margin-top: 8px; color: var(--gold-antique); letter-spacing: 1.5px; text-transform: uppercase;">
+          — Указ Петра I об ассамблеях
+        </div>
+      </div>
+    </header>
+
+    <!-- СЕКЦИЯ 1: Прибытие и Гости -->
+    <div class="section-container">
+      <h2 class="section-title">
+        <span class="symbol">⚜</span> Прибытие и Расселение Гостей
+      </h2>
+      <div class="grid-layout">
+        
+        <a href="public/map.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">🗺️</div>
+            <span class="role-badge primary">Главный Экран</span>
+          </div>
+          <h3 class="card-title">Карта Прибытия</h3>
+          <p class="card-description">Интерактивная карта прибытия гостей с отображением городов, анимациями комет и деталями статуса на темном золотом фоне.</p>
+        </a>
+
+        <a href="public/hostess.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">📋</div>
+            <span class="role-badge">Хостес</span>
+          </div>
+          <h3 class="card-title">Панель Хостес</h3>
+          <p class="card-description">Интерфейс регистрации гостей, поиска по спискам, ручной отметки прибытия и распределения по столам.</p>
+        </a>
+
+        <a href="public/herald.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">🎺</div>
+            <span class="role-badge">Глашатай</span>
+          </div>
+          <h3 class="card-title">Кафедра Глашатая</h3>
+          <p class="card-description">Автоматический суфлер-телесуфлер для объявления почетных гостей Ассамблеи с торжественным звуком фанфар.</p>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- СЕКЦИЯ 2: Интерактивная Викторина -->
+    <div class="section-container">
+      <h2 class="section-title">
+        <span class="symbol">⚜</span> Петровская Викторина
+      </h2>
+      <div class="grid-layout">
+
+        <a href="public/quiz-screen.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">🖥️</div>
+            <span class="role-badge primary">Проектор</span>
+          </div>
+          <h3 class="card-title">Экран Викторины</h3>
+          <p class="card-description">Главный экран викторины для вывода вопросов, ответов, таймера и турнирной таблицы на большой экран зала.</p>
+        </a>
+
+        <a href="public/quiz-admin.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">⚙️</div>
+            <span class="role-badge">Ведущий</span>
+          </div>
+          <h3 class="card-title">Пульт Управления</h3>
+          <p class="card-description">Панель управления викториной для переключения вопросов, вывода верных ответов и управления ходом игры.</p>
+        </a>
+
+        <a href="public/quiz-phone.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">📱</div>
+            <span class="role-badge mobile">Участник</span>
+          </div>
+          <h3 class="card-title">Мобильный Интерфейс</h3>
+          <p class="card-description">Адаптивный веб-интерфейс для мобильных телефонов гостей: выбор ответов, набор очков и личный зачет.</p>
+        </a>
+
+      </div>
+    </div>
+
+    <!-- СЕКЦИЯ 3: Организация и Аналитика -->
+    <div class="section-container">
+      <h2 class="section-title">
+        <span class="symbol">⚜</span> Статистика и Мониторинг
+      </h2>
+      <div class="grid-layout">
+
+        <a href="public/organizer.html" class="portal-card">
+          <div class="card-header">
+            <div class="card-icon">📊</div>
+            <span class="role-badge">Организатор</span>
+          </div>
+          <h3 class="card-title">Пульт Организатора</h3>
+          <p class="card-description">Информационный дашборд с показателями прибытия гостей, наполняемостью столов, статусами почетности и проверкой Supabase.</p>
+        </a>
+
+      </div>
+    </div>
+
+    <footer>
+      <p>© 2026 Петровская Ассамблея. Все права защищены.</p>
+      <p style="font-size: 0.8rem; margin-top: 5px; opacity: 0.6;">Разработано для Петровской Ассамблеи • «Быть по сему!»</p>
+    </footer>
+  </div>
+
+  <script>
+    // Анимация золотых искр на Canvas
+    (function() {
+      const canvas = document.getElementById('sparkles-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      
+      let width = canvas.width = window.innerWidth;
+      let height = canvas.height = window.innerHeight;
+      
+      window.addEventListener('resize', () => {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      });
+      
+      class Sparkle {
+        constructor() {
+          this.reset();
+          // Задаем случайное начальное положение
+          this.y = Math.random() * height;
+        }
+        
+        reset() {
+          this.x = Math.random() * width;
+          this.y = height + 10;
+          this.size = Math.random() * 2.5 + 0.5;
+          this.speedY = Math.random() * 0.7 + 0.2;
+          this.speedX = (Math.random() - 0.5) * 0.4;
+          this.alpha = Math.random() * 0.5 + 0.3;
+          this.decay = Math.random() * 0.003 + 0.0015;
+          this.angle = Math.random() * Math.PI;
+          this.spinSpeed = (Math.random() - 0.5) * 0.02;
+        }
+        
+        update() {
+          this.y -= this.speedY;
+          this.x += this.speedX;
+          this.alpha -= this.decay;
+          this.angle += this.spinSpeed;
+          
+          if (this.alpha <= 0 || this.y < -10 || this.x < -10 || this.x > width + 10) {
+            this.reset();
+          }
+        }
+        
+        draw() {
+          ctx.save();
+          ctx.translate(this.x, this.y);
+          ctx.rotate(this.angle);
+          
+          // Цвет золотой искры
+          ctx.fillStyle = `rgba(255, 215, 0, ${this.alpha})`;
+          ctx.shadowBlur = this.size * 3;
+          ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
+          
+          // Рисуем маленькую четырехконечную звезду
+          ctx.beginPath();
+          for (let i = 0; i < 4; i++) {
+            ctx.rotate(Math.PI / 2);
+            ctx.lineTo(0, this.size * 2.5);
+            ctx.lineTo(this.size * 0.6, 0);
+          }
+          ctx.closePath();
+          ctx.fill();
+          
+          ctx.restore();
+        }
+      }
+      
+      const sparkles = Array(60).fill(null).map(() => new Sparkle());
+      
+      function animate() {
+        ctx.clearRect(0, 0, width, height);
+        
+        sparkles.forEach(sparkle => {
+          sparkle.update();
+          sparkle.draw();
+        });
+        
+        requestAnimationFrame(animate);
+      }
+      
+      animate();
+    })();
+  </script>
+</body>
+</html>
