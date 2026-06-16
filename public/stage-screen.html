@@ -774,6 +774,28 @@
     }
     setInterval(updateClock, 1000);
 
+    // Карта таймингов для идеального момента захвата скриншота (в секундах от НАЧАЛА видео)
+    // Позволяет поймать кадр ровно тогда, когда текст или графика полностью собрались.
+    const VIDEO_CAPTURE_TIMINGS = {
+      1: 15.0,  // Для заставки 1 - ровно на 15.0 секунде (когда текст "Петровская Ассамблея" полностью собран и светится)
+      // Для остальных видео при необходимости можно настроить свои секунды от начала:
+      // 2: 12.0,
+      // 3: 14.5,
+    };
+
+    function getCaptureTime(duration) {
+      if (!duration || isNaN(duration)) return 0;
+      // Если для видео задан точный секундный тайминг:
+      if (VIDEO_CAPTURE_TIMINGS[state.videoIndex] !== undefined) {
+        return VIDEO_CAPTURE_TIMINGS[state.videoIndex];
+      }
+      // Иначе авторасчет: за 5 секунд до конца (для 20-секундного ролика это будет 15.0с)
+      if (duration <= 6.0) {
+        return duration * 0.8; // Запасной вариант для коротких роликов
+      }
+      return duration - 5.0;
+    }
+
     // Видеопроигрыватель
     const stageVideo = document.getElementById('stage-video');
     const stageVideoCanvas = document.getElementById('stage-video-canvas');
@@ -788,7 +810,7 @@
       frameCaptured = false;
       
       const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/video_${index}.mp4`;
-      let finalUrl = `video_${index}.mp4`;
+      let finalUrl = `video/${index}.mp4`; // Перенаправлено на новую папку video/
       
       try {
         const res = await fetch(storageUrl, { method: 'HEAD' });
@@ -820,7 +842,7 @@
       } else {
         hideFreezeFrame();
         const duration = stageVideo.duration;
-        const limit = (duration && !isNaN(duration)) ? duration - 5.5 : 0;
+        const limit = getCaptureTime(duration);
         if (stageVideo.currentTime < limit) {
           frameCaptured = false;
         }
@@ -899,21 +921,17 @@
       });
     }
 
-    // Слушатель прогресса воспроизведения для захвата скриншота в фоне за 5.5 секунд до конца
+    // Слушатель прогресса воспроизведения для захвата скриншота в фоне в идеальный момент
     stageVideo.addEventListener('timeupdate', () => {
       if (frameCaptured) return;
       const duration = stageVideo.duration;
       if (!duration || isNaN(duration)) return;
       
-      let captureTime = duration - 5.5;
-      if (duration <= 6.5) {
-        captureTime = duration * 0.8; // Запасной вариант для коротких видео
-      }
+      const captureTime = getCaptureTime(duration);
       
       if (stageVideo.currentTime >= captureTime) {
         const curTime = stageVideo.currentTime;
-        const remaining = duration - curTime;
-        console.log(`[Stage Screen] Время скриншота (на ${curTime.toFixed(2)}с, осталось ${remaining.toFixed(2)}с до конца). Захватываем кадр в фоне.`);
+        console.log(`[Stage Screen] Время скриншота (на ${curTime.toFixed(2)}с, целевое время: ${captureTime.toFixed(2)}с). Захватываем кадр в фоне.`);
         frameCaptured = true;
         captureFrameInBackground();
       }
