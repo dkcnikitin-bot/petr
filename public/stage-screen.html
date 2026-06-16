@@ -802,7 +802,9 @@
       
       if (currentlyLoadingIndex === index) {
         lastLoadedVideoIndex = index;
-        stageVideo.src = finalUrl;
+        // Добавляем кверисет для обхода кэша CORS в Chrome/Yandex Browser
+        const cacheBuster = finalUrl.startsWith('http') ? (finalUrl.includes('?') ? '&' : '?') + 'cors=' + Date.now() : '';
+        stageVideo.src = finalUrl + cacheBuster;
         stageVideo.load();
         
         applyVideoPlaybackState();
@@ -849,8 +851,22 @@
         if (stageVideo.videoWidth > 0 && stageVideo.videoHeight > 0) {
           stageVideoCanvas.width = stageVideo.videoWidth;
           stageVideoCanvas.height = stageVideo.videoHeight;
+          
+          // Захватываем кадр сразу
           videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
           stageVideoCanvas.style.display = 'block';
+          
+          // Повторяем захват через 50мс и 150мс на случай задержки декодирования кадров в буфере GPU
+          setTimeout(() => {
+            if (state.videoFrozen) {
+              videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
+            }
+          }, 50);
+          setTimeout(() => {
+            if (state.videoFrozen) {
+              videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
+            }
+          }, 150);
         }
       } catch (err) {
         console.error('[Stage Screen] Ошибка при захвате кадра:', err);
