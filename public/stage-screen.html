@@ -64,49 +64,22 @@
     /* Декоративные царские уголки */
     .stage-corner {
       position: absolute;
-      width: 90px;
-      height: 90px;
+      width: 95px;
+      height: 95px;
       z-index: 11;
       pointer-events: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
     }
-    .stage-corner::before {
-      content: '';
-      position: absolute;
+    .stage-corner svg {
       width: 100%;
       height: 100%;
-      border: 3px solid #c39b52;
-      box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+      display: block;
     }
+    
+    /* Позиционирование и вращение векторов */
     .sc-tl { top: 10px; left: 10px; }
-    .sc-tl::before { border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
-    
-    .sc-tr { top: 10px; right: 10px; }
-    .sc-tr::before { border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
-    
-    .sc-bl { bottom: 10px; left: 10px; }
-    .sc-bl::before { border-right: none; border-top: none; border-radius: 0 0 0 8px; }
-    
-    .sc-br { bottom: 10px; right: 10px; }
-    .sc-br::before { border-left: none; border-top: none; border-radius: 0 0 8px 0; }
-
-    /* Императорская геральдика по углам */
-    .stage-corner::after {
-      font-size: 2rem;
-      filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.6));
-      animation: cornerPulse 3s infinite ease-in-out;
-    }
-    .sc-tl::after { content: '👑'; position: absolute; top: -5px; left: -5px; }
-    .sc-tr::after { content: '👑'; position: absolute; top: -5px; right: -5px; }
-    .sc-bl::after { content: '⚜'; position: absolute; bottom: -5px; left: -5px; color: #ffd700; }
-    .sc-br::after { content: '⚜'; position: absolute; bottom: -5px; right: -5px; color: #ffd700; }
-
-    @keyframes cornerPulse {
-      0%, 100% { opacity: 0.85; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.06); }
-    }
+    .sc-tr { top: 10px; right: 10px; transform: scaleX(-1); }
+    .sc-bl { bottom: 10px; left: 10px; transform: scaleY(-1); }
+    .sc-br { bottom: 10px; right: 10px; transform: scale(-1); }
 
     /* Изолированные контейнеры для каждого режима */
     .mode-container {
@@ -552,10 +525,442 @@
 
   <!-- Рамка и холст спецэффектов -->
   <div class="stage-frame"></div>
-  <div class="stage-corner sc-tl"></div>
-  <div class="stage-corner sc-tr"></div>
-  <div class="stage-corner sc-bl"></div>
-  <div class="stage-corner sc-br"></div>
+  <div class="stage-corner sc-tl">
+    <svg viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFECA1"/>
+          <stop offset="20%" stop-color="#F5D061"/>
+          <stop offset="40%" stop-color="#D4AF37"/>
+          <stop offset="70%" stop-color="#AA7C11"/>
+          <stop offset="90%" stop-color="#E5C158"/>
+          <stop offset="100%" stop-color="#AA7C11"/>
+        </linearGradient>
+        <linearGradient id="gold-light" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFFDF0"/>
+          <stop offset="50%" stop-color="#F9E08B"/>
+          <stop offset="100%" stop-color="#C59B27"/>
+        </linearGradient>
+        <linearGradient id="gold-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#B38A24"/>
+          <stop offset="100%" stop-color="#5C4207"/>
+        </linearGradient>
+        <radialGradient id="velvet" cx="50%" cy="50%" r="75%">
+          <stop offset="0%" stop-color="#A81C32"/>
+          <stop offset="60%" stop-color="#700B1A"/>
+          <stop offset="100%" stop-color="#3A020B"/>
+        </radialGradient>
+        <radialGradient id="ruby" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FF6B8B"/>
+          <stop offset="50%" stop-color="#D90429"/>
+          <stop offset="100%" stop-color="#5A000A"/>
+        </radialGradient>
+        <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="60%" stop-color="#F0F0F2"/>
+          <stop offset="100%" stop-color="#B8B9C1"/>
+        </radialGradient>
+      </defs>
+      <path d="M 10 90 L 10 10 L 90 10" stroke="#c39b52" stroke-width="3.5" fill="none" />
+      <path d="M 18 90 L 18 18 L 90 18" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,3" fill="none" />
+      <circle cx="10" cy="10" r="4.5" fill="#ffd700" />
+      <path d="M 10 32 C 24 32, 32 24, 32 10" stroke="#c39b52" stroke-width="2.2" fill="none" />
+      <path d="M 10 50 C 35 50, 50 35, 50 10" stroke="#ffd700" stroke-width="1.2" fill="none" />
+      <g transform="translate(18, 14) scale(0.35)">
+        <path d="M 50 72 C 34 72, 19 63, 17 48 C 16 35, 30 25, 47 28 C 48 44, 49 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 50 72 C 66 72, 81 63, 83 48 C 84 35, 70 25, 53 28 C 52 44, 51 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 46 73 C 45 45, 45 28, 50 20 C 55 28, 55 45, 54 73 Z" fill="url(#gold-main)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <path d="M 48 28 C 28 26, 14 36, 16 52 C 18 64, 30 71, 48 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 48 38 C 34 38, 24 44, 23 54 M 48 48 C 38 48, 32 52, 31 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 52 28 C 72 26, 86 36, 84 52 C 82 64, 70 71, 52 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 52 38 C 66 38, 76 44, 77 54 M 52 48 C 62 48, 68 52, 69 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 17 72 Q 50 82 83 72 L 81 65 Q 50 75 19 65 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <rect x="47" y="68" width="6" height="6" rx="1" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5" transform="rotate(45 50 71)"/>
+        <circle cx="33" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="67" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="21" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="79" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="50" cy="27" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="33" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="39" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="45" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="51" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="57" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="63" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="17.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="26" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="25.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="82.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="79.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="66.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="80" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="67" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="19" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="23" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="27" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="31" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="35" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="39" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="43" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="47" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="53" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="57" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="61" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="65" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="69" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="73" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="77" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="81" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <path d="M 50 20 C 46 16, 45 10, 50 3 C 55 10, 54 16, 50 20 Z" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="48.5" cy="8" r="0.8" fill="#FFFFFF" opacity="0.8"/>
+        <path d="M 50 3 L 50 20 M 46.5 10 L 53.5 13" stroke="rgba(255,255,255,0.25)" stroke-width="0.3"/>
+        <g transform="translate(0, -6)">
+          <path d="M 49.3 5 L 50.7 5 L 50.7 0 L 49.3 0 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <path d="M 47.5 1.5 L 52.5 1.5 L 52.5 2.7 L 47.5 2.7 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="50" cy="-0.5" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="46.8" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="53.2" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <div class="stage-corner sc-tr">
+    <svg viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFECA1"/>
+          <stop offset="20%" stop-color="#F5D061"/>
+          <stop offset="40%" stop-color="#D4AF37"/>
+          <stop offset="70%" stop-color="#AA7C11"/>
+          <stop offset="90%" stop-color="#E5C158"/>
+          <stop offset="100%" stop-color="#AA7C11"/>
+        </linearGradient>
+        <linearGradient id="gold-light" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFFDF0"/>
+          <stop offset="50%" stop-color="#F9E08B"/>
+          <stop offset="100%" stop-color="#C59B27"/>
+        </linearGradient>
+        <linearGradient id="gold-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#B38A24"/>
+          <stop offset="100%" stop-color="#5C4207"/>
+        </linearGradient>
+        <radialGradient id="velvet" cx="50%" cy="50%" r="75%">
+          <stop offset="0%" stop-color="#A81C32"/>
+          <stop offset="60%" stop-color="#700B1A"/>
+          <stop offset="100%" stop-color="#3A020B"/>
+        </radialGradient>
+        <radialGradient id="ruby" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FF6B8B"/>
+          <stop offset="50%" stop-color="#D90429"/>
+          <stop offset="100%" stop-color="#5A000A"/>
+        </radialGradient>
+        <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="60%" stop-color="#F0F0F2"/>
+          <stop offset="100%" stop-color="#B8B9C1"/>
+        </radialGradient>
+      </defs>
+      <path d="M 10 90 L 10 10 L 90 10" stroke="#c39b52" stroke-width="3.5" fill="none" />
+      <path d="M 18 90 L 18 18 L 90 18" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,3" fill="none" />
+      <circle cx="10" cy="10" r="4.5" fill="#ffd700" />
+      <path d="M 10 32 C 24 32, 32 24, 32 10" stroke="#c39b52" stroke-width="2.2" fill="none" />
+      <path d="M 10 50 C 35 50, 50 35, 50 10" stroke="#ffd700" stroke-width="1.2" fill="none" />
+      <g transform="translate(18, 14) scale(0.35)">
+        <path d="M 50 72 C 34 72, 19 63, 17 48 C 16 35, 30 25, 47 28 C 48 44, 49 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 50 72 C 66 72, 81 63, 83 48 C 84 35, 70 25, 53 28 C 52 44, 51 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 46 73 C 45 45, 45 28, 50 20 C 55 28, 55 45, 54 73 Z" fill="url(#gold-main)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <path d="M 48 28 C 28 26, 14 36, 16 52 C 18 64, 30 71, 48 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 48 38 C 34 38, 24 44, 23 54 M 48 48 C 38 48, 32 52, 31 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 52 28 C 72 26, 86 36, 84 52 C 82 64, 70 71, 52 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 52 38 C 66 38, 76 44, 77 54 M 52 48 C 62 48, 68 52, 69 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 17 72 Q 50 82 83 72 L 81 65 Q 50 75 19 65 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <rect x="47" y="68" width="6" height="6" rx="1" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5" transform="rotate(45 50 71)"/>
+        <circle cx="33" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="67" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="21" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="79" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="50" cy="27" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="33" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="39" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="45" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="51" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="57" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="63" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="17.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="26" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="25.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="82.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="79.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="66.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="80" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="67" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="19" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="23" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="27" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="31" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="35" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="39" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="43" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="47" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="53" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="57" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="61" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="65" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="69" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="73" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="77" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="81" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <path d="M 50 20 C 46 16, 45 10, 50 3 C 55 10, 54 16, 50 20 Z" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="48.5" cy="8" r="0.8" fill="#FFFFFF" opacity="0.8"/>
+        <path d="M 50 3 L 50 20 M 46.5 10 L 53.5 13" stroke="rgba(255,255,255,0.25)" stroke-width="0.3"/>
+        <g transform="translate(0, -6)">
+          <path d="M 49.3 5 L 50.7 5 L 50.7 0 L 49.3 0 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <path d="M 47.5 1.5 L 52.5 1.5 L 52.5 2.7 L 47.5 2.7 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="50" cy="-0.5" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="46.8" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="53.2" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <div class="stage-corner sc-bl">
+    <svg viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFECA1"/>
+          <stop offset="20%" stop-color="#F5D061"/>
+          <stop offset="40%" stop-color="#D4AF37"/>
+          <stop offset="70%" stop-color="#AA7C11"/>
+          <stop offset="90%" stop-color="#E5C158"/>
+          <stop offset="100%" stop-color="#AA7C11"/>
+        </linearGradient>
+        <linearGradient id="gold-light" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFFDF0"/>
+          <stop offset="50%" stop-color="#F9E08B"/>
+          <stop offset="100%" stop-color="#C59B27"/>
+        </linearGradient>
+        <linearGradient id="gold-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#B38A24"/>
+          <stop offset="100%" stop-color="#5C4207"/>
+        </linearGradient>
+        <radialGradient id="velvet" cx="50%" cy="50%" r="75%">
+          <stop offset="0%" stop-color="#A81C32"/>
+          <stop offset="60%" stop-color="#700B1A"/>
+          <stop offset="100%" stop-color="#3A020B"/>
+        </radialGradient>
+        <radialGradient id="ruby" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FF6B8B"/>
+          <stop offset="50%" stop-color="#D90429"/>
+          <stop offset="100%" stop-color="#5A000A"/>
+        </radialGradient>
+        <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="60%" stop-color="#F0F0F2"/>
+          <stop offset="100%" stop-color="#B8B9C1"/>
+        </radialGradient>
+      </defs>
+      <path d="M 10 90 L 10 10 L 90 10" stroke="#c39b52" stroke-width="3.5" fill="none" />
+      <path d="M 18 90 L 18 18 L 90 18" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,3" fill="none" />
+      <circle cx="10" cy="10" r="4.5" fill="#ffd700" />
+      <path d="M 10 32 C 24 32, 32 24, 32 10" stroke="#c39b52" stroke-width="2.2" fill="none" />
+      <path d="M 10 50 C 35 50, 50 35, 50 10" stroke="#ffd700" stroke-width="1.2" fill="none" />
+      <g transform="translate(18, 14) scale(0.35)">
+        <path d="M 50 72 C 34 72, 19 63, 17 48 C 16 35, 30 25, 47 28 C 48 44, 49 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 50 72 C 66 72, 81 63, 83 48 C 84 35, 70 25, 53 28 C 52 44, 51 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 46 73 C 45 45, 45 28, 50 20 C 55 28, 55 45, 54 73 Z" fill="url(#gold-main)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <path d="M 48 28 C 28 26, 14 36, 16 52 C 18 64, 30 71, 48 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 48 38 C 34 38, 24 44, 23 54 M 48 48 C 38 48, 32 52, 31 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 52 28 C 72 26, 86 36, 84 52 C 82 64, 70 71, 52 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 52 38 C 66 38, 76 44, 77 54 M 52 48 C 62 48, 68 52, 69 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 17 72 Q 50 82 83 72 L 81 65 Q 50 75 19 65 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <rect x="47" y="68" width="6" height="6" rx="1" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5" transform="rotate(45 50 71)"/>
+        <circle cx="33" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="67" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="21" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="79" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="50" cy="27" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="33" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="39" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="45" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="51" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="57" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="63" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="17.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="26" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="25.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="82.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="79.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="66.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="80" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="67" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="19" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="23" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="27" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="31" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="35" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="39" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="43" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="47" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="53" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="57" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="61" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="65" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="69" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="73" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="77" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="81" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <path d="M 50 20 C 46 16, 45 10, 50 3 C 55 10, 54 16, 50 20 Z" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="48.5" cy="8" r="0.8" fill="#FFFFFF" opacity="0.8"/>
+        <path d="M 50 3 L 50 20 M 46.5 10 L 53.5 13" stroke="rgba(255,255,255,0.25)" stroke-width="0.3"/>
+        <g transform="translate(0, -6)">
+          <path d="M 49.3 5 L 50.7 5 L 50.7 0 L 49.3 0 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <path d="M 47.5 1.5 L 52.5 1.5 L 52.5 2.7 L 47.5 2.7 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="50" cy="-0.5" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="46.8" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="53.2" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+        </g>
+      </g>
+    </svg>
+  </div>
+  <div class="stage-corner sc-br">
+    <svg viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#FFECA1"/>
+          <stop offset="20%" stop-color="#F5D061"/>
+          <stop offset="40%" stop-color="#D4AF37"/>
+          <stop offset="70%" stop-color="#AA7C11"/>
+          <stop offset="90%" stop-color="#E5C158"/>
+          <stop offset="100%" stop-color="#AA7C11"/>
+        </linearGradient>
+        <linearGradient id="gold-light" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#FFFDF0"/>
+          <stop offset="50%" stop-color="#F9E08B"/>
+          <stop offset="100%" stop-color="#C59B27"/>
+        </linearGradient>
+        <linearGradient id="gold-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#B38A24"/>
+          <stop offset="100%" stop-color="#5C4207"/>
+        </linearGradient>
+        <radialGradient id="velvet" cx="50%" cy="50%" r="75%">
+          <stop offset="0%" stop-color="#A81C32"/>
+          <stop offset="60%" stop-color="#700B1A"/>
+          <stop offset="100%" stop-color="#3A020B"/>
+        </radialGradient>
+        <radialGradient id="ruby" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FF6B8B"/>
+          <stop offset="50%" stop-color="#D90429"/>
+          <stop offset="100%" stop-color="#5A000A"/>
+        </radialGradient>
+        <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stop-color="#FFFFFF"/>
+          <stop offset="60%" stop-color="#F0F0F2"/>
+          <stop offset="100%" stop-color="#B8B9C1"/>
+        </radialGradient>
+      </defs>
+      <path d="M 10 90 L 10 10 L 90 10" stroke="#c39b52" stroke-width="3.5" fill="none" />
+      <path d="M 18 90 L 18 18 L 90 18" stroke="#ffd700" stroke-width="1.5" stroke-dasharray="3,3" fill="none" />
+      <circle cx="10" cy="10" r="4.5" fill="#ffd700" />
+      <path d="M 10 32 C 24 32, 32 24, 32 10" stroke="#c39b52" stroke-width="2.2" fill="none" />
+      <path d="M 10 50 C 35 50, 50 35, 50 10" stroke="#ffd700" stroke-width="1.2" fill="none" />
+      <g transform="translate(18, 14) scale(0.35)">
+        <path d="M 50 72 C 34 72, 19 63, 17 48 C 16 35, 30 25, 47 28 C 48 44, 49 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 50 72 C 66 72, 81 63, 83 48 C 84 35, 70 25, 53 28 C 52 44, 51 59, 50 72 Z" fill="url(#velvet)"/>
+        <path d="M 46 73 C 45 45, 45 28, 50 20 C 55 28, 55 45, 54 73 Z" fill="url(#gold-main)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <path d="M 48 28 C 28 26, 14 36, 16 52 C 18 64, 30 71, 48 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 48 38 C 34 38, 24 44, 23 54 M 48 48 C 38 48, 32 52, 31 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 52 28 C 72 26, 86 36, 84 52 C 82 64, 70 71, 52 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+        <path d="M 52 38 C 66 38, 76 44, 77 54 M 52 48 C 62 48, 68 52, 69 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+        <path d="M 17 72 Q 50 82 83 72 L 81 65 Q 50 75 19 65 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <rect x="47" y="68" width="6" height="6" rx="1" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5" transform="rotate(45 50 71)"/>
+        <circle cx="33" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="67" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="21" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="79" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="50" cy="27" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="33" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="39" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="45" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="51" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="57" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="50" cy="63" r="1.5" fill="url(#pearl-grad)"/>
+        <circle cx="17.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="26" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="20" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="25.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="33" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="41.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="82.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="79.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="66.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="80" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="74.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="67" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="58.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+        <circle cx="19" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="23" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="27" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="31" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="35" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="39" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="43" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="47" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="53" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="57" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="61" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="65" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="69" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="73" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="77" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+        <circle cx="81" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+        <path d="M 50 20 C 46 16, 45 10, 50 3 C 55 10, 54 16, 50 20 Z" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+        <circle cx="48.5" cy="8" r="0.8" fill="#FFFFFF" opacity="0.8"/>
+        <path d="M 50 3 L 50 20 M 46.5 10 L 53.5 13" stroke="rgba(255,255,255,0.25)" stroke-width="0.3"/>
+        <g transform="translate(0, -6)">
+          <path d="M 49.3 5 L 50.7 5 L 50.7 0 L 49.3 0 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <path d="M 47.5 1.5 L 52.5 1.5 L 52.5 2.7 L 47.5 2.7 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="50" cy="-0.5" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="46.8" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+          <circle cx="53.2" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+        </g>
+      </g>
+    </svg>
+  </div>
   <canvas id="fx-canvas"></canvas>
 
   <div class="stage-wrapper">
@@ -563,7 +968,7 @@
     <!-- РЕЖИМ 1: ЗАСТАВКА (WELCOME) -->
     <div class="mode-container active" id="container-welcome">
       <div class="welcome-content">
-        <div class="welcome-crest">👑</div>
+        <div class="welcome-crest"><img src="royal_crown.svg" style="width: 130px; height: auto; display: block; margin: 0 auto;"></div>
         <h1 class="welcome-title">ПЕТРОВСКАЯ АССАМБЛЕЯ</h1>
         <div class="welcome-subtitle">Добро пожаловать • Елисаветинский зал</div>
         <div class="welcome-clock" id="welcome-clock">00:00:00</div>
@@ -915,18 +1320,21 @@
           stageVideoCanvas.width = stageVideo.videoWidth;
           stageVideoCanvas.height = stageVideo.videoHeight;
           
-          // Рисуем на холсте в фоне (холст остается скрытым)
-          videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
+          videoCtx.imageSmoothingEnabled = true;
+          videoCtx.imageSmoothingQuality = 'high';
+          
+          // Рисуем на холсте в фоне в оригинальном качестве
+          videoCtx.drawImage(stageVideo, 0, 0, stageVideo.videoWidth, stageVideo.videoHeight);
           
           // Повторяем захват через 50мс и 150мс на случай задержки декодирования в GPU
           setTimeout(() => {
             if (!state.videoFrozen) {
-              videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
+              videoCtx.drawImage(stageVideo, 0, 0, stageVideo.videoWidth, stageVideo.videoHeight);
             }
           }, 50);
           setTimeout(() => {
             if (!state.videoFrozen) {
-              videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
+              videoCtx.drawImage(stageVideo, 0, 0, stageVideo.videoWidth, stageVideo.videoHeight);
             }
           }, 150);
         }

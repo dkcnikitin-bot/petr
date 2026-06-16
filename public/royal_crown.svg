@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 85" width="100%" height="100%">
+  <defs>
+    <!-- Металлический золотой градиент -->
+    <linearGradient id="gold-main" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFECA1"/>
+      <stop offset="20%" stop-color="#F5D061"/>
+      <stop offset="40%" stop-color="#D4AF37"/>
+      <stop offset="70%" stop-color="#AA7C11"/>
+      <stop offset="90%" stop-color="#E5C158"/>
+      <stop offset="100%" stop-color="#AA7C11"/>
+    </linearGradient>
+    
+    <!-- Светлый блик золота -->
+    <linearGradient id="gold-light" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFDF0"/>
+      <stop offset="50%" stop-color="#F9E08B"/>
+      <stop offset="100%" stop-color="#C59B27"/>
+    </linearGradient>
+
+    <!-- Темное золото для теней -->
+    <linearGradient id="gold-shadow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#B38A24"/>
+      <stop offset="100%" stop-color="#5C4207"/>
+    </linearGradient>
+
+    <!-- Градиент бархата шапки -->
+    <radialGradient id="velvet" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#A81C32"/>
+      <stop offset="60%" stop-color="#700B1A"/>
+      <stop offset="100%" stop-color="#3A020B"/>
+    </radialGradient>
+
+    <!-- Градиент красного шпинеля/рубина -->
+    <radialGradient id="ruby" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FF6B8B"/>
+      <stop offset="50%" stop-color="#D90429"/>
+      <stop offset="100%" stop-color="#5A000A"/>
+    </radialGradient>
+
+    <!-- Градиент жемчуга -->
+    <radialGradient id="pearl-grad" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="60%" stop-color="#F0F0F2"/>
+      <stop offset="100%" stop-color="#B8B9C1"/>
+    </radialGradient>
+
+    <!-- Тень под короной -->
+    <filter id="crown-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+
+  <g filter="url(#crown-shadow)">
+    <!-- 1. Бархатная тулья (шапка) внутри -->
+    <!-- Левая половинка -->
+    <path d="M 50 72 C 34 72, 19 63, 17 48 C 16 35, 30 25, 47 28 C 48 44, 49 59, 50 72 Z" fill="url(#velvet)"/>
+    <!-- Правая половинка -->
+    <path d="M 50 72 C 66 72, 81 63, 83 48 C 84 35, 70 25, 53 28 C 52 44, 51 59, 50 72 Z" fill="url(#velvet)"/>
+
+    <!-- 2. Главная арка (продольное полушарие) по центру -->
+    <path d="M 46 73 C 45 45, 45 28, 50 20 C 55 28, 55 45, 54 73 Z" fill="url(#gold-main)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+    
+    <!-- 3. Две серебряные/золотые полусферы (сетка куполов) -->
+    <!-- Левое полушарие с прорезями (орнаментом) -->
+    <!-- Внешний обод полушария -->
+    <path d="M 48 28 C 28 26, 14 36, 16 52 C 18 64, 30 71, 48 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+    <!-- Внутренний ажурный узор левой полусферы -->
+    <path d="M 48 38 C 34 38, 24 44, 23 54 M 48 48 C 38 48, 32 52, 31 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+    
+    <!-- Правое полушарие с прорезями -->
+    <!-- Внешний обод -->
+    <path d="M 52 28 C 72 26, 86 36, 84 52 C 82 64, 70 71, 52 72" fill="none" stroke="url(#gold-light)" stroke-width="2.5"/>
+    <!-- Внутренний ажурный узор правой полусферы -->
+    <path d="M 52 38 C 66 38, 76 44, 77 54 M 52 48 C 62 48, 68 52, 69 58" fill="none" stroke="url(#gold-main)" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- 4. Нижний венец (обод) -->
+    <path d="M 17 72 Q 50 82 83 72 L 81 65 Q 50 75 19 65 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+    
+    <!-- 5. Украшения обода (крупные драгоценные камни: рубины и сапфиры) -->
+    <!-- Центральный красный камень на ободке -->
+    <rect x="47" y="68" width="6" height="6" rx="1" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5" transform="rotate(45 50 71)"/>
+    <!-- Боковые камни -->
+    <circle cx="33" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+    <circle cx="67" cy="71.5" r="2.2" fill="#0056b3" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+    <circle cx="21" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+    <circle cx="79" cy="69" r="1.8" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+
+    <!-- 6. Гирлянды жемчуга по ободу полушарий и центральной арки -->
+    <!-- Жемчужины на центральной арке -->
+    <circle cx="50" cy="27" r="1.5" fill="url(#pearl-grad)"/>
+    <circle cx="50" cy="33" r="1.5" fill="url(#pearl-grad)"/>
+    <circle cx="50" cy="39" r="1.5" fill="url(#pearl-grad)"/>
+    <circle cx="50" cy="45" r="1.5" fill="url(#pearl-grad)"/>
+    <circle cx="50" cy="51" r="1.5" fill="url(#pearl-grad)"/>
+    <circle cx="50" cy="57" r="1.5" fill="url(#pearl-grad)"/>
+    <circle cx="50" cy="63" r="1.5" fill="url(#pearl-grad)"/>
+
+    <!-- Жемчужины по краю левого полушария -->
+    <circle cx="17.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="20.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="26" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="33.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="41.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="20" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="25.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="33" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="41.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+
+    <!-- Жемчужины по краю правого полушария -->
+    <circle cx="82.5" cy="45" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="79.5" cy="37.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="74" cy="31.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="66.5" cy="28.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="58.5" cy="28" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="80" cy="53" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="74.5" cy="61" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="67" cy="66.5" r="1.3" fill="url(#pearl-grad)"/>
+    <circle cx="58.5" cy="69.5" r="1.3" fill="url(#pearl-grad)"/>
+
+    <!-- Жемчужный ряд на ободе (сверху и снизу ободка) -->
+    <circle cx="19" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="23" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="27" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="31" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="35" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="39" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="43" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="47" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="53" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="57" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="61" cy="78" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="65" cy="77.5" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="69" cy="77" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="73" cy="76" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="77" cy="75" r="1.1" fill="url(#pearl-grad)"/>
+    <circle cx="81" cy="74" r="1.1" fill="url(#pearl-grad)"/>
+
+    <!-- 7. Огромный благородный шпинель (красный драгоценный камень) на вершине -->
+    <path d="M 50 20 C 46 16, 45 10, 50 3 C 55 10, 54 16, 50 20 Z" fill="url(#ruby)" stroke="url(#gold-shadow)" stroke-width="0.5"/>
+    <!-- Искорки/блики на рубине -->
+    <circle cx="48.5" cy="8" r="0.8" fill="#FFFFFF" opacity="0.8"/>
+    <path d="M 50 3 L 50 20 M 46.5 10 L 53.5 13" stroke="rgba(255,255,255,0.25)" stroke-width="0.3"/>
+
+    <!-- 8. Золотой крест, венчающий корону -->
+    <g transform="translate(0, -6)">
+      <!-- Вертикальная штанга -->
+      <path d="M 49.3 5 L 50.7 5 L 50.7 0 L 49.3 0 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+      <!-- Поперечина -->
+      <path d="M 47.5 1.5 L 52.5 1.5 L 52.5 2.7 L 47.5 2.7 Z" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+      <!-- Навершия креста -->
+      <circle cx="50" cy="-0.5" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+      <circle cx="46.8" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+      <circle cx="53.2" cy="2.1" r="0.7" fill="url(#gold-light)" stroke="url(#gold-shadow)" stroke-width="0.3"/>
+    </g>
+  </g>
+</svg>

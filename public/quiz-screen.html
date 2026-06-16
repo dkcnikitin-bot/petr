@@ -953,7 +953,7 @@
   <div class="screen-overlay">
     
     <!-- Шапка-Логотип -->
-    <img src="royal_crown.png" alt="Корона" class="stage-logo">
+    <img src="royal_crown.svg" alt="Корона" class="stage-logo">
 
     <!-- Механический таймер / Астролябия -->
     <div class="timer-container" id="timer-box">
@@ -1053,17 +1053,17 @@
     <video id="screen-gates-video" src="Victory_Gates_Open.mp4" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; display: none; z-index: 10;"></video>
     <div class="gate-door gate-left">
       <div class="gate-grille-decor"></div>
-      <img src="royal_crown.png" alt="Рельеф" class="gate-relief" style="transform: rotate(5deg) scale(0.9); margin-left: auto; margin-right: 15px;">
+      <img src="royal_crown.svg" alt="Рельеф" class="gate-relief" style="transform: rotate(5deg) scale(0.9); margin-left: auto; margin-right: 15px;">
     </div>
     <div class="gate-door gate-right">
       <div class="gate-grille-decor"></div>
-      <img src="royal_crown.png" alt="Рельеф" class="gate-relief" style="transform: scaleX(-1) rotate(5deg) scale(0.9); margin-right: auto; margin-left: 15px;">
+      <img src="royal_crown.svg" alt="Рельеф" class="gate-relief" style="transform: scaleX(-1) rotate(5deg) scale(0.9); margin-right: auto; margin-left: 15px;">
     </div>
   </div>
 
   <!-- Победитель за воротами -->
   <div class="victory-reveal-stage" id="screen-victory-stage">
-    <img src="royal_crown.png" alt="Штандарт" class="victory-standard">
+    <img src="royal_crown.svg" alt="Штандарт" class="victory-standard">
     <h1 style="font-size: 72px; color: #ffd700; margin-top: 30px; letter-spacing: 3px; font-family: 'Cinzel', serif;">
       ПОБЕДИТЕЛЬ АССАМБЛЕИ
     </h1>
@@ -1589,7 +1589,7 @@
             
             // Назначаем красивые значки медалей для первых трех мест
             let medal = rank;
-            if (rank === 1) medal = '👑';
+            if (rank === 1) medal = '<img src="royal_crown.svg" style="height: 24px; vertical-align: middle;">';
             else if (rank === 2) medal = '🛡️';
             else if (rank === 3) medal = '⭐';
             
