@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Петровская Ассамблея — Пульт Управления Сценой</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Alice&family=Montserrat:wght@400;500;700;800&family=Forum&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #0b0c10;
+      color: #c4b59f;
+      font-family: 'Montserrat', sans-serif;
+      overflow-y: auto;
+    }
+
+    .vj-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Alice', serif;
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+      margin: 0 0 15px 0;
+    }
+
+    /* Сетка управления */
+    .vj-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+    }
+
+    @media (max-width: 900px) {
+      .vj-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Карточки пультов */
+    .vj-card {
+      background: #11141a;
+      border: 1px solid rgba(195, 155, 82, 0.3);
+      border-radius: 8px;
+      padding: 25px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    /* Кнопки переключения режимов */
+    .mode-btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .mode-control-btn {
+      background: linear-gradient(135deg, #1f2530 0%, #161a22 100%);
+      border: 1px solid rgba(195, 155, 82, 0.2);
+      color: #c4b59f;
+      padding: 18px 12px;
+      font-family: 'Alice', serif;
+      font-size: 1.1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode-control-btn:hover {
+      border-color: #ffd700;
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .mode-control-btn.active {
+      background: linear-gradient(135deg, #c39b52 0%, #ffd700 100%);
+      color: #000;
+      border-color: #ffd700;
+      font-weight: bold;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.35);
+    }
+
+    .btn-icon {
+      font-size: 1.8rem;
+    }
+
+    /* Элементы управления слайдами */
+    .slide-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-top: 20px;
+      background: rgba(255,255,255,0.02);
+      padding: 15px;
+      border-radius: 6px;
+      border: 1px dashed rgba(195, 155, 82, 0.2);
+    }
+
+    .slide-info-display {
+      font-family: 'Forum', serif;
+      font-size: 1.35rem;
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    /* Поля ввода */
+    .vj-input {
+      width: 100%;
+      padding: 10px 14px;
+      background: #191f2b;
+      border: 1px solid rgba(195, 155, 82, 0.3);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-family: 'Montserrat', sans-serif;
+      margin-bottom: 15px;
+    }
+
+    .vj-input:focus {
+      border-color: #ffd700;
+      outline: none;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+    }
+
+    .vj-select {
+      width: 100%;
+      padding: 10px;
+      background: #191f2b;
+      border: 1px solid rgba(195, 155, 82, 0.3);
+      border-radius: 6px;
+      color: #fff;
+      font-size: 0.95rem;
+      margin-bottom: 15px;
+    }
+
+    /* Кнопки действий */
+    .vj-action-btn {
+      background: linear-gradient(135deg, #c39b52, #ffd700);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .vj-action-btn:hover {
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .vj-danger-btn {
+      background: linear-gradient(135deg, #e53e3e, #c53030);
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .vj-danger-btn:hover {
+      box-shadow: 0 0 15px rgba(229, 62, 62, 0.4);
+    }
+
+    /* Монитор состояния */
+    .vj-monitor {
+      background: #0f1218;
+      border: 1px solid rgba(255,215,0,0.15);
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 20px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      text-align: center;
+      gap: 10px;
+    }
+
+    .monitor-item {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .monitor-lbl {
+      font-size: 0.75rem;
+      color: #a89498;
+      text-transform: uppercase;
+    }
+
+    .monitor-val {
+      font-weight: bold;
+      color: #ffd700;
+      font-size: 0.95rem;
+    }
+
+    .monitor-val.status-online {
+      color: #34d399;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="vj-container">
+    
+    <header class="hostess-header" style="position: relative; margin-bottom: 25px; border-bottom: 1px solid rgba(195,155,82,0.15); padding-bottom: 15px;">
+      <h1>Петровская Ассамблея</h1>
+      <p style="font-family: 'Alice', serif; font-style: italic; color: #ffd700; font-size: 1.15rem; margin-top: 5px;">Пульт управления презентацией и сценой (VJ Panel)</p>
+    </header>
+
+    <!-- Монитор состояния экрана -->
+    <div class="vj-monitor">
+      <div class="monitor-item" style="border-right: 1px solid rgba(255,255,255,0.05);">
+        <span class="monitor-lbl">Статус Сети</span>
+        <span class="monitor-val status-online" id="net-status">ПОДКЛЮЧЕН</span>
+      </div>
+      <div class="monitor-item" style="border-right: 1px solid rgba(255,255,255,0.05);">
+        <span class="monitor-lbl">Текущий Режим</span>
+        <span class="monitor-val" id="monitor-mode">ЗАСТАВКА</span>
+      </div>
+      <div class="monitor-item">
+        <span class="monitor-lbl">Активный Слайд</span>
+        <span class="monitor-val" id="monitor-slide">—</span>
+      </div>
+    </div>
+
+    <div class="vj-grid">
+      
+      <!-- ЛЕВАЯ КОЛОНКА: ВЫБОР РЕЖИМА ЭКРАНА -->
+      <div class="vj-card">
+        <h2>Режимы главного экрана сцены</h2>
+        <p style="font-size: 0.85rem; color: #a89498; margin-bottom: 20px;">Нажмите кнопку, чтобы моментально переключить контент на проекторе.</p>
+        
+        <div class="mode-btn-grid">
+          <button class="mode-control-btn active" id="btn-mode-welcome" onclick="setMode('welcome')">
+            <span class="btn-icon">👑</span>
+            <span>1. Заставка</span>
+          </button>
+          <button class="mode-control-btn" id="btn-mode-map" onclick="setMode('map')">
+            <span class="btn-icon">🗺️</span>
+            <span>2. Карта прибытия</span>
+          </button>
+          <button class="mode-control-btn" id="btn-mode-herald" onclick="setMode('herald')">
+            <span class="btn-icon">🎺</span>
+            <span>3. Глашатай</span>
+          </button>
+          <button class="mode-control-btn" id="btn-mode-slides" onclick="setMode('slides')">
+            <span class="btn-icon">📜</span>
+            <span>4. Презентация</span>
+          </button>
+          <button class="mode-control-btn" id="btn-mode-dinner" onclick="setMode('dinner')">
+            <span class="btn-icon">🍇</span>
+            <span>5. Застолье</span>
+          </button>
+          <button class="mode-control-btn" id="btn-mode-quiz" onclick="setMode('quiz')">
+            <span class="btn-icon">🖥️</span>
+            <span>6. Викторина</span>
+          </button>
+          <button class="mode-control-btn" id="btn-mode-video" onclick="setMode('video')" style="grid-column: span 2;">
+            <span class="btn-icon">🎬</span>
+            <span>7. Видеоролики</span>
+          </button>
+        </div>
+
+        <!-- Управление слайдами презентации -->
+        <div class="slide-controls" id="slide-control-box" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+          <button class="vj-action-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="changeSlide(-1)">◀ Назад</button>
+          <div class="slide-info-display" id="slide-display">Слайд 1 из 4</div>
+          <button class="vj-action-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="changeSlide(1)">Вперед ▶</button>
+        </div>
+
+        <!-- Управление видеороликами (14 роликов) -->
+        <div class="video-control-box" id="video-control-box" style="margin-top: 25px; display: none; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; border: 1px solid rgba(195, 155, 82, 0.3);">
+          <h3>Панель видеоплеера</h3>
+          
+          <!-- Статус и текущий ролик -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px;">
+            <div style="max-width: 60%;">
+              <span style="font-size: 0.85rem; color: #a89498;">Ролик: </span>
+              <span id="current-video-title" style="font-weight: bold; color: #ffd700; font-size: 0.9rem;">—</span>
+            </div>
+            <div>
+              <span style="font-size: 0.85rem; color: #a89498;">Статус: </span>
+              <span id="current-video-status" style="font-weight: bold; color: #ffd700; font-size: 0.9rem;">Остановлен</span>
+            </div>
+          </div>
+
+          <!-- Кнопки управления воспроизведением -->
+          <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+            <button class="vj-action-btn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-play" onclick="controlVideo('play')">▶ Запустить</button>
+            <button class="vj-action-btn" style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-pause" onclick="controlVideo('pause')">⏸ Пауза</button>
+            <button class="vj-action-btn" style="background: linear-gradient(135deg, #a855f7, #9333ea); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-freeze" onclick="controlVideo('freeze')">📸 Заморозить</button>
+            <button class="vj-action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-unfreeze" onclick="controlVideo('unfreeze')">🔓 Разморозить</button>
+          </div>
+
+          <!-- Сетка 14 роликов -->
+          <span style="font-size: 0.85rem; color: #a89498; display: block; margin-bottom: 8px;">Выбор ролика для воспроизведения:</span>
+          <div class="video-playlist-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
+            <!-- Заполнится динамически через js -->
+          </div>
+
+          <!-- Управление файлом текущего шага -->
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(195,155,82,0.15);">
+            <span style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 8px;">Загрузка файла для выбранного шага:</span>
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+              <input type="file" id="video-file-input" style="display: none;" accept="video/mp4" onchange="uploadCustomVideo()">
+              <button class="vj-action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 6px 12px; font-size: 0.75rem;" onclick="document.getElementById('video-file-input').click()">📤 Загрузить / Сменить MP4</button>
+              <button class="vj-danger-btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="deleteCustomVideo()">🗑️ Удалить</button>
+              <span id="upload-status" style="font-size: 0.8rem; font-weight: bold; color: #34d399;"></span>
+            </div>
+            <span style="font-size: 0.7rem; color: #a89498; display: block; margin-top: 6px;">Если файл не загружен, проигрывается локальный ролик по умолчанию (`video_{номер}.mp4`).</span>
+          </div>
+        </div>
+
+        <h2 style="margin-top: 30px;">Интерактивные спецэффекты</h2>
+        <p style="font-size: 0.85rem; color: #a89498; margin-bottom: 15px;">Мгновенный запуск аудио и визуальных эффектов поверх любого активного режима.</p>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="vj-action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;" onclick="triggerFx('firework')">🎆 Запуск салюта</button>
+          <button class="vj-action-btn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;" onclick="playSound('fanfare')">🔊 Звук фанфар</button>
+          <button class="vj-action-btn" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;" onclick="playSound('bell')">🔔 Звук колокола</button>
+        </div>
+      </div>
+
+      <!-- ПРАВАЯ КОЛОНКА: ОБЪЯВЛЕНИЯ И БЕГУЩАЯ СТРОКА -->
+      <div class="vj-card" style="display: flex; flex-direction: column; gap: 25px;">
+        
+        <!-- Секция: Бегущая строка -->
+        <div>
+          <h2>Бегущая строка (внизу экрана)</h2>
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; color: #fff; font-size: 0.9rem;">
+              <input type="checkbox" id="ticker-active-toggle" onchange="sendTickerUpdate()" style="width: 18px; height: 18px; accent-color: #ffd700;">
+              Включить бегущую строку на экране
+            </label>
+          </div>
+          
+          <label style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 6px;">Быстрый выбор шаблона:</label>
+          <select class="vj-select" id="ticker-preset-select" onchange="applyTickerPreset(this.value)">
+            <option value="">-- Выберите шаблон --</option>
+            <option value="Приветствуем почетных гостей Петровской Ассамблеи! Просьба занимать свои места за праздничными столами.">Приветствие и посадка за столы</option>
+            <option value="Внимание! Начинается праздничная викторина «Тайный Вечер»! Приготовьте свои мобильные телефоны господа!">Объявление о начале викторины</option>
+            <option value="Ежели кто устав у ассамблеи нарушит, тому поднесен будет кубок Большого Орла!">Шуточный указ о нарушении правил</option>
+            <option value="Поздравляем победителей викторины с триумфом великим! Быть по сему!">Поздравление победителей</option>
+          </select>
+          
+          <label style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 6px;">Свой текст бегущей строки:</label>
+          <input type="text" class="vj-input" id="ticker-custom-text" value="Приветствуем почетных гостей Петровской Ассамблеи!" placeholder="Введите бегущую строку...">
+          <button class="vj-action-btn" onclick="sendTickerUpdate()">Обновить текст</button>
+        </div>
+
+        <hr style="border-top: 1px solid rgba(195,155,82,0.15); margin: 5px 0;">
+
+        <!-- Секция: Важное всплывающее объявление (Alert) -->
+        <div>
+          <h2>Срочное всплывающее объявление</h2>
+          <p style="font-size: 0.85rem; color: #a89498; margin-bottom: 15px;">Выводит поверх любого режима красивый золотой свиток с текстом.</p>
+          
+          <label style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 6px;">Заголовок свитка:</label>
+          <input type="text" class="vj-input" id="alert-title" value="ИМПЕРАТОРСКИЙ УКАЗ" placeholder="Например, Указ или Объявление">
+          
+          <label style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 6px;">Текст объявления:</label>
+          <textarea class="vj-input" id="alert-text" rows="3" style="resize: none;" placeholder="Например, Всем господам осушить кубки!"></textarea>
+          
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <button class="vj-action-btn" onclick="triggerAlert(true)">📜 Вывести на экран</button>
+            <button class="vj-danger-btn" onclick="triggerAlert(false)">Убрать объявление</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // Supabase клиент
+    const sb = window.sb;
+    
+    // BroadcastChannel локальный канал
+    const channel = new BroadcastChannel('assembly_event_channel');
+
+    // Плейлист из 14 роликов
+    const VIDEO_PLAYLIST = [
+      "1: Универсальная заставка (Акт I)",
+      "1-2-3: Сквозной монтаж",
+      "4: Универсальная заставка (Акт II)",
+      "4-5: Silver (Переход)",
+      "5-6: Gold (Переход)",
+      "6-7: Platinum (Переход)",
+      "7-8: Titanium (Переход)",
+      "8-9: Jade (Переход)",
+      "9-10: Pearl (Переход)",
+      "10-11: Ruby (Переход)",
+      "11-12: Универсальная заставка (Акт III)",
+      "12: Без перехода (Fade to Black)",
+      "12-13: Универсальная заставка (Акт IV)",
+      "13-14: Универсальная заставка (Гранд-финал)"
+    ];
+
+    // Глобальное состояние VJ
+    let state = {
+      mode: 'welcome',
+      slideIndex: 0,
+      tickerActive: false,
+      tickerText: 'Приветствуем почетных гостей Петровской Ассамблеи!',
+      alertActive: false,
+      alertTitle: 'ИМПЕРАТОРСКИЙ УКАЗ',
+      alertText: '',
+      videoIndex: 1,
+      videoPlaying: false,
+      videoFrozen: false
+    };
+
+    const slidesCount = 4;
+
+    // Supabase Realtime Broadcast Channel
+    const stageChannel = sb.channel('stage_control', {
+      config: { broadcast: { self: true } }
+    });
+
+    stageChannel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        document.getElementById('net-status').textContent = 'ПОДКЛЮЧЕН';
+        document.getElementById('net-status').className = 'monitor-val status-online';
+        // Отправляем текущее состояние при входе
+        broadcastState();
+      } else {
+        document.getElementById('net-status').textContent = 'ОФФЛАЙН';
+        document.getElementById('net-status').className = 'monitor-val';
+      }
+    });
+
+    // Функция отправки состояния на экран сцены
+    function broadcastState() {
+      // 1. Отправляем в Supabase Realtime
+      stageChannel.send({
+        type: 'broadcast',
+        event: 'state_change',
+        payload: state
+      });
+      // 2. Отправляем в BroadcastChannel локально
+      channel.postMessage({
+        type: 'stage_state_change',
+        payload: state
+      });
+
+      // Обновляем монитор на самом пульте
+      updateMonitorUI();
+    }
+
+    function updateMonitorUI() {
+      const modeNames = {
+        'welcome': 'ЗАСТАВКА',
+        'map': 'КАРТА',
+        'herald': 'ГЛАШАТАЙ',
+        'slides': 'ПРЕЗЕНТАЦИЯ',
+        'dinner': 'ЗАСТОЛЬЕ',
+        'quiz': 'ВИКТОРИНА',
+        'video': 'ВИДЕОРОЛИКИ'
+      };
+      
+      document.getElementById('monitor-mode').textContent = modeNames[state.mode] || '—';
+      document.getElementById('monitor-slide').textContent = state.mode === 'slides' ? `${state.slideIndex + 1} / ${slidesCount}` : '—';
+      
+      // Активация бокса слайдов
+      const slideBox = document.getElementById('slide-control-box');
+      if (state.mode === 'slides') {
+        slideBox.style.opacity = '1';
+        slideBox.style.pointerEvents = 'auto';
+        document.getElementById('slide-display').textContent = `Слайд ${state.slideIndex + 1} из ${slidesCount}`;
+      } else {
+        slideBox.style.opacity = '0.5';
+        slideBox.style.pointerEvents = 'none';
+      }
+
+      // Управление отображением панели видеороликов
+      const videoBox = document.getElementById('video-control-box');
+      if (videoBox) {
+        if (state.mode === 'video') {
+          videoBox.style.display = 'block';
+          document.getElementById('current-video-title').textContent = VIDEO_PLAYLIST[state.videoIndex - 1] || 'Не выбран';
+          
+          let statusText = 'Остановлен';
+          if (state.videoFrozen) {
+            statusText = '❄️ ЗАМОРОЖЕН';
+          } else if (state.videoPlaying) {
+            statusText = '▶️ ИГРАЕТ';
+          } else {
+            statusText = '⏸️ НА ПАУЗЕ';
+          }
+          document.getElementById('current-video-status').textContent = statusText;
+          
+          // Подсвечиваем активный ролик в плейлисте
+          for (let i = 1; i <= VIDEO_PLAYLIST.length; i++) {
+            const btn = document.getElementById(`btn-video-item-${i}`);
+            if (btn) {
+              if (state.videoIndex === i) {
+                btn.classList.add('active');
+              } else {
+                btn.classList.remove('active');
+              }
+            }
+          }
+        } else {
+          videoBox.style.display = 'none';
+        }
+      }
+    }
+
+    // Смена режима экрана
+    window.setMode = function(mode) {
+      state.mode = mode;
+      
+      // Обновляем активную кнопку
+      document.querySelectorAll('.mode-control-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-mode-${mode}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      broadcastState();
+    };
+
+    // Смена слайда
+    window.changeSlide = function(direction) {
+      if (state.mode !== 'slides') return;
+      let newIndex = state.slideIndex + direction;
+      if (newIndex >= 0 && newIndex < slidesCount) {
+        state.slideIndex = newIndex;
+        broadcastState();
+      }
+    };
+
+    // Обновление бегущей строки
+    window.sendTickerUpdate = function() {
+      state.tickerActive = document.getElementById('ticker-active-toggle').checked;
+      state.tickerText = document.getElementById('ticker-custom-text').value.trim();
+      broadcastState();
+    };
+
+    // Применить быстрый шаблон бегущей строки
+    window.applyTickerPreset = function(val) {
+      if (!val) return;
+      document.getElementById('ticker-custom-text').value = val;
+      document.getElementById('ticker-active-toggle').checked = true;
+      sendTickerUpdate();
+    };
+
+    // Вывести всплывающий алерт
+    window.triggerAlert = function(show) {
+      state.alertActive = show;
+      state.alertTitle = document.getElementById('alert-title').value.trim();
+      state.alertText = document.getElementById('alert-text').value.trim();
+      broadcastState();
+    };
+
+    // Проигрывание звука
+    window.playSound = function(soundName) {
+      // 1. Отправляем в Supabase Realtime
+      stageChannel.send({
+        type: 'broadcast',
+        event: 'play_sound',
+        payload: { sound: soundName }
+      });
+      // 2. Отправляем в BroadcastChannel
+      channel.postMessage({
+        type: 'stage_play_sound',
+        payload: { sound: soundName }
+      });
+    };
+
+    // Запуск спецэффекта
+    window.triggerFx = function(fxName) {
+      // 1. Отправляем в Supabase Realtime
+      stageChannel.send({
+        type: 'broadcast',
+        event: 'trigger_fx',
+        payload: { fx: fxName }
+      });
+      // 2. Отправляем в BroadcastChannel
+      channel.postMessage({
+        type: 'stage_trigger_fx',
+        payload: { fx: fxName }
+      });
+    };
+
+    // Синхронизация состояния пульта, если открыто несколько пультов
+    stageChannel.on('broadcast', { event: 'state_change' }, (payload) => {
+      if (payload && payload.payload) {
+        const received = payload.payload;
+        // Избегаем зацикливания, обновляем только если отличается
+        if (JSON.stringify(received) !== JSON.stringify(state)) {
+          state = received;
+          updateMonitorUI();
+          
+          // Синхронизируем UI форму
+          document.getElementById('ticker-active-toggle').checked = state.tickerActive;
+          document.getElementById('ticker-custom-text').value = state.tickerText;
+          document.getElementById('alert-title').value = state.alertTitle;
+          document.getElementById('alert-text').value = state.alertText;
+
+          document.querySelectorAll('.mode-control-btn').forEach(btn => btn.classList.remove('active'));
+          const activeBtn = document.getElementById(`btn-mode-${state.mode}`);
+          if (activeBtn) activeBtn.classList.add('active');
+        }
+      }
+    });
+
+    function initVideoPlaylist() {
+      const container = document.querySelector('.video-playlist-grid');
+      if (!container) return;
+      container.innerHTML = '';
+      VIDEO_PLAYLIST.forEach((title, idx) => {
+        const index = idx + 1;
+        const btn = document.createElement('button');
+        btn.className = 'mode-control-btn';
+        btn.id = `btn-video-item-${index}`;
+        btn.style.padding = '8px 10px';
+        btn.style.fontSize = '0.85rem';
+        btn.style.textAlign = 'left';
+        btn.style.alignItems = 'flex-start';
+        btn.style.gap = '2px';
+        
+        btn.innerHTML = `
+          <span style="font-weight: bold; color: #ffd700;">№ ${index}</span>
+          <span style="font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${title}</span>
+        `;
+        btn.onclick = () => selectVideo(index);
+        container.appendChild(btn);
+      });
+    }
+
+    window.selectVideo = function(index) {
+      state.mode = 'video';
+      state.videoIndex = index;
+      state.videoPlaying = true; // Сразу запускаем воспроизведение
+      state.videoFrozen = false;
+      
+      // Подсвечиваем выбранный режим "Видео" в панели режимов
+      document.querySelectorAll('.mode-control-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`btn-mode-video`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      broadcastState();
+    };
+
+    window.controlVideo = function(action) {
+      if (state.mode !== 'video') return;
+      
+      if (action === 'play') {
+        state.videoPlaying = true;
+        state.videoFrozen = false;
+      } else if (action === 'pause') {
+        state.videoPlaying = false;
+      } else if (action === 'freeze') {
+        state.videoFrozen = true;
+      } else if (action === 'unfreeze') {
+        state.videoFrozen = false;
+      }
+      
+      broadcastState();
+    };
+
+    // Загрузка кастомных видео в Supabase Storage
+    window.uploadCustomVideo = async function() {
+      if (state.mode !== 'video' || !state.videoIndex) return;
+      
+      const fileInput = document.getElementById('video-file-input');
+      const file = fileInput.files[0];
+      if (!file) return;
+      
+      const statusEl = document.getElementById('upload-status');
+      statusEl.textContent = '⏳ Загрузка...';
+      statusEl.style.color = '#eab308';
+      
+      const index = state.videoIndex;
+      const fileName = `video_${index}.mp4`;
+      
+      try {
+        const { data, error } = await sb.storage
+          .from('videos')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+          
+        if (error) throw error;
+        
+        statusEl.textContent = '✅ Загружен!';
+        statusEl.style.color = '#10b981';
+        
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        
+        // Перезапускаем воспроизведение
+        selectVideo(index);
+        
+      } catch (err) {
+        console.error('[Upload Video Error]:', err);
+        if (err.message && err.message.includes('Bucket not found')) {
+          alert('Ошибка: Бакет "videos" не найден в вашем проекте Supabase.\n\nПожалуйста, выполните одно из следующих действий:\n1. Зайдите в личный кабинет Supabase -> Storage и вручную создайте публичный бакет с именем "videos".\n2. Либо перейдите в SQL Editor в Supabase и выполните SQL-скрипт из файла public/supabase-config.js, чтобы автоматически создать бакет и настроить политики доступа.');
+        } else {
+          alert('Ошибка при загрузке видео: ' + (err.message || err));
+        }
+        statusEl.textContent = '❌ Ошибка';
+        statusEl.style.color = '#ef4444';
+      }
+      
+      fileInput.value = '';
+    };
+
+    // Удаление кастомных видео из Supabase Storage
+    window.deleteCustomVideo = async function() {
+      if (state.mode !== 'video' || !state.videoIndex) return;
+      if (!confirm('Вы действительно хотите удалить загруженный видеофайл для этого шага и вернуть файл по умолчанию?')) return;
+      
+      const statusEl = document.getElementById('upload-status');
+      statusEl.textContent = '⏳ Удаление...';
+      statusEl.style.color = '#eab308';
+      
+      const index = state.videoIndex;
+      const fileName = `video_${index}.mp4`;
+      
+      try {
+        const { data, error } = await sb.storage
+          .from('videos')
+          .remove([fileName]);
+          
+        if (error) throw error;
+        
+        statusEl.textContent = '🗑️ Удален';
+        statusEl.style.color = '#ef4444';
+        
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+        
+        // Перезапускаем видео (оно вернется к локальному файлу)
+        selectVideo(index);
+        
+      } catch (err) {
+        console.error('[Delete Video Error]:', err);
+        if (err.message && err.message.includes('Bucket not found')) {
+          alert('Ошибка: Бакет "videos" не найден в вашем проекте Supabase.');
+        } else {
+          alert('Ошибка при удалении видео: ' + (err.message || err));
+        }
+        statusEl.textContent = '❌ Ошибка';
+        statusEl.style.color = '#ef4444';
+      }
+    };
+
+    // BroadcastChannel локальный слушатель для синхронизации с экрана
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data;
+      if (type === 'stage_state_change') {
+        if (JSON.stringify(payload) !== JSON.stringify(state)) {
+          state = payload;
+          updateMonitorUI();
+        }
+      }
+    };
+
+    window.onload = () => {
+      initVideoPlaylist();
+      updateMonitorUI();
+    };
+  </script>
+</body>
+</html>

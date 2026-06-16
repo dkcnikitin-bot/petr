@@ -2,8 +2,12 @@
   "name": "petrovskaya-assembly",
   "version": "1.0.0",
   "description": "Local event web application for Petry Event 'Петровская Ассамблея'",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {},
   "devDependencies": {},
   "author": "Antigravity Senior Full-Stack Developer",
   "license": "MIT"
 }
+

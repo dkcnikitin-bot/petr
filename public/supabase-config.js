@@ -104,6 +104,19 @@ CREATE POLICY "Public access to diplomas" ON storage.objects FOR SELECT USING (b
 -- Разрешаем публичную загрузку и изменение объектов в бакете diplomas
 DROP POLICY IF EXISTS "Public insert/update to diplomas" ON storage.objects;
 CREATE POLICY "Public insert/update to diplomas" ON storage.objects FOR ALL USING (bucket_id = 'diplomas') WITH CHECK (bucket_id = 'diplomas');
+
+-- Создание бакета для видеороликов в Storage
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('videos', 'videos', true)
+ON CONFLICT (id) DO NOTHING;
+
+-- Разрешаем публичный доступ на чтение объектов в бакете videos
+DROP POLICY IF EXISTS "Public access to videos" ON storage.objects;
+CREATE POLICY "Public access to videos" ON storage.objects FOR SELECT USING (bucket_id = 'videos');
+
+-- Разрешаем публичную загрузку, обновление и удаление объектов в бакете videos
+DROP POLICY IF EXISTS "Public insert/update to videos" ON storage.objects;
+CREATE POLICY "Public insert/update to videos" ON storage.objects FOR ALL USING (bucket_id = 'videos') WITH CHECK (bucket_id = 'videos');
 `;
 
 console.log('[Суперbase] Клиент инициализирован:', SUPABASE_URL);

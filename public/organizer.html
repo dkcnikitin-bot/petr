@@ -211,12 +211,13 @@
                   <th onclick="sortTable('status')">Статус <span class="sort-icon" id="sort-status">↕</span></th>
                   <th onclick="sortTable('city')">Город <span class="sort-icon" id="sort-city">↕</span></th>
                   <th onclick="sortTable('payment')">Оплата <span class="sort-icon" id="sort-payment">↕</span></th>
+                  <th onclick="sortTable('isArrived')" style="width: 80px; text-align: center;">Прибыл <span class="sort-icon" id="sort-isArrived">↕</span></th>
                   <th style="width: 60px; text-align: center;">Удалить</th>
                 </tr>
               </thead>
               <tbody id="merge-table-body">
                 <tr>
-                  <td colspan="7" style="text-align: center; color: #a89498; padding: 30px;">Загрузите файлы слева и нажмите "Объединить данные", чтобы увидеть сводку.</td>
+                  <td colspan="8" style="text-align: center; color: #a89498; padding: 30px;">Загрузите файлы слева и нажмите "Объединить данные", чтобы увидеть сводку.</td>
                 </tr>
               </tbody>
             </table>
@@ -438,6 +439,7 @@
     }
 
     const sb = window.sb;
+    const channel = new BroadcastChannel('assembly_event_channel');
     const initDbBtn = document.getElementById('btn-init-db');
     const initDbStatus = document.getElementById('init-db-status');
 
@@ -967,6 +969,10 @@
             const numA = parseInt(valA) || 999;
             const numB = parseInt(valB) || 999;
             return sortAscending ? numA - numB : numB - numA;
+          } else if (currentSortColumn === 'isArrived') {
+            valA = a.isArrived ? 1 : 0;
+            valB = b.isArrived ? 1 : 0;
+            return sortAscending ? valA - valB : valB - valA;
           } else {
             valA = String(valA).toLowerCase();
             valB = String(valB).toLowerCase();
@@ -1001,7 +1007,7 @@
       tbody.innerHTML = '';
       
       if(displayData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">Нет данных по заданному фильтру</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px;">Нет данных по заданному фильтру</td></tr>';
         return;
       }
 
@@ -1027,11 +1033,16 @@
         });
         statusSelectHtml += `</select>`;
 
-        // Форматирование имени с выделением ответственного
+        // Форматирование имени с выделением ответственного и возможностью редактирования
         const isResp = g.fullName.includes('(Ответственный)');
-        const displayName = isResp 
-          ? `<strong style="color: #d4af37; text-shadow: 0 0 4px rgba(212,175,55,0.2); font-weight: bold;">👑 ${formatNameWithoutPatronymic(g.fullName)}</strong>` 
-          : formatNameWithoutPatronymic(g.fullName);
+        const cleanNameVal = g.fullName.replace(' (Ответственный)', '').trim();
+        const crown = isResp ? '👑 ' : '';
+        const nameInputHtml = `
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <span style="color: #d4af37; font-size: 1.1rem; line-height: 1;">${crown}</span>
+            <input type="text" value="${cleanNameVal}" style="flex: 1; min-width: 160px; padding: 4px; border: 1px solid rgba(195,155,82,0.2); background: rgba(8,18,36,0.8); color: #fff; border-radius: 4px;" onchange="updateFullName(${g.id}, this.value)">
+          </div>
+        `;
 
         const isChecked = selectedMergedIds.includes(g.id) ? 'checked' : '';
 
@@ -1039,7 +1050,7 @@
           <td style="width: 40px; text-align: center;">
             <input type="checkbox" class="merge-guest-checkbox" data-id="${g.id}" ${isChecked} onchange="toggleSelectMerged(${g.id})">
           </td>
-          <td>${displayName}</td>
+          <td>${nameInputHtml}</td>
           <td>
             <input type="text" value="${g.tableNumber || ''}" style="width: 55px; padding: 4px; text-align: center; border: 1px solid rgba(195,155,82,0.2); background: rgba(8,18,36,0.8); color: #fff; border-radius: 4px; font-weight: bold;" onchange="updateTable(${g.id}, this.value)">
           </td>
@@ -1049,6 +1060,9 @@
           </td>
           <td>
             <input type="number" value="${g.payment || 0}" style="width: 80px; padding: 4px; border: 1px solid rgba(195,155,82,0.2); background: rgba(8,18,36,0.8); color: #fff; border-radius: 4px;" onchange="updatePayment(${g.id}, this.value)"> ₽
+          </td>
+          <td style="text-align: center;">
+            <input type="checkbox" ${g.isArrived ? 'checked' : ''} onchange="updateArrival(${g.id}, this.checked)" style="width: 18px; height: 18px; cursor: pointer; accent-color: #28a745;">
           </td>
           <td style="text-align: center;">
             <button class="btn-delete-row" onclick="deleteRow(${g.id})">✖</button>
@@ -1138,7 +1152,169 @@
       }
     }
 
-    window.applyBatchActions = function() {
+    // Сохранение одиночного поля в Supabase
+    async function saveFieldToSupabase(id, fields) {
+      const dbFields = {};
+      if ('fullName' in fields) dbFields.full_name = fields.fullName;
+      if ('tableNumber' in fields) dbFields.table_number = fields.tableNumber;
+      if ('status' in fields) dbFields.status = fields.status;
+      if ('city' in fields) dbFields.city = fields.city;
+      if ('payment' in fields) dbFields.payment = Number(fields.payment) || 0;
+      if ('isArrived' in fields) dbFields.is_arrived = Boolean(fields.isArrived);
+
+      try {
+        const { error } = await sb.from('guests').update(dbFields).eq('id', id);
+        if (error) {
+          console.error('[Supabase] Ошибка обновления:', error);
+        } else {
+          console.log('[Supabase] Успешно обновлено:', dbFields);
+          channel.postMessage({ type: 'guests_updated' });
+        }
+      } catch (err) {
+        console.error('[Supabase] Исключение при обновлении:', err);
+      }
+    }
+
+    window.updateFullName = async function(id, value) {
+      const guest = mergedData.find(g => g.id === id);
+      if (guest) {
+        const isResp = guest.fullName.includes('(Ответственный)');
+        let newName = value.trim();
+        if (isResp && !newName.includes('(Ответственный)')) {
+          newName = newName + ' (Ответственный)';
+        }
+        guest.fullName = newName;
+        if (guest.isDb) {
+          await saveFieldToSupabase(id, { fullName: guest.fullName });
+        }
+      }
+    };
+
+    window.updateTable = async function(id, value) {
+      const guest = mergedData.find(g => g.id === id);
+      if (guest) {
+        guest.tableNumber = String(value).trim();
+        if (guest.isDb) {
+          await saveFieldToSupabase(id, { tableNumber: guest.tableNumber });
+        }
+      }
+    };
+
+    window.updateStatus = async function(id, value) {
+      const guest = mergedData.find(g => g.id === id);
+      if (guest) {
+        guest.status = String(value).trim();
+        if (guest.isDb) {
+          await saveFieldToSupabase(id, { status: guest.status });
+        }
+      }
+    };
+
+    window.updateCity = async function(id, value) {
+      const guest = mergedData.find(g => g.id === id);
+      if (guest) {
+        guest.city = String(value).trim();
+        if (guest.isDb) {
+          await saveFieldToSupabase(id, { city: guest.city });
+        }
+      }
+    };
+
+    window.updatePayment = async function(id, value) {
+      const guest = mergedData.find(g => g.id === id);
+      if (guest) {
+        guest.payment = parseFloat(value) || 0;
+        updateStats();
+        if (guest.isDb) {
+          await saveFieldToSupabase(id, { payment: guest.payment });
+        }
+      }
+    };
+
+    window.updateArrival = async function(id, checked) {
+      const guest = mergedData.find(g => g.id === id);
+      if (guest) {
+        guest.isArrived = Boolean(checked);
+        updateStats();
+        if (guest.isDb) {
+          await saveFieldToSupabase(id, { isArrived: guest.isArrived });
+        }
+      }
+    };
+
+    window.deleteRow = async function(id) {
+      const guest = mergedData.find(g => g.id === id);
+      if (!guest) return;
+
+      if (guest.isDb) {
+        if (!confirm('Вы уверены, что хотите удалить этого гостя из базы данных?')) return;
+        try {
+          const { error } = await sb.from('guests').delete().eq('id', id);
+          if (error) {
+            console.error('Ошибка при удалении из Supabase:', error);
+            alert('Не удалось удалить гостя из базы данных: ' + error.message);
+            return;
+          }
+          channel.postMessage({ type: 'guests_updated' });
+        } catch (err) {
+          console.error('Исключение при удалении:', err);
+          alert('Ошибка при соединении с базой: ' + err.message);
+          return;
+        }
+      } else {
+        if (!confirm('Исключить импортированного гостя из списка?')) return;
+      }
+
+      mergedData = mergedData.filter(g => g.id !== id);
+      if (typeof allGuests !== 'undefined') {
+        allGuests = allGuests.filter(g => g.id !== id);
+      }
+      applyFiltersAndSort();
+      updateGroupGuests();
+    };
+
+    window.deleteBatchSelected = async function() {
+      if (selectedMergedIds.length === 0) return;
+      
+      const dbIds = [];
+      mergedData.forEach(g => {
+        if (selectedMergedIds.includes(g.id) && g.isDb) {
+          dbIds.push(g.id);
+        }
+      });
+
+      const confirmMsg = dbIds.length > 0
+        ? `Вы действительно хотите удалить выбранных гостей (${selectedMergedIds.length} чел., из них ${dbIds.length} в базе данных) из списка?`
+        : `Вы действительно хотите удалить выбранных гостей (${selectedMergedIds.length} чел.) из списка?`;
+
+      if (confirm(confirmMsg)) {
+        if (dbIds.length > 0) {
+          try {
+            const { error } = await sb.from('guests').delete().in('id', dbIds);
+            if (error) {
+              alert('Ошибка при удалении из базы данных: ' + error.message);
+              return;
+            }
+            channel.postMessage({ type: 'guests_updated' });
+          } catch (err) {
+            alert('Ошибка при соединении с базой: ' + err.message);
+            return;
+          }
+        }
+
+        mergedData = mergedData.filter(g => !selectedMergedIds.includes(g.id));
+        if (typeof allGuests !== 'undefined') {
+          allGuests = allGuests.filter(g => !selectedMergedIds.includes(g.id));
+        }
+
+        alert('Выбранные гости удалены.');
+        applyFiltersAndSort();
+        clearBatchSelection();
+        updateGroupGuests();
+      }
+    };
+
+    window.applyBatchActions = async function() {
       if (selectedMergedIds.length === 0) return;
       
       const newTable = document.getElementById('batch-table').value.trim();
@@ -1147,6 +1323,8 @@
       const newPaymentVal = document.getElementById('batch-payment').value.trim();
       
       let updatedCount = 0;
+      const dbUpdates = [];
+
       mergedData.forEach(g => {
         if (selectedMergedIds.includes(g.id)) {
           if (newTable !== '') g.tableNumber = newTable;
@@ -1154,12 +1332,24 @@
           if (newCity !== '') g.city = cleanCityName(newCity);
           if (newPaymentVal !== '') g.payment = parseFloat(newPaymentVal) || 0;
           updatedCount++;
+
+          if (g.isDb) {
+            dbUpdates.push(saveFieldToSupabase(g.id, {
+              tableNumber: g.tableNumber,
+              status: g.status,
+              city: g.city,
+              payment: g.payment
+            }));
+          }
         }
       });
-      
+
+      if (dbUpdates.length > 0) {
+        await Promise.all(dbUpdates);
+      }
+
       alert(`Успешно обновлено ${updatedCount} записей!`);
       
-      // Сброс полей ввода
       document.getElementById('batch-table').value = '';
       document.getElementById('batch-status').value = '';
       document.getElementById('batch-city').value = '';
@@ -1170,52 +1360,7 @@
       clearBatchSelection();
     };
 
-    window.deleteBatchSelected = function() {
-      if (selectedMergedIds.length === 0) return;
-      if (confirm(`Вы действительно хотите удалить выбранных гостей (${selectedMergedIds.length} чел.) из списка?`)) {
-        mergedData = mergedData.filter(g => !selectedMergedIds.includes(g.id));
-        alert('Записи удалены из текущего списка. Изменения вступят в силу после отправки в базу.');
-        applyFiltersAndSort();
-        clearBatchSelection();
-      }
-    };
-
-    // Хелперы редактирования полей в таблице
-    window.updatePayment = function(id, value) {
-      const guest = mergedData.find(g => g.id === id);
-      if (guest) {
-        guest.payment = parseFloat(value) || 0;
-        updateStats();
-      }
-    };
-
-    window.updateTable = function(id, value) {
-      const guest = mergedData.find(g => g.id === id);
-      if (guest) {
-        guest.tableNumber = String(value).trim();
-      }
-    };
-
-    window.updateStatus = function(id, value) {
-      const guest = mergedData.find(g => g.id === id);
-      if (guest) {
-        guest.status = String(value).trim();
-      }
-    };
-
-    window.updateCity = function(id, value) {
-      const guest = mergedData.find(g => g.id === id);
-      if (guest) {
-        guest.city = String(value).trim();
-      }
-    };
-
-    window.deleteRow = function(id) {
-      if (confirm('Исключить гостя из списка? Изменения вступят в силу после отправки в базу Supabase.')) {
-        mergedData = mergedData.filter(g => g.id !== id);
-        applyFiltersAndSort();
-      }
-    };
+    //
 
     // Печать списка гостей с группировкой по столам и выделением ответственных
     window.printGuestList = function() {
@@ -1405,7 +1550,8 @@
           payment: Number(g.payment) || 0,
           isArrived: Boolean(g.is_arrived),
           lat: Number(g.lat) || 55.0,
-          lng: Number(g.lng) || 37.0
+          lng: Number(g.lng) || 37.0,
+          isDb: true
         }));
         
         // Отображаем существующих гостей в таблице
@@ -1417,6 +1563,74 @@
         updateGroupGuests();
       } catch (err) { console.error(err); }
     }
+
+    async function fetchAllGuestsRealtime() {
+      try {
+        console.log('[Supabase Realtime] Подгрузка обновлений...');
+        const { data, error } = await sb.from('guests').select('*').order('id');
+        if (error) throw error;
+
+        allGuests = (data || []).map(g => ({
+          id: g.id,
+          fullName: g.full_name,
+          tableNumber: g.table_number || '',
+          status: g.status || '0',
+          city: g.city || '',
+          payment: Number(g.payment) || 0,
+          isArrived: Boolean(g.is_arrived),
+          lat: Number(g.lat) || 55.0,
+          lng: Number(g.lng) || 37.0,
+          isDb: true
+        }));
+
+        // Умное слияние без перезаписи локальных Excel черновиков
+        const newDbIds = new Set(allGuests.map(g => g.id));
+        
+        // 1. Обновляем существующие DB-строки и удаляем удаленные DB-строки
+        mergedData = mergedData.map(g => {
+          if (g.isDb) {
+            const updated = allGuests.find(dbG => dbG.id === g.id);
+            return updated ? updated : null; // null означает удаление
+          }
+          return g; // сохраняем драфты
+        }).filter(Boolean);
+        
+        // 2. Добавляем новые DB-строки, которых не было в mergedData
+        const existingDbIdsInMerged = new Set(mergedData.filter(g => g.isDb).map(g => g.id));
+        allGuests.forEach(dbG => {
+          if (!existingDbIdsInMerged.has(dbG.id)) {
+            mergedData.push(JSON.parse(JSON.stringify(dbG)));
+          }
+        });
+        
+        // Если mergedData был пуст
+        if (mergedData.length === 0 && allGuests.length > 0) {
+          mergedData = JSON.parse(JSON.stringify(allGuests));
+        }
+
+        applyFiltersAndSort();
+        updateGroupGuests();
+      } catch (err) {
+        console.error('[Supabase Realtime] Ошибка при обновлении списка:', err);
+      }
+    }
+
+    // Инициализация подписки на Realtime в базе данных
+    sb.channel('guests-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'guests' }, async (payload) => {
+        console.log('[Supabase Realtime] Получено событие изменения БД:', payload);
+        await fetchAllGuestsRealtime();
+      })
+      .subscribe();
+
+    // BroadcastChannel: локальный обмен сообщениями между открытыми вкладками
+    channel.onmessage = async (event) => {
+      const { type } = event.data;
+      if (type === 'guest_arrived' || type === 'guests_reset' || type === 'guests_updated') {
+        console.log('[BroadcastChannel] Получено сообщение:', type);
+        await fetchAllGuestsRealtime();
+      }
+    };
     
     window.addEventListener('DOMContentLoaded', () => {
       fetchAllGuests();

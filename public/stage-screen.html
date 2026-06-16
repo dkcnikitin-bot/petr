@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Петровская Ассамблея — Главный Экран Сцены</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Alice&family=Marck+Script&family=Ruslan+Display&family=Bad+Script&family=Kelly+Slab&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=EB+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Gabriela&family=Lora:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=Montserrat:wght@400;500;700;800;900&family=Forum&family=Oranienbaum&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at center, #0a1c36 0%, #030814 100%);
+      color: #fdf5e6;
+      font-family: 'Cormorant Garamond', serif;
+      user-select: none;
+    }
+
+    /* Фоновый холст для фейерверков */
+    #fx-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 9;
+      pointer-events: none;
+    }
+
+    /* Контейнер оверлеев и контента */
+    .stage-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      z-index: 5;
+    }
+
+    /* Рамка экрана в императорском стиле */
+    .stage-frame {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      right: 15px;
+      bottom: 15px;
+      border: 3px double var(--gold-antique);
+      pointer-events: none;
+      z-index: 10;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.9);
+    }
+
+    /* Декоративные уголки */
+    .stage-corner {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      border: 4px double var(--gold-antique);
+      z-index: 11;
+      pointer-events: none;
+    }
+    .sc-tl { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+    .sc-tr { top: 10px; right: 10px; border-left: none; border-bottom: none; }
+    .sc-bl { bottom: 10px; left: 10px; border-right: none; border-top: none; }
+    .sc-br { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+
+    /* Изолированные контейнеры для каждого режима */
+    .mode-container {
+      display: none;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      overflow: hidden;
+    }
+
+    .mode-container.active {
+      display: block;
+      animation: fadeInMode 0.8s ease-in-out forwards;
+    }
+
+    @keyframes fadeInMode {
+      from { opacity: 0; transform: scale(1.02); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+    }
+
+    /* ================= РЕЖИМ 1: ЗАСТАВКА (WELCOME) ================= */
+    .welcome-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      text-align: center;
+      padding: 40px;
+    }
+
+    .welcome-crest {
+      font-size: 6rem;
+      margin-bottom: 20px;
+      animation: float WelcomeCrest 4s infinite ease-in-out;
+      filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.4));
+    }
+
+    .welcome-title {
+      font-family: 'Ruslan Display', serif;
+      font-size: 4.5rem;
+      letter-spacing: 5px;
+      color: var(--gold-bright);
+      text-shadow: 0 4px 15px rgba(0,0,0,0.9), 0 0 30px rgba(255, 215, 0, 0.3);
+      margin-bottom: 15px;
+    }
+
+    .welcome-subtitle {
+      font-family: 'Alice', serif;
+      font-size: 1.8rem;
+      color: var(--gold-antique);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.8);
+    }
+
+    .welcome-clock {
+      font-family: 'Forum', serif;
+      font-size: 2.5rem;
+      color: #ffd700;
+      border: 1px solid rgba(195, 155, 82, 0.4);
+      padding: 10px 30px;
+      border-radius: 4px;
+      background: rgba(8, 18, 36, 0.6);
+      box-shadow: 0 0 20px rgba(255,215,0,0.1);
+      letter-spacing: 2px;
+    }
+
+    /* ================= РЕЖИМ 4: ПРЕЗЕНТАЦИЯ (SLIDES) ================= */
+    .slide-deck {
+      width: 100%;
+      height: 100%;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+      transform: translateX(50px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 80px;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(0);
+    }
+
+    .slide-parchment {
+      background: rgba(253, 245, 230, 0.96);
+      color: #2c1a04;
+      border: 12px double #8a6421;
+      padding: 50px 70px;
+      border-radius: 4px;
+      max-width: 900px;
+      width: 100%;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7), inset 0 0 60px rgba(138, 100, 33, 0.25);
+      position: relative;
+      text-align: left;
+    }
+
+    .slide-parchment::after {
+      content: '⚜';
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      font-size: 2rem;
+      color: #8a6421;
+      opacity: 0.5;
+    }
+
+    .slide-title {
+      font-family: 'Alice', serif;
+      font-size: 2.2rem;
+      color: #5c3f1a;
+      border-bottom: 2px solid #c39b52;
+      padding-bottom: 12px;
+      margin-bottom: 25px;
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .slide-text {
+      font-size: 1.45rem;
+      line-height: 1.7;
+      font-family: 'EB Garamond', serif;
+      text-align: justify;
+    }
+
+    .slide-text p {
+      margin-bottom: 15px;
+      text-indent: 30px;
+    }
+
+    .slide-quote {
+      font-style: italic;
+      border-left: 4px solid #8a6421;
+      padding-left: 20px;
+      margin: 20px 0;
+      color: #613e11;
+      font-size: 1.4rem;
+    }
+
+    /* ================= РЕЖИМ 5: ЗАСТОЛЬЕ / ГАЛЕРЕЯ ================= */
+    .dinner-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Слайд-шоу картинок */
+    .gallery-container {
+      position: relative;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+      border-right: 2px solid var(--gold-antique);
+    }
+
+    .gallery-image {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.5s ease-in-out;
+    }
+
+    .gallery-image.active {
+      opacity: 0.85;
+    }
+
+    /* Инфо-панель справа */
+    .dinner-info {
+      padding: 60px 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      height: 100%;
+      background: rgba(5, 12, 24, 0.85);
+      backdrop-filter: blur(10px);
+    }
+
+    .dinner-stats-title {
+      font-family: 'Alice', serif;
+      font-size: 2rem;
+      color: var(--gold-bright);
+      text-align: center;
+      text-transform: uppercase;
+      border-bottom: 1px solid rgba(195,155,82,0.3);
+      padding-bottom: 15px;
+      margin-bottom: 25px;
+    }
+
+    .dinner-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .dinner-stat-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(195,155,82,0.2);
+      border-radius: 6px;
+      padding: 15px;
+      text-align: center;
+    }
+
+    .dinner-stat-val {
+      font-family: 'Forum', serif;
+      font-size: 2.2rem;
+      color: var(--gold-bright);
+      font-weight: bold;
+    }
+
+    .dinner-stat-lbl {
+      font-size: 0.85rem;
+      color: #a89498;
+      text-transform: uppercase;
+      margin-top: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Свиток с историческим фактом */
+    .fact-scroll {
+      background: rgba(253, 245, 230, 0.95);
+      color: #2c1a04;
+      border: 6px double #8a6421;
+      padding: 20px 25px;
+      border-radius: 4px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 0 25px rgba(138, 100, 33, 0.15);
+      font-family: 'Lora', serif;
+      font-size: 1.15rem;
+      line-height: 1.5;
+      text-align: justify;
+      position: relative;
+    }
+
+    .fact-scroll-title {
+      font-family: 'Alice', serif;
+      font-size: 1.25rem;
+      color: #5c3f1a;
+      text-align: center;
+      margin-bottom: 8px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    /* ================= ВСПЛЫВАЮЩИЙ СВИТОК ОБЪЯВЛЕНИЙ (ALERT) ================= */
+    .stage-alert-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.5s ease-in-out;
+    }
+
+    .stage-alert-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .stage-alert-box {
+      background: #fdf5e6;
+      color: #2c1a04;
+      border: 16px double #8a6421;
+      padding: 40px 60px;
+      border-radius: 4px;
+      max-width: 750px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.9), inset 0 0 60px rgba(138,100,33,0.3);
+      transform: scale(0.8);
+      transition: transform 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    }
+
+    .stage-alert-overlay.active .stage-alert-box {
+      transform: scale(1);
+    }
+
+    .stage-alert-crest {
+      font-size: 3.5rem;
+      color: #8a6421;
+      margin-bottom: 15px;
+      animation: float AlertCrest 3s infinite ease-in-out;
+    }
+
+    .stage-alert-title {
+      font-family: 'Alice', serif;
+      font-size: 2.3rem;
+      color: #5c3f1a;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 2px solid #8a6421;
+      padding-bottom: 10px;
+    }
+
+    .stage-alert-text {
+      font-family: 'EB Garamond', serif;
+      font-size: 1.8rem;
+      line-height: 1.5;
+      font-style: italic;
+      color: #3d2005;
+    }
+
+    /* ================= БЕГУЩАЯ СТРОКА ВНИЗУ (TICKER) ================= */
+    .stage-ticker {
+      position: absolute;
+      bottom: 25px;
+      left: 30px;
+      right: 30px;
+      height: 45px;
+      background: rgba(8, 18, 36, 0.9);
+      border: 1px solid var(--gold-antique);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5), inset 0 0 10px rgba(255,215,0,0.15);
+      border-radius: 4px;
+      z-index: 15;
+      overflow: hidden;
+      display: none;
+      align-items: center;
+    }
+
+    .stage-ticker.active {
+      display: flex;
+      animation: slideUpTicker 0.5s ease-out;
+    }
+
+    @keyframes slideUpTicker {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .ticker-label {
+      background: linear-gradient(135deg, #c39b52, #ffd700);
+      color: #000;
+      font-family: 'Alice', serif;
+      font-size: 0.95rem;
+      font-weight: bold;
+      padding: 0 20px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-right: 1px solid var(--gold-antique);
+      z-index: 2;
+    }
+
+    .ticker-content {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    .ticker-text {
+      display: inline-block;
+      padding-left: 100%;
+      animation: tickerLoop 35s linear infinite;
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 1.25rem;
+      color: #ffd700;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+
+    @keyframes tickerLoop {
+      0% { transform: translate3d(0, 0, 0); }
+      100% { transform: translate3d(-100%, 0, 0); }
+    }
+
+    /* Оверлей разблокировки аудио (необходимо для проигрывания звуков VJ) */
+    #audio-unlock-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 12, 24, 0.99);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      border: 3px double var(--gold-antique);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Оверлей активации аудио -->
+  <div id="audio-unlock-overlay" onclick="unlockAudio()">
+    <div style="font-size: 6rem; color: var(--gold-bright); margin-bottom: 25px; animation: float WelcomeFloat 4s infinite ease-in-out;">⚜</div>
+    <div style="font-family: 'Alice', serif; font-size: 2.2rem; color: var(--gold-bright); text-align: center; max-width: 750px; line-height: 1.4; padding: 0 20px;">
+      Кликните для запуска презентационного экрана Ассамблеи
+    </div>
+    <div style="font-family: 'Cormorant Garamond', serif; font-size: 1.2rem; color: #a89498; margin-top: 15px; text-transform: uppercase; letter-spacing: 2px;">
+      Это необходимо для запуска звуковых эффектов трансляции
+    </div>
+    <button class="add-vip-btn" style="margin-top: 35px; padding: 12px 30px; font-size: 1.1rem;">ЗАПУСТИТЬ ТРАНСЛЯЦИЮ 🔊</button>
+  </div>
+
+  <!-- Рамка и холст спецэффектов -->
+  <div class="stage-frame"></div>
+  <div class="stage-corner sc-tl"></div>
+  <div class="stage-corner sc-tr"></div>
+  <div class="stage-corner sc-bl"></div>
+  <div class="stage-corner sc-br"></div>
+  <canvas id="fx-canvas"></canvas>
+
+  <div class="stage-wrapper">
+    
+    <!-- РЕЖИМ 1: ЗАСТАВКА (WELCOME) -->
+    <div class="mode-container active" id="container-welcome">
+      <div class="welcome-content">
+        <div class="welcome-crest">👑</div>
+        <h1 class="welcome-title">ПЕТРОВСКАЯ АССАМБЛЕЯ</h1>
+        <div class="welcome-subtitle">Добро пожаловать • Елисаветинский зал</div>
+        <div class="welcome-clock" id="welcome-clock">00:00:00</div>
+      </div>
+    </div>
+
+    <!-- РЕЖИМ 2: ИНТЕРАКТИВНАЯ КАРТА (MAP) -->
+    <div class="mode-container" id="container-map">
+      <iframe src="map.html" id="iframe-map"></iframe>
+    </div>
+
+    <!-- РЕЖИМ 3: СУФЛЕР ГЛАШАТАЯ (HERALD) -->
+    <div class="mode-container" id="container-herald">
+      <iframe src="herald.html" id="iframe-herald"></iframe>
+    </div>
+
+    <!-- РЕЖИМ 4: ПРЕЗЕНТАЦИЯ (SLIDES) -->
+    <div class="mode-container" id="container-slides">
+      <div class="slide-deck">
+        <!-- Слайд 1: Введение -->
+        <div class="slide active" id="slide-0">
+          <div class="slide-parchment">
+            <h2 class="slide-title">Открытие Петровской Ассамблеи</h2>
+            <div class="slide-text">
+              <p>Определено указом Его Императорского Величества Петра I Ассамблеям быть! Собрания сии учреждаются не токмо для забавы, но паче для дел государственных, рассуждения вольного и обхождения учтивого господ.</p>
+              <div class="slide-quote">«Ассамблея — вольное собрание, в котором дозволяется не только дело делать, но и забавляться честно, друг с другом знакомиться и рассуждать о делах.»</div>
+              <p>Ныне в Санкт-Петербурге празднуем Ассамблею торжественную. Приглашаем всех господ к достойному веселью и разумным беседам.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Слайд 2: Исторический указ -->
+        <div class="slide" id="slide-1">
+          <div class="slide-parchment">
+            <h2 class="slide-title">Царский регламент поведения</h2>
+            <div class="slide-text">
+              <p>Указом Его Величества предписано правила соблюдать строго, дабы чести Ассамблеи не посрамить. Всякому гостю вменяется в обязанность:</p>
+              <div class="slide-quote">«Входить с поклоном вежливым. Бороды сбрить чисто. Одежду иметь немецкую или французскую. Быть веселым, но не шуметь сверх меры.»</div>
+              <p>Дамам предписано являться в платьях нарядных, вести себя скромно, но в танцах участвовать охотно. Непьющим же штрафы налагаться будут кубком Большого Орла!</p>
+            </div>
+          </div>
+        </div>
+        <!-- Слайд 3: Правила застолья -->
+        <div class="slide" id="slide-2">
+          <div class="slide-parchment">
+            <h2 class="slide-title">О застолье и питии</h2>
+            <div class="slide-text">
+              <p>Касательно столов праздничных и яств отменных указ гласит следующее:</p>
+              <div class="slide-quote">«Кушать вкусно и сытно, но посуду серебряную в карманы не прятать. Вино пить в меру ума своего, дабы не уподобиться свиньям грязным.»</div>
+              <p>Ежели кто опоздает или регламент нарушит, тому прилюдно будет поднесен штрафной кубок вина крепкого, дабы раскаяние наступило немедленно.</p>
+            </div>
+          </div>
+        </div>
+        <!-- Слайд 4: Программа вечера -->
+        <div class="slide" id="slide-3">
+          <div class="slide-parchment">
+            <h2 class="slide-title">Программа Ассамблеи</h2>
+            <div class="slide-text">
+              <p>В расписании празднества намечены следующие увеселения:</p>
+              <ul>
+                <li><strong>Часть первая:</strong> Прибытие почетных господ и объявление их Глашатаем.</li>
+                <li><strong>Часть вторая:</strong> Веселые танцы, менуэты и светские беседы.</li>
+                <li><strong>Часть третья:</strong> Интерактивная викторина «Тайный Вечер» с каверзными вопросами.</li>
+                <li><strong>Часть четвертая:</strong> Награждение лучших столов верительными грамотами.</li>
+              </ul>
+              <p>Желаем всем господам приятного времяпровождения! Да пребудет с нами дух великих реформ Петра!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- РЕЖИМ 5: ЗАСТОЛЬЕ / ГАЛЕРЕЯ (DINNER) -->
+    <div class="mode-container" id="container-dinner">
+      <div class="dinner-layout">
+        <!-- Лево: Галерея -->
+        <div class="gallery-container" id="gallery-container">
+          <!-- Картинки добавятся динамически -->
+        </div>
+        <!-- Право: Статистика и Факты -->
+        <div class="dinner-info">
+          <div>
+            <h2 class="dinner-stats-title">Ход Ассамблеи</h2>
+            <div class="dinner-stat-grid">
+              <div class="dinner-stat-card">
+                <div class="dinner-stat-val" id="stats-total">0</div>
+                <div class="dinner-stat-lbl">Приглашено</div>
+              </div>
+              <div class="dinner-stat-card">
+                <div class="dinner-stat-val" id="stats-arrived" style="color: #8ae4bc;">0</div>
+                <div class="dinner-stat-lbl">Прибыло</div>
+              </div>
+            </div>
+          </div>
+          <!-- Исторический факт -->
+          <div class="fact-scroll">
+            <div class="fact-scroll-title">Исторический факт</div>
+            <div id="fact-text">Петровские ассамблеи начались в 1718 году. Это были первые в истории России совместные общественные собрания, на которые женщинам разрешалось приходить наравне с мужчинами.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- РЕЖИМ 6: ВИКТОРИНА (QUIZ) -->
+    <div class="mode-container" id="container-quiz">
+      <iframe src="quiz-screen.html" id="iframe-quiz"></iframe>
+    </div>
+
+    <!-- РЕЖИМ 7: ВИДЕОПЛЕЕР (VIDEO) -->
+    <div class="mode-container" id="container-video" style="background: #000; position: relative; width: 100%; height: 100%;">
+      <video id="stage-video" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1;" playsinline crossorigin="anonymous"></video>
+      <canvas id="stage-video-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; object-fit: cover; z-index: 2;"></canvas>
+    </div>
+
+    <!-- БЕГУЩАЯ СТРОКА ВНИЗУ (TICKER) -->
+    <div class="stage-ticker" id="stage-ticker">
+      <div class="ticker-label">Ассамблея</div>
+      <div class="ticker-content">
+        <div class="ticker-text" id="ticker-text">Приветствуем почетных гостей Петровской Ассамблеи! Просьба занимать свои места за праздничными столами.</div>
+      </div>
+    </div>
+
+    <!-- ВСПЛЫВАЮЩЕЕ ОБЪЯВЛЕНИЕ (ALERT) -->
+    <div class="stage-alert-overlay" id="stage-alert-overlay">
+      <div class="stage-alert-box">
+        <div class="stage-alert-crest">⚜</div>
+        <h2 class="stage-alert-title" id="alert-title">Объявление</h2>
+        <div class="stage-alert-text" id="alert-text">Внимание! Начинается Петровский квиз!</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Supabase клиент
+    const sb = window.sb;
+    
+    // BroadcastChannel для локальной связи (VJ и презентация на одном ПК)
+    const channel = new BroadcastChannel('assembly_event_channel');
+
+    let audioUnlocked = false;
+
+    // Звуки фанфар и колокола
+    const fanfareAudio = new Audio('ФАНФАРЫ - ГЛАШАТАИ_(mp3seven.net).mp3');
+    const bellAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2042/2042-84.wav'); // Royal Bell sound
+    
+    fanfareAudio.preload = 'auto';
+    bellAudio.preload = 'auto';
+
+    function unlockAudio() {
+      audioUnlocked = true;
+      document.getElementById('audio-unlock-overlay').style.opacity = '0';
+      setTimeout(() => {
+        document.getElementById('audio-unlock-overlay').style.display = 'none';
+      }, 500);
+
+      // Инициализируем аудио
+      fanfareAudio.play().then(() => {
+        fanfareAudio.pause(); fanfareAudio.currentTime = 0;
+      }).catch(e => console.log('Audio init error:', e));
+
+      bellAudio.play().then(() => {
+        bellAudio.pause(); bellAudio.currentTime = 0;
+      }).catch(e => console.log('Audio init error:', e));
+
+      // Инициализируем видеоплеер для снятия ограничений на автовоспроизведение
+      if (stageVideo) {
+        stageVideo.play().then(() => {
+          stageVideo.pause();
+        }).catch(e => console.log('Video autoplay init error:', e));
+      }
+    }
+
+    // Состояние экрана сцены
+    let state = {
+      mode: 'welcome', // welcome, map, herald, slides, dinner, quiz, video
+      slideIndex: 0,
+      tickerActive: false,
+      tickerText: 'Приветствуем почетных гостей Петровской Ассамблеи!',
+      alertActive: false,
+      alertTitle: 'Объявление',
+      alertText: '',
+      videoIndex: 1,
+      videoPlaying: false,
+      videoFrozen: false
+    };
+
+    // Факты для режима Застолья
+    const HISTORICAL_FACTS = [
+      "Петровские ассамблеи начались в 1718 году. Это были первые в истории России общественные собрания, куда женщины допускались наравне с мужчинами.",
+      "Штрафной кубок Большого Орла вмещал около 1,5 литров вина. Петр I заставлял выпивать его до дна опоздавших или нарушивших правила ассамблеи.",
+      "Одежда гостей должна была строго соответствовать европейской моде. Бороды брили насильно, за исключением духовенства и крестьян.",
+      "Танцы были обязательной частью ассамблеи. Сам Петр I был отличным танцором и лично следил, чтобы никто не отсиживался в углах.",
+      "На ассамблеях запрещалось устраивать драки и споры. Нарушителей немедленно выдворяли из зала под конвоем гвардейцев.",
+      "Ассамблеи проводились в домах вельмож по очереди. Хозяин дома не был обязан развлекать гостей, он лишь предоставлял комнаты, свет и напитки.",
+      "Помимо танцев, гости играли в шахматы и шашки. Петр I обожал шахматы и поощрял увлечение ими среди придворных."
+    ];
+
+    let currentFactIndex = 0;
+
+    // Слайд-шоу картинок застолья
+    const imagesCount = 10;
+    let activeImageIndex = 0;
+
+    function initGallery() {
+      const container = document.getElementById('gallery-container');
+      if (!container) return;
+      container.innerHTML = '';
+      for (let i = 1; i <= imagesCount; i++) {
+        const div = document.createElement('div');
+        div.className = `gallery-image ${i === 1 ? 'active' : ''}`;
+        div.style.backgroundImage = `url('photo_${i}.png')`;
+        container.appendChild(div);
+      }
+    }
+
+    function rotateGallery() {
+      if (state.mode !== 'dinner') return;
+      const images = document.querySelectorAll('.gallery-image');
+      if (images.length === 0) return;
+
+      images[activeImageIndex].classList.remove('active');
+      activeImageIndex = (activeImageIndex + 1) % images.length;
+      images[activeImageIndex].classList.add('active');
+
+      // Также меняем исторический факт
+      currentFactIndex = (currentFactIndex + 1) % HISTORICAL_FACTS.length;
+      const factText = document.getElementById('fact-text');
+      if (factText) {
+        factText.style.opacity = '0';
+        setTimeout(() => {
+          factText.textContent = HISTORICAL_FACTS[currentFactIndex];
+          factText.style.opacity = '1';
+        }, 500);
+      }
+    }
+
+    // Запуск таймера для ротации галереи
+    setInterval(rotateGallery, 8000);
+
+    // Функция обновления часов
+    function updateClock() {
+      const clockEl = document.getElementById('welcome-clock');
+      if (!clockEl) return;
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      clockEl.textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    }
+    setInterval(updateClock, 1000);
+
+    // Видеопроигрыватель
+    const stageVideo = document.getElementById('stage-video');
+    const stageVideoCanvas = document.getElementById('stage-video-canvas');
+    const videoCtx = stageVideoCanvas.getContext('2d');
+    let lastLoadedVideoIndex = null;
+    let currentlyLoadingIndex = null;
+    let frameCaptured = false;
+
+    async function loadVideo(index) {
+      if (currentlyLoadingIndex === index) return;
+      currentlyLoadingIndex = index;
+      frameCaptured = false;
+      
+      const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/video_${index}.mp4`;
+      let finalUrl = `video_${index}.mp4`;
+      
+      try {
+        const res = await fetch(storageUrl, { method: 'HEAD' });
+        if (res.ok) {
+          console.log(`[Stage Screen] Найдено видео в Supabase Storage: video_${index}.mp4`);
+          finalUrl = storageUrl;
+        }
+      } catch (err) {
+        console.warn('[Stage Screen] Ошибка проверки Supabase Storage:', err);
+      }
+      
+      if (currentlyLoadingIndex === index) {
+        lastLoadedVideoIndex = index;
+        stageVideo.src = finalUrl;
+        stageVideo.load();
+        
+        applyVideoPlaybackState();
+      }
+    }
+
+    function applyVideoPlaybackState() {
+      if (state.videoFrozen) {
+        freezeFrame();
+        if (!state.videoPlaying) {
+          pauseVideo();
+        }
+      } else {
+        hideFreezeFrame();
+        const duration = stageVideo.duration;
+        const limit = (duration && !isNaN(duration)) ? duration - 5.5 : 0;
+        if (stageVideo.currentTime < limit) {
+          frameCaptured = false;
+        }
+        if (state.videoPlaying) {
+          playVideo();
+        } else {
+          pauseVideo();
+        }
+      }
+    }
+
+    function playVideo() {
+      hideFreezeFrame();
+      if (stageVideo.currentTime < 0.5) {
+        frameCaptured = false;
+      }
+      stageVideo.play().catch(err => {
+        console.warn('[Stage Screen] Не удалось запустить видео:', err);
+      });
+    }
+
+    function pauseVideo() {
+      stageVideo.pause();
+    }
+
+    function freezeFrame() {
+      try {
+        if (stageVideo.videoWidth > 0 && stageVideo.videoHeight > 0) {
+          stageVideoCanvas.width = stageVideo.videoWidth;
+          stageVideoCanvas.height = stageVideo.videoHeight;
+          videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
+          stageVideoCanvas.style.display = 'block';
+        }
+      } catch (err) {
+        console.error('[Stage Screen] Ошибка при захвате кадра:', err);
+      }
+    }
+
+    function hideFreezeFrame() {
+      stageVideoCanvas.style.display = 'none';
+    }
+
+    function sendVideoStatusUpdate(playing, frozen) {
+      state.videoPlaying = playing;
+      state.videoFrozen = frozen;
+      
+      // 1. Отправляем в Supabase Realtime
+      stageChannel.send({
+        type: 'broadcast',
+        event: 'state_change',
+        payload: state
+      });
+      
+      // 2. Отправляем в BroadcastChannel локально
+      channel.postMessage({
+        type: 'stage_state_change',
+        payload: state
+      });
+    }
+
+    // Слушатель прогресса воспроизведения для захвата скриншота за 5.5 секунд до конца
+    stageVideo.addEventListener('timeupdate', () => {
+      if (frameCaptured) return;
+      const duration = stageVideo.duration;
+      if (!duration || isNaN(duration)) return;
+      
+      let captureTime = duration - 5.5;
+      if (duration <= 6.5) {
+        captureTime = duration * 0.8; // Запасной вариант для коротких видео
+      }
+      
+      if (stageVideo.currentTime >= captureTime) {
+        const curTime = stageVideo.currentTime;
+        const remaining = duration - curTime;
+        console.log(`[Stage Screen] Время скриншота (на ${curTime.toFixed(2)}с, осталось ${remaining.toFixed(2)}с до конца). Замораживаем visuals.`);
+        frameCaptured = true;
+        freezeFrame();
+        
+        // Видео продолжает играть в фоне (звук идет до конца), но VJ видит замороженный экран
+        sendVideoStatusUpdate(true, true);
+      }
+    });
+
+    stageVideo.addEventListener('ended', () => {
+      console.log('[Stage Screen] Видео полностью завершилось в фоне.');
+      if (!frameCaptured) {
+        freezeFrame();
+        frameCaptured = true;
+      }
+      stageVideo.pause();
+      sendVideoStatusUpdate(false, true);
+    });
+
+    // Применение состояния
+    function applyState(newState) {
+      state = { ...state, ...newState };
+      console.log('[Stage Screen] Применение состояния:', state);
+
+      // 1. Применение режима (Mode)
+      document.querySelectorAll('.mode-container').forEach(c => c.classList.remove('active'));
+      const activeContainer = document.getElementById(`container-${state.mode}`);
+      if (activeContainer) {
+        activeContainer.classList.add('active');
+      }
+
+      // Перезагрузка iframe при необходимости для сброса состояния
+      if (state.mode === 'map') {
+        const iframe = document.getElementById('iframe-map');
+        if (iframe && !iframe.src.endsWith('map.html')) iframe.src = 'map.html';
+      } else if (state.mode === 'herald') {
+        const iframe = document.getElementById('iframe-herald');
+        if (iframe && !iframe.src.endsWith('herald.html')) iframe.src = 'herald.html';
+      } else if (state.mode === 'quiz') {
+        const iframe = document.getElementById('iframe-quiz');
+        if (iframe && !iframe.src.endsWith('quiz-screen.html')) iframe.src = 'quiz-screen.html';
+      }
+
+      // 2. Применение слайда в презентации (Slides)
+      if (state.mode === 'slides') {
+        document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+        const activeSlide = document.getElementById(`slide-${state.slideIndex}`);
+        if (activeSlide) activeSlide.classList.add('active');
+      }
+
+      // 3. Бегущая строка
+      const tickerEl = document.getElementById('stage-ticker');
+      const tickerTextEl = document.getElementById('ticker-text');
+      if (tickerEl && tickerTextEl) {
+        if (state.tickerActive) {
+          tickerTextEl.textContent = state.tickerText;
+          tickerEl.classList.add('active');
+        } else {
+          tickerEl.classList.remove('active');
+        }
+      }
+
+      // 4. Важное всплывающее объявление (Alert)
+      const alertOverlay = document.getElementById('stage-alert-overlay');
+      const alertTitleEl = document.getElementById('alert-title');
+      const alertTextEl = document.getElementById('alert-text');
+      if (alertOverlay && alertTitleEl && alertTextEl) {
+        if (state.alertActive && state.alertText) {
+          alertTitleEl.textContent = state.alertTitle || 'Объявление';
+          alertTextEl.textContent = state.alertText;
+          alertOverlay.classList.add('active');
+        } else {
+          alertOverlay.classList.remove('active');
+        }
+      }
+
+      // 5. Управление видеоплеером
+      if (state.mode === 'video') {
+        if (state.videoIndex !== undefined) {
+          loadVideo(state.videoIndex);
+        }
+        // Если это видео уже загружено (т.е. загрузка завершена), применяем состояние немедленно
+        if (lastLoadedVideoIndex === state.videoIndex) {
+          applyVideoPlaybackState();
+        }
+      } else {
+        // Если ушли из режима видео - ставим видео на паузу
+        pauseVideo();
+      }
+
+      // Загрузка статистики для режима Застолья
+      if (state.mode === 'dinner') {
+        loadStats();
+      }
+    }
+
+    // Загрузка статистики с Supabase
+    async function loadStats() {
+      try {
+        const { data, error } = await sb.from('guests').select('is_arrived');
+        if (error) throw error;
+        const total = data.length;
+        const arrived = data.filter(g => g.is_arrived).length;
+        
+        const totalEl = document.getElementById('stats-total');
+        const arrivedEl = document.getElementById('stats-arrived');
+        if (totalEl) totalEl.textContent = total;
+        if (arrivedEl) arrivedEl.textContent = arrived;
+      } catch (err) {
+        console.error('Error loading stats for stage:', err);
+      }
+    }
+
+    // ==========================================
+    // СВЯЗЬ И REALTIME
+    // ==========================================
+
+    // Supabase Realtime Broadcast Channel
+    const stageChannel = sb.channel('stage_control', {
+      config: { broadcast: { self: true } }
+    });
+
+    stageChannel.on('broadcast', { event: 'state_change' }, (payload) => {
+      if (payload && payload.payload) {
+        applyState(payload.payload);
+      }
+    });
+
+    stageChannel.on('broadcast', { event: 'play_sound' }, (payload) => {
+      if (!audioUnlocked) return;
+      const sound = payload.payload.sound;
+      console.log('[Stage Screen] Проигрываем звук по команде:', sound);
+      if (sound === 'fanfare') {
+        fanfareAudio.currentTime = 0;
+        fanfareAudio.play().catch(e=>console.log(e));
+      } else if (sound === 'bell') {
+        bellAudio.currentTime = 0;
+        bellAudio.play().catch(e=>console.log(e));
+      }
+    });
+
+    stageChannel.on('broadcast', { event: 'trigger_fx' }, (payload) => {
+      const fxType = payload.payload.fx;
+      console.log('[Stage Screen] Запускаем спецэффект по команде:', fxType);
+      if (fxType === 'firework') {
+        triggerFireworks();
+      }
+    });
+
+    stageChannel.subscribe();
+
+    // BroadcastChannel локальный слушатель
+    channel.onmessage = (event) => {
+      const { type, payload } = event.data;
+      if (type === 'stage_state_change') {
+        applyState(payload);
+      } else if (type === 'stage_play_sound') {
+        if (!audioUnlocked) return;
+        if (payload.sound === 'fanfare') {
+          fanfareAudio.currentTime = 0;
+          fanfareAudio.play().catch(e=>console.log(e));
+        } else if (payload.sound === 'bell') {
+          bellAudio.currentTime = 0;
+          bellAudio.play().catch(e=>console.log(e));
+        }
+      } else if (type === 'stage_trigger_fx') {
+        if (payload.fx === 'firework') {
+          triggerFireworks();
+        }
+      }
+    };
+
+    // ==========================================
+    // ЭФФЕКТЫ И САЛЮТЫ НА CANVAS
+    // ==========================================
+    const canvas = document.getElementById('fx-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = canvas.width = window.innerWidth;
+    let height = canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+    });
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.radius = Math.random() * 3.5 + 1;
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = Math.random() * 5 + 2;
+        this.vx = Math.cos(angle) * velocity;
+        this.vy = Math.sin(angle) * velocity;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.015 + 0.008;
+        this.gravity = 0.04;
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.vy += this.gravity;
+        this.alpha -= this.decay;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = this.radius * 3;
+        ctx.shadowColor = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    let particles = [];
+
+    function triggerFireworks() {
+      const colors = ['#ffd700', '#c39b52', '#ff4d4d', '#34d399', '#60a5fa', '#f472b6'];
+      // Создаем 3 взрыва в разных частях экрана
+      for (let s = 0; s < 3; s++) {
+        setTimeout(() => {
+          const startX = width * 0.2 + Math.random() * (width * 0.6);
+          const startY = height * 0.2 + Math.random() * (height * 0.4);
+          const color = colors[Math.floor(Math.random() * colors.length)];
+          for (let i = 0; i < 70; i++) {
+            particles.push(new Particle(startX, startY, color));
+          }
+        }, s * 300);
+      }
+    }
+
+    function animateFX() {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach((p, idx) => {
+        p.update();
+        if (p.alpha <= 0) {
+          particles.splice(idx, 1);
+        } else {
+          p.draw();
+        }
+      });
+      requestAnimationFrame(animateFX);
+    }
+    animateFX();
+
+    // Загрузка
+    window.onload = () => {
+      initGallery();
+      updateClock();
+    };
+  </script>
+</body>
+</html>
