@@ -846,31 +846,35 @@
       stageVideo.pause();
     }
 
-    function freezeFrame() {
+    function captureFrameInBackground() {
       try {
         if (stageVideo.videoWidth > 0 && stageVideo.videoHeight > 0) {
           stageVideoCanvas.width = stageVideo.videoWidth;
           stageVideoCanvas.height = stageVideo.videoHeight;
           
-          // Захватываем кадр сразу
+          // Рисуем на холсте в фоне (холст остается скрытым)
           videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
-          stageVideoCanvas.style.display = 'block';
           
-          // Повторяем захват через 50мс и 150мс на случай задержки декодирования кадров в буфере GPU
+          // Повторяем захват через 50мс и 150мс на случай задержки декодирования в GPU
           setTimeout(() => {
-            if (state.videoFrozen) {
+            if (!state.videoFrozen) {
               videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
             }
           }, 50);
           setTimeout(() => {
-            if (state.videoFrozen) {
+            if (!state.videoFrozen) {
               videoCtx.drawImage(stageVideo, 0, 0, stageVideoCanvas.width, stageVideoCanvas.height);
             }
           }, 150);
         }
       } catch (err) {
-        console.error('[Stage Screen] Ошибка при захвате кадра:', err);
+        console.error('[Stage Screen] Ошибка при фоновом захвате кадра:', err);
       }
+    }
+
+    function freezeFrame() {
+      // Показываем холст с заранее захваченным кадром
+      stageVideoCanvas.style.display = 'block';
     }
 
     function hideFreezeFrame() {
@@ -895,7 +899,7 @@
       });
     }
 
-    // Слушатель прогресса воспроизведения для захвата скриншота за 5.5 секунд до конца
+    // Слушатель прогресса воспроизведения для захвата скриншота в фоне за 5.5 секунд до конца
     stageVideo.addEventListener('timeupdate', () => {
       if (frameCaptured) return;
       const duration = stageVideo.duration;
@@ -909,21 +913,19 @@
       if (stageVideo.currentTime >= captureTime) {
         const curTime = stageVideo.currentTime;
         const remaining = duration - curTime;
-        console.log(`[Stage Screen] Время скриншота (на ${curTime.toFixed(2)}с, осталось ${remaining.toFixed(2)}с до конца). Замораживаем visuals.`);
+        console.log(`[Stage Screen] Время скриншота (на ${curTime.toFixed(2)}с, осталось ${remaining.toFixed(2)}с до конца). Захватываем кадр в фоне.`);
         frameCaptured = true;
-        freezeFrame();
-        
-        // Видео продолжает играть в фоне (звук идет до конца), но VJ видит замороженный экран
-        sendVideoStatusUpdate(true, true);
+        captureFrameInBackground();
       }
     });
 
     stageVideo.addEventListener('ended', () => {
-      console.log('[Stage Screen] Видео полностью завершилось в фоне.');
+      console.log('[Stage Screen] Видео полностью завершилось. Показываем скриншот.');
       if (!frameCaptured) {
-        freezeFrame();
+        captureFrameInBackground();
         frameCaptured = true;
       }
+      freezeFrame();
       stageVideo.pause();
       sendVideoStatusUpdate(false, true);
     });
