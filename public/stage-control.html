@@ -220,6 +220,87 @@
     .monitor-val.status-online {
       color: #34d399;
     }
+
+    /* Стилизация нового плейлиста */
+    .playlist-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(195, 155, 82, 0.15);
+      border-radius: 6px;
+      padding: 6px 10px;
+      transition: all 0.2s ease;
+    }
+    .playlist-row:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(195, 155, 82, 0.4);
+    }
+    .playlist-row.active {
+      background: rgba(195, 155, 82, 0.15);
+      border-color: #ffd700;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.15);
+    }
+    .playlist-type-icon {
+      font-size: 1.1rem;
+      min-width: 20px;
+      text-align: center;
+    }
+    .playlist-title-input {
+      flex: 1;
+      background: #0f1218;
+      border: 1px solid rgba(195,155,82,0.25);
+      border-radius: 4px;
+      color: #fff;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      font-family: 'Montserrat', sans-serif;
+      transition: border-color 0.2s;
+    }
+    .playlist-title-input:focus {
+      border-color: #ffd700;
+      outline: none;
+    }
+    .playlist-btn {
+      background: #1e2530;
+      border: 1px solid rgba(195,155,82,0.3);
+      color: #c4b59f;
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .playlist-btn:hover:not(:disabled) {
+      border-color: #ffd700;
+      color: #fff;
+    }
+    .playlist-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+    .playlist-btn.show-btn {
+      background: linear-gradient(135deg, #c39b52, #ffd700);
+      color: #000;
+      border: none;
+      font-weight: bold;
+    }
+    .playlist-btn.show-btn:hover {
+      box-shadow: 0 0 8px rgba(255,215,0,0.3);
+    }
+    .playlist-btn.delete-btn {
+      background: #2d161a;
+      border-color: #7f1d1d;
+      color: #f87171;
+    }
+    .playlist-btn.delete-btn:hover {
+      background: #4c1d24;
+      color: #fca5a5;
+      border-color: #ef4444;
+    }
   </style>
 </head>
 <body>
@@ -285,21 +366,32 @@
           </button>
         </div>
 
+        <!-- Управление фоном заставки -->
+        <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(195,155,82,0.25);">
+          <span style="font-size: 0.85rem; color: #a89498; display: block; margin-bottom: 8px; font-weight: bold;">Фоновое изображение заставки:</span>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="welcome-bg-file" style="display: none;" accept="image/*" onchange="uploadWelcomeBg()">
+            <button class="vj-action-btn" style="padding: 5px 10px; font-size: 0.75rem; background: linear-gradient(135deg, #10b981, #059669); color: #fff;" onclick="document.getElementById('welcome-bg-file').click()">🖼️ Загрузить фото</button>
+            <button class="vj-danger-btn" style="padding: 5px 10px; font-size: 0.75rem;" onclick="clearWelcomeBg()">🗑️ Сбросить</button>
+            <span id="welcome-bg-status" style="font-size: 0.75rem; color: #ffd700; font-weight: bold;"></span>
+          </div>
+        </div>
+
         <!-- Управление слайдами презентации -->
-        <div class="slide-controls" id="slide-control-box" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s;">
+        <div class="slide-controls" id="slide-control-box" style="opacity: 0.5; pointer-events: none; transition: opacity 0.3s; margin-top: 25px;">
           <button class="vj-action-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="changeSlide(-1)">◀ Назад</button>
           <div class="slide-info-display" id="slide-display">Слайд 1 из 4</div>
           <button class="vj-action-btn" style="padding: 6px 12px; font-size: 0.8rem;" onclick="changeSlide(1)">Вперед ▶</button>
         </div>
 
-        <!-- Управление видеороликами (14 роликов) -->
+        <!-- Управление медиаплеером (динамический список) -->
         <div class="video-control-box" id="video-control-box" style="margin-top: 25px; display: none; background: rgba(255,255,255,0.02); padding: 20px; border-radius: 8px; border: 1px solid rgba(195, 155, 82, 0.3);">
-          <h3>Панель видеоплеера</h3>
+          <h3>Медиа-менеджер (Видео и Фото)</h3>
           
-          <!-- Статус и текущий ролик -->
+          <!-- Статус и текущий медиафайл -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px;">
             <div style="max-width: 60%;">
-              <span style="font-size: 0.85rem; color: #a89498;">Ролик: </span>
+              <span style="font-size: 0.85rem; color: #a89498;">Активный шаг: </span>
               <span id="current-video-title" style="font-weight: bold; color: #ffd700; font-size: 0.9rem;">—</span>
             </div>
             <div>
@@ -308,30 +400,34 @@
             </div>
           </div>
 
-          <!-- Кнопки управления воспроизведением -->
-          <div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+          <!-- Кнопки управления воспроизведением (только для видео) -->
+          <div id="video-playback-controls" style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
             <button class="vj-action-btn" style="background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-play" onclick="controlVideo('play')">▶ Запустить</button>
             <button class="vj-action-btn" style="background: linear-gradient(135deg, #eab308, #ca8a04); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-pause" onclick="controlVideo('pause')">⏸ Пауза</button>
-            <button class="vj-action-btn" style="background: linear-gradient(135deg, #a855f7, #9333ea); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-freeze" onclick="controlVideo('freeze')">📸 Заморозить</button>
-            <button class="vj-action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 8px 14px; font-size: 0.8rem;" id="btn-video-unfreeze" onclick="controlVideo('unfreeze')">🔓 Разморозить</button>
           </div>
 
-          <!-- Сетка 14 роликов -->
-          <span style="font-size: 0.85rem; color: #a89498; display: block; margin-bottom: 8px;">Выбор ролика для воспроизведения:</span>
-          <div class="video-playlist-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-height: 250px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
+          <!-- Кнопки добавления медиаэлементов -->
+          <div style="display: flex; gap: 8px; margin-bottom: 15px;">
+            <button class="vj-action-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;" onclick="addNewPlaylistItem('video')">🎬 + Добавить Видео</button>
+            <button class="vj-action-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;" onclick="addNewPlaylistItem('photo')">🖼️ + Добавить Фото</button>
+          </div>
+
+          <!-- Список плейлиста -->
+          <span style="font-size: 0.85rem; color: #a89498; display: block; margin-bottom: 8px;">Список шагов воспроизведения (переименовывайте, перемещайте):</span>
+          <div class="video-playlist-grid" style="display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; padding-right: 5px; margin-bottom: 15px;">
             <!-- Заполнится динамически через js -->
           </div>
 
           <!-- Управление файлом текущего шага -->
           <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(195,155,82,0.15);">
-            <span style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 8px;">Загрузка файла для выбранного шага:</span>
+            <span id="media-upload-label" style="font-size: 0.8rem; color: #a89498; display: block; margin-bottom: 8px;">Загрузка файла для выбранного шага:</span>
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-              <input type="file" id="video-file-input" style="display: none;" accept="video/mp4" onchange="uploadCustomVideo()">
-              <button class="vj-action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 6px 12px; font-size: 0.75rem;" onclick="document.getElementById('video-file-input').click()">📤 Загрузить / Сменить MP4</button>
-              <button class="vj-danger-btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="deleteCustomVideo()">🗑️ Удалить</button>
+              <input type="file" id="video-file-input" style="display: none;" accept="video/mp4,image/*" onchange="uploadCustomMedia()">
+              <button class="vj-action-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; padding: 6px 12px; font-size: 0.75rem;" onclick="document.getElementById('video-file-input').click()">📤 Загрузить Медиафайл</button>
+              <button class="vj-danger-btn" style="padding: 6px 12px; font-size: 0.75rem;" onclick="deleteCustomMedia()">🗑️ Удалить</button>
               <span id="upload-status" style="font-size: 0.8rem; font-weight: bold; color: #34d399;"></span>
             </div>
-            <span style="font-size: 0.7rem; color: #a89498; display: block; margin-top: 6px;">Если файл не загружен, проигрывается локальный ролик по умолчанию (`video_{номер}.mp4`).</span>
+            <span id="media-upload-hint" style="font-size: 0.7rem; color: #a89498; display: block; margin-top: 6px;">Загрузите MP4 для видео или PNG/JPG для фото. Если файл не выбран, воспроизводится локальный ролик по умолчанию.</span>
           </div>
         </div>
 
@@ -402,23 +498,27 @@
     // BroadcastChannel локальный канал
     const channel = new BroadcastChannel('assembly_event_channel');
 
-    // Плейлист из 14 роликов
-    const VIDEO_PLAYLIST = [
-      "1: Универсальная заставка (Акт I)",
-      "1-2-3: Сквозной монтаж",
-      "4: Универсальная заставка (Акт II)",
-      "4-5: Silver (Переход)",
-      "5-6: Gold (Переход)",
-      "6-7: Platinum (Переход)",
-      "7-8: Titanium (Переход)",
-      "8-9: Jade (Переход)",
-      "9-10: Pearl (Переход)",
-      "10-11: Ruby (Переход)",
-      "11-12: Универсальная заставка (Акт III)",
-      "12: Без перехода (Fade to Black)",
-      "12-13: Универсальная заставка (Акт IV)",
-      "13-14: Универсальная заставка (Гранд-финал)"
+    // Дефолтный плейлист
+    const DEFAULT_PLAYLIST = [
+      { id: 'default_1', type: 'video', title: "1: Универсальная заставка (Акт I)", url: "", videoIndex: 1 },
+      { id: 'default_2', type: 'video', title: "1-2-3: Сквозной монтаж", url: "", videoIndex: 2 },
+      { id: 'default_3', type: 'video', title: "4: Универсальная заставка (Акт II)", url: "", videoIndex: 3 },
+      { id: 'default_4', type: 'video', title: "4-5: Silver (Переход)", url: "", videoIndex: 4 },
+      { id: 'default_5', type: 'video', title: "5-6: Gold (Переход)", url: "", videoIndex: 5 },
+      { id: 'default_6', type: 'video', title: "6-7: Platinum (Переход)", url: "", videoIndex: 6 },
+      { id: 'default_7', type: 'video', title: "7-8: Titanium (Переход)", url: "", videoIndex: 7 },
+      { id: 'default_8', type: 'video', title: "8-9: Jade (Переход)", url: "", videoIndex: 8 },
+      { id: 'default_9', type: 'video', title: "9-10: Pearl (Переход)", url: "", videoIndex: 9 },
+      { id: 'default_10', type: 'video', title: "10-11: Ruby (Переход)", url: "", videoIndex: 10 },
+      { id: 'default_11', type: 'video', title: "11-12: Универсальная заставка (Акт III)", url: "", videoIndex: 11 },
+      { id: 'default_12', type: 'video', title: "12: Без перехода (Fade to Black)", url: "", videoIndex: 12 },
+      { id: 'default_13', type: 'video', title: "12-13: Универсальная заставка (Акт IV)", url: "", videoIndex: 13 },
+      { id: 'default_14', type: 'video', title: "13-14: Универсальная заставка (Гранд-финал)", url: "", videoIndex: 14 }
     ];
+
+    // Загрузка плейлиста из LocalStorage
+    let localSaved = localStorage.getItem('mediaPlaylist');
+    let mediaPlaylist = localSaved ? JSON.parse(localSaved) : DEFAULT_PLAYLIST;
 
     // Глобальное состояние VJ
     let state = {
@@ -431,7 +531,13 @@
       alertText: '',
       videoIndex: 1,
       videoPlaying: false,
-      videoFrozen: false
+      videoFrozen: false,
+      mediaType: 'video',
+      mediaUrl: '',
+      mediaTitle: '',
+      welcomeBgUrl: '',
+      playlistItemId: 'default_1',
+      mediaPlaylist: mediaPlaylist
     };
 
     const slidesCount = 4;
@@ -445,13 +551,16 @@
       if (status === 'SUBSCRIBED') {
         document.getElementById('net-status').textContent = 'ПОДКЛЮЧЕН';
         document.getElementById('net-status').className = 'monitor-val status-online';
-        // Отправляем текущее состояние при входе
         broadcastState();
       } else {
         document.getElementById('net-status').textContent = 'ОФФЛАЙН';
         document.getElementById('net-status').className = 'monitor-val';
       }
     });
+
+    function savePlaylistLocally() {
+      localStorage.setItem('mediaPlaylist', JSON.stringify(state.mediaPlaylist));
+    }
 
     // Функция отправки состояния на экран сцены
     function broadcastState() {
@@ -501,7 +610,7 @@
       if (videoBox) {
         if (state.mode === 'video') {
           videoBox.style.display = 'block';
-          document.getElementById('current-video-title').textContent = VIDEO_PLAYLIST[state.videoIndex - 1] || 'Не выбран';
+          document.getElementById('current-video-title').textContent = state.mediaTitle || 'Не выбран';
           
           let statusText = 'Остановлен';
           if (state.videoFrozen) {
@@ -513,17 +622,21 @@
           }
           document.getElementById('current-video-status').textContent = statusText;
           
-          // Подсвечиваем активный ролик в плейлисте
-          for (let i = 1; i <= VIDEO_PLAYLIST.length; i++) {
-            const btn = document.getElementById(`btn-video-item-${i}`);
-            if (btn) {
-              if (state.videoIndex === i) {
-                btn.classList.add('active');
-              } else {
-                btn.classList.remove('active');
-              }
-            }
+          // Показ органов управления проигрыванием только для видеороликов
+          const playbackControls = document.getElementById('video-playback-controls');
+          if (playbackControls) {
+            playbackControls.style.display = state.mediaType === 'video' ? 'flex' : 'none';
           }
+          
+          // Подсвечиваем активную строку в плейлисте
+          const rows = document.querySelectorAll('.playlist-row');
+          rows.forEach(row => {
+            if (row.dataset.id === state.playlistItemId) {
+              row.classList.add('active');
+            } else {
+              row.classList.remove('active');
+            }
+          });
         } else {
           videoBox.style.display = 'none';
         }
@@ -577,13 +690,11 @@
 
     // Проигрывание звука
     window.playSound = function(soundName) {
-      // 1. Отправляем в Supabase Realtime
       stageChannel.send({
         type: 'broadcast',
         event: 'play_sound',
         payload: { sound: soundName }
       });
-      // 2. Отправляем в BroadcastChannel
       channel.postMessage({
         type: 'stage_play_sound',
         payload: { sound: soundName }
@@ -592,29 +703,29 @@
 
     // Запуск спецэффекта
     window.triggerFx = function(fxName) {
-      // 1. Отправляем в Supabase Realtime
       stageChannel.send({
         type: 'broadcast',
         event: 'trigger_fx',
         payload: { fx: fxName }
       });
-      // 2. Отправляем в BroadcastChannel
       channel.postMessage({
         type: 'stage_trigger_fx',
         payload: { fx: fxName }
       });
     };
 
-    // Синхронизация состояния пульта, если открыто несколько пультов
+    // Синхронизация состояния пульта
     stageChannel.on('broadcast', { event: 'state_change' }, (payload) => {
       if (payload && payload.payload) {
         const received = payload.payload;
-        // Избегаем зацикливания, обновляем только если отличается
         if (JSON.stringify(received) !== JSON.stringify(state)) {
           state = received;
+          if (received.mediaPlaylist) {
+            localStorage.setItem('mediaPlaylist', JSON.stringify(received.mediaPlaylist));
+            initVideoPlaylist();
+          }
           updateMonitorUI();
           
-          // Синхронизируем UI форму
           document.getElementById('ticker-active-toggle').checked = state.tickerActive;
           document.getElementById('ticker-custom-text').value = state.tickerText;
           document.getElementById('alert-title').value = state.alertTitle;
@@ -627,77 +738,165 @@
       }
     });
 
+    // Отрисовка интерактивного медиа-плейлиста
     function initVideoPlaylist() {
       const container = document.querySelector('.video-playlist-grid');
       if (!container) return;
       container.innerHTML = '';
-      VIDEO_PLAYLIST.forEach((title, idx) => {
-        const index = idx + 1;
-        const btn = document.createElement('button');
-        btn.className = 'mode-control-btn';
-        btn.id = `btn-video-item-${index}`;
-        btn.style.padding = '8px 10px';
-        btn.style.fontSize = '0.85rem';
-        btn.style.textAlign = 'left';
-        btn.style.alignItems = 'flex-start';
-        btn.style.gap = '2px';
+      
+      const playlist = state.mediaPlaylist || [];
+      playlist.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = `playlist-row ${state.playlistItemId === item.id ? 'active' : ''}`;
+        row.dataset.id = item.id;
         
-        btn.innerHTML = `
-          <span style="font-weight: bold; color: #ffd700;">№ ${index}</span>
-          <span style="font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">${title}</span>
+        const typeIcon = item.type === 'video' ? '🎬' : '🖼️';
+        
+        row.innerHTML = `
+          <span class="playlist-type-icon" title="${item.type === 'video' ? 'Видео' : 'Фото'}">${typeIcon}</span>
+          <input type="text" class="playlist-title-input" value="${item.title}" onchange="renamePlaylistItem(${idx}, this.value)">
+          <button class="playlist-btn" onclick="movePlaylistItem(${idx}, -1)" ${idx === 0 ? 'disabled' : ''}>▲</button>
+          <button class="playlist-btn" onclick="movePlaylistItem(${idx}, 1)" ${idx === playlist.length - 1 ? 'disabled' : ''}>▼</button>
+          <button class="playlist-btn show-btn" onclick="selectPlaylistItem(${idx})">Показать</button>
+          <button class="playlist-btn delete-btn" onclick="deletePlaylistItem(${idx})">🗑️</button>
         `;
-        btn.onclick = () => selectVideo(index);
-        container.appendChild(btn);
+        container.appendChild(row);
       });
     }
 
-    window.selectVideo = function(index) {
+    // Выбор медиа-элемента
+    window.selectPlaylistItem = function(idx) {
+      const item = state.mediaPlaylist[idx];
+      if (!item) return;
+      
       state.mode = 'video';
-      state.videoIndex = index;
-      state.videoPlaying = true; // Сразу запускаем воспроизведение
+      state.mediaType = item.type;
+      state.mediaUrl = item.url;
+      state.mediaTitle = item.title;
+      state.videoIndex = item.videoIndex || 1;
+      state.playlistItemId = item.id;
+      state.videoPlaying = true;
       state.videoFrozen = false;
       
-      // Подсвечиваем выбранный режим "Видео" в панели режимов
       document.querySelectorAll('.mode-control-btn').forEach(btn => btn.classList.remove('active'));
       const activeBtn = document.getElementById(`btn-mode-video`);
       if (activeBtn) activeBtn.classList.add('active');
-
+      
       broadcastState();
     };
 
-    window.controlVideo = function(action) {
-      if (state.mode !== 'video') return;
+    // Добавление нового шага в плейлист
+    window.addNewPlaylistItem = function(type) {
+      const id = 'media_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      const title = type === 'video' ? 'Новое видео' : 'Новое фото';
+      const newItem = {
+        id: id,
+        type: type,
+        title: title,
+        url: '',
+        videoIndex: 1
+      };
       
-      if (action === 'play') {
-        state.videoPlaying = true;
-        state.videoFrozen = false;
-      } else if (action === 'pause') {
-        state.videoPlaying = false;
-      } else if (action === 'freeze') {
-        state.videoFrozen = true;
-      } else if (action === 'unfreeze') {
-        state.videoFrozen = false;
+      state.mediaPlaylist.push(newItem);
+      savePlaylistLocally();
+      broadcastState();
+      initVideoPlaylist();
+    };
+
+    // Изменение названия шага
+    window.renamePlaylistItem = function(idx, newTitle) {
+      if (!state.mediaPlaylist[idx]) return;
+      state.mediaPlaylist[idx].title = newTitle.trim();
+      
+      if (state.playlistItemId === state.mediaPlaylist[idx].id) {
+        state.mediaTitle = state.mediaPlaylist[idx].title;
       }
       
+      savePlaylistLocally();
       broadcastState();
     };
 
-    // Загрузка кастомных видео в Supabase Storage
-    window.uploadCustomVideo = async function() {
-      if (state.mode !== 'video' || !state.videoIndex) return;
+    // Перемещение шага
+    window.movePlaylistItem = function(idx, direction) {
+      const playlist = state.mediaPlaylist;
+      const targetIdx = idx + direction;
+      if (targetIdx < 0 || targetIdx >= playlist.length) return;
+      
+      const temp = playlist[idx];
+      playlist[idx] = playlist[targetIdx];
+      playlist[targetIdx] = temp;
+      
+      savePlaylistLocally();
+      broadcastState();
+      initVideoPlaylist();
+    };
+
+    // Удаление шага
+    window.deletePlaylistItem = function(idx) {
+      const playlist = state.mediaPlaylist;
+      const itemToDelete = playlist[idx];
+      if (!itemToDelete) return;
+      
+      if (!confirm(`Вы действительно хотите удалить "${itemToDelete.title}"?`)) return;
+      
+      if (state.playlistItemId === itemToDelete.id) {
+        state.playlistItemId = '';
+        state.mediaUrl = '';
+        state.mediaTitle = 'Не выбран';
+        state.videoPlaying = false;
+      }
+      
+      playlist.splice(idx, 1);
+      savePlaylistLocally();
+      broadcastState();
+      initVideoPlaylist();
+    };
+
+    // Загрузка кастомных медиафайлов (видео или фото)
+    window.uploadCustomMedia = async function() {
+      const activeItem = state.mediaPlaylist.find(item => item.id === state.playlistItemId);
+      if (!activeItem) {
+        alert('Пожалуйста, сначала выберите шаг из списка плейлиста ("Показать"), чтобы загрузить для него медиафайл.');
+        return;
+      }
       
       const fileInput = document.getElementById('video-file-input');
       const file = fileInput.files[0];
       if (!file) return;
       
+      const isVideoFile = file.type.startsWith('video/');
+      const isImageFile = file.type.startsWith('image/');
+      
+      if (activeItem.type === 'video' && !isVideoFile) {
+        alert('Выбранный шаг является Видео. Пожалуйста, загрузите видеофайл (например, MP4).');
+        fileInput.value = '';
+        return;
+      }
+      if (activeItem.type === 'photo' && !isImageFile) {
+        alert('Выбранный шаг является Фото. Пожалуйста, загрузите графический файл (PNG, JPG и т.д.).');
+        fileInput.value = '';
+        return;
+      }
+      
       const statusEl = document.getElementById('upload-status');
       statusEl.textContent = '⏳ Загрузка...';
       statusEl.style.color = '#eab308';
       
-      const index = state.videoIndex;
-      const fileName = `video_${index}.mp4`;
+      const ext = file.name.split('.').pop();
+      const fileName = `media_${activeItem.id}_${Date.now()}.${ext}`;
       
       try {
+        if (activeItem.url) {
+          try {
+            const oldPath = activeItem.url.split('/storage/v1/object/public/videos/')[1];
+            if (oldPath) {
+              await sb.storage.from('videos').remove([oldPath]);
+            }
+          } catch (e) {
+            console.log('Не удалось удалить старый файл:', e);
+          }
+        }
+
         const { data, error } = await sb.storage
           .from('videos')
           .upload(fileName, file, {
@@ -707,21 +906,23 @@
           
         if (error) throw error;
         
+        const { data: urlData } = sb.storage.from('videos').getPublicUrl(fileName);
+        const publicUrl = urlData.publicUrl;
+        
+        activeItem.url = publicUrl;
+        state.mediaUrl = publicUrl;
+        
+        savePlaylistLocally();
+        broadcastState();
+        initVideoPlaylist();
+        
         statusEl.textContent = '✅ Загружен!';
         statusEl.style.color = '#10b981';
-        
         setTimeout(() => { statusEl.textContent = ''; }, 3000);
         
-        // Перезапускаем воспроизведение
-        selectVideo(index);
-        
       } catch (err) {
-        console.error('[Upload Video Error]:', err);
-        if (err.message && err.message.includes('Bucket not found')) {
-          alert('Ошибка: Бакет "videos" не найден в вашем проекте Supabase.\n\nПожалуйста, выполните одно из следующих действий:\n1. Зайдите в личный кабинет Supabase -> Storage и вручную создайте публичный бакет с именем "videos".\n2. Либо перейдите в SQL Editor в Supabase и выполните SQL-скрипт из файла public/supabase-config.js, чтобы автоматически создать бакет и настроить политики доступа.');
-        } else {
-          alert('Ошибка при загрузке видео: ' + (err.message || err));
-        }
+        console.error('[Upload Media Error]:', err);
+        alert('Ошибка при загрузке медиафайла: ' + (err.message || err));
         statusEl.textContent = '❌ Ошибка';
         statusEl.style.color = '#ef4444';
       }
@@ -729,43 +930,140 @@
       fileInput.value = '';
     };
 
-    // Удаление кастомных видео из Supabase Storage
-    window.deleteCustomVideo = async function() {
-      if (state.mode !== 'video' || !state.videoIndex) return;
-      if (!confirm('Вы действительно хотите удалить загруженный видеофайл для этого шага и вернуть файл по умолчанию?')) return;
+    // Удаление кастомных медиафайлов
+    window.deleteCustomMedia = async function() {
+      const activeItem = state.mediaPlaylist.find(item => item.id === state.playlistItemId);
+      if (!activeItem) {
+        alert('Пожалуйста, сначала выберите шаг из списка плейлиста ("Показать").');
+        return;
+      }
+      
+      if (!activeItem.url) {
+        alert('Этот шаг использует медиафайл по умолчанию, удалять нечего.');
+        return;
+      }
+      
+      if (!confirm('Вы действительно хотите удалить загруженный медиафайл для этого шага и вернуть файл по умолчанию?')) return;
       
       const statusEl = document.getElementById('upload-status');
       statusEl.textContent = '⏳ Удаление...';
       statusEl.style.color = '#eab308';
       
-      const index = state.videoIndex;
-      const fileName = `video_${index}.mp4`;
-      
       try {
-        const { data, error } = await sb.storage
-          .from('videos')
-          .remove([fileName]);
-          
-        if (error) throw error;
+        const path = activeItem.url.split('/storage/v1/object/public/videos/')[1];
+        if (path) {
+          const { error } = await sb.storage.from('videos').remove([path]);
+          if (error) throw error;
+        }
+        
+        activeItem.url = '';
+        state.mediaUrl = '';
+        
+        savePlaylistLocally();
+        broadcastState();
+        initVideoPlaylist();
         
         statusEl.textContent = '🗑️ Удален';
         statusEl.style.color = '#ef4444';
-        
         setTimeout(() => { statusEl.textContent = ''; }, 3000);
         
-        // Перезапускаем видео (оно вернется к локальному файлу)
-        selectVideo(index);
-        
       } catch (err) {
-        console.error('[Delete Video Error]:', err);
-        if (err.message && err.message.includes('Bucket not found')) {
-          alert('Ошибка: Бакет "videos" не найден в вашем проекте Supabase.');
-        } else {
-          alert('Ошибка при удалении видео: ' + (err.message || err));
-        }
+        console.error('[Delete Media Error]:', err);
+        alert('Ошибка при удалении медиафайла: ' + (err.message || err));
         statusEl.textContent = '❌ Ошибка';
         statusEl.style.color = '#ef4444';
       }
+    };
+
+    // Загрузка кастомных фонов заставки
+    window.uploadWelcomeBg = async function() {
+      const fileInput = document.getElementById('welcome-bg-file');
+      const file = fileInput.files[0];
+      if (!file) return;
+      
+      const statusEl = document.getElementById('welcome-bg-status');
+      statusEl.textContent = '⏳...';
+      
+      const ext = file.name.split('.').pop();
+      const fileName = `welcome_bg_${Date.now()}.${ext}`;
+      
+      try {
+        if (state.welcomeBgUrl) {
+          try {
+            const oldPath = state.welcomeBgUrl.split('/storage/v1/object/public/videos/')[1];
+            if (oldPath) {
+              await sb.storage.from('videos').remove([oldPath]);
+            }
+          } catch (e) {
+            console.log('Не удалось удалить старый фон:', e);
+          }
+        }
+        
+        const { data, error } = await sb.storage
+          .from('videos')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: true
+          });
+          
+        if (error) throw error;
+        
+        const { data: urlData } = sb.storage.from('videos').getPublicUrl(fileName);
+        state.welcomeBgUrl = urlData.publicUrl;
+        
+        broadcastState();
+        
+        statusEl.textContent = '✅';
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+      } catch (err) {
+        console.error('[Upload Welcome BG Error]:', err);
+        alert('Ошибка при загрузке фона заставки: ' + (err.message || err));
+        statusEl.textContent = '❌';
+      }
+      
+      fileInput.value = '';
+    };
+
+    // Сброс кастомного фона заставки
+    window.clearWelcomeBg = async function() {
+      if (!state.welcomeBgUrl) return;
+      
+      if (!confirm('Вы действительно хотите удалить фоновое изображение заставки?')) return;
+      
+      const statusEl = document.getElementById('welcome-bg-status');
+      statusEl.textContent = '⏳...';
+      
+      try {
+        const path = state.welcomeBgUrl.split('/storage/v1/object/public/videos/')[1];
+        if (path) {
+          const { error } = await sb.storage.from('videos').remove([path]);
+          if (error) throw error;
+        }
+        
+        state.welcomeBgUrl = '';
+        broadcastState();
+        
+        statusEl.textContent = '🗑️';
+        setTimeout(() => { statusEl.textContent = ''; }, 3000);
+      } catch (err) {
+        console.error('[Clear Welcome BG Error]:', err);
+        alert('Ошибка при удалении фона заставки: ' + (err.message || err));
+        statusEl.textContent = '❌';
+      }
+    };
+
+    // Управление воспроизведением видео
+    window.controlVideo = function(action) {
+      if (state.mode !== 'video') return;
+      
+      if (action === 'play') {
+        state.videoPlaying = true;
+        state.videoFrozen = false;
+      } else if (action === 'pause') {
+        state.videoPlaying = false;
+      }
+      
+      broadcastState();
     };
 
     // BroadcastChannel локальный слушатель для синхронизации с экрана

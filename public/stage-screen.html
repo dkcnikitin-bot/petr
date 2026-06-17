@@ -967,6 +967,7 @@
     
     <!-- РЕЖИМ 1: ЗАСТАВКА (WELCOME) -->
     <div class="mode-container active" id="container-welcome">
+      <div id="welcome-custom-bg" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-size: cover; background-position: center; z-index: -1; opacity: 0; transition: opacity 0.8s ease-in-out;"></div>
       <div class="welcome-content">
         <div class="welcome-crest"><img src="royal_crown.svg" style="width: 130px; height: auto; display: block; margin: 0 auto;"></div>
         <h1 class="welcome-title">ПЕТРОВСКАЯ АССАМБЛЕЯ</h1>
@@ -1079,9 +1080,11 @@
     <!-- РЕЖИМ 7: ВИДЕОПЛЕЕР (VIDEO) -->
     <div class="mode-container" id="container-video" style="background: #000; position: relative; width: 100%; height: 100%;">
       <video id="stage-video" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; filter: contrast(1.18) brightness(0.85) saturate(1.22);" playsinline crossorigin="anonymous"></video>
-      <canvas id="stage-video-canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; object-fit: cover; z-index: 2; filter: contrast(1.18) brightness(0.85) saturate(1.22);"></canvas>
+      <img id="stage-photo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; filter: contrast(1.1) brightness(0.9) saturate(1.15);">
       <!-- Затемняющий виньеточный оверлей для выделения золотого текста по центру-снизу -->
       <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0) 35%, rgba(0,0,0,0.72) 100%); pointer-events: none; z-index: 3;"></div>
+      <!-- Плотный затемняющий оверлей в правом нижнем углу для скрытия смазывания/водяных знаков -->
+      <div style="position: absolute; bottom: 0; right: 0; width: 45%; height: 35%; background: radial-gradient(circle at bottom right, rgba(0,0,0,0.96) 0%, rgba(0,0,0,0.8) 45%, rgba(0,0,0,0) 100%); pointer-events: none; z-index: 3;"></div>
     </div>
 
     <!-- БЕГУЩАЯ СТРОКА ВНИЗУ (TICKER) -->
@@ -1154,7 +1157,11 @@
       alertText: '',
       videoIndex: 1,
       videoPlaying: false,
-      videoFrozen: false
+      videoFrozen: false,
+      mediaType: 'video',
+      mediaUrl: '',
+      mediaTitle: '',
+      welcomeBgUrl: ''
     };
 
     // Факты для режима Застолья
@@ -1220,91 +1227,62 @@
     }
     setInterval(updateClock, 1000);
 
-    // Карта таймингов для идеального момента захвата скриншота (в секундах от НАЧАЛА видео)
-    // Позволяет поймать кадр ровно тогда, когда текст или графика полностью собрались.
-    const VIDEO_CAPTURE_TIMINGS = {
-      1: 15.0,  // Для заставки 1 - ровно на 15.0 секунде (когда текст "Петровская Ассамблея" полностью собран и светится)
-      // Для остальных видео при необходимости можно настроить свои секунды от начала:
-      // 2: 12.0,
-      // 3: 14.5,
-    };
-
-    function getCaptureTime(duration) {
-      if (!duration || isNaN(duration)) return 0;
-      // Если для видео задан точный секундный тайминг:
-      if (VIDEO_CAPTURE_TIMINGS[state.videoIndex] !== undefined) {
-        return VIDEO_CAPTURE_TIMINGS[state.videoIndex];
-      }
-      // Иначе авторасчет: за 5 секунд до конца (для 20-секундного ролика это будет 15.0с)
-      if (duration <= 6.0) {
-        return duration * 0.8; // Запасной вариант для коротких роликов
-      }
-      return duration - 5.0;
-    }
-
-    // Видеопроигрыватель
+    // Медиапроигрыватель
     const stageVideo = document.getElementById('stage-video');
-    const stageVideoCanvas = document.getElementById('stage-video-canvas');
-    const videoCtx = stageVideoCanvas.getContext('2d');
-    let lastLoadedVideoIndex = null;
-    let currentlyLoadingIndex = null;
-    let frameCaptured = false;
+    const stagePhoto = document.getElementById('stage-photo');
+    let lastLoadedMediaUrl = null;
+    let currentlyLoadingMediaUrl = null;
 
-    async function loadVideo(index) {
-      if (currentlyLoadingIndex === index) return;
-      currentlyLoadingIndex = index;
-      frameCaptured = false;
-      
-      const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/videos/video_${index}.mp4`;
-      let finalUrl = `video/${index}.mp4`; // Перенаправлено на новую папку video/
-      
-      try {
-        const res = await fetch(storageUrl, { method: 'HEAD' });
-        if (res.ok) {
-          console.log(`[Stage Screen] Найдено видео в Supabase Storage: video_${index}.mp4`);
-          finalUrl = storageUrl;
-        }
-      } catch (err) {
-        console.warn('[Stage Screen] Ошибка проверки Supabase Storage:', err);
-      }
-      
-      if (currentlyLoadingIndex === index) {
-        lastLoadedVideoIndex = index;
-        // Добавляем кверисет для обхода кэша CORS в Chrome/Yandex Browser
-        const cacheBuster = finalUrl.startsWith('http') ? (finalUrl.includes('?') ? '&' : '?') + 'cors=' + Date.now() : '';
-        stageVideo.src = finalUrl + cacheBuster;
-        stageVideo.load();
+    function loadMedia() {
+      // 1. Если это статическое фото
+      if (state.mediaType === 'photo') {
+        stageVideo.style.display = 'none';
+        stageVideo.pause();
+        stagePhoto.style.display = 'block';
         
-        applyVideoPlaybackState();
+        let finalUrl = state.mediaUrl;
+        if (stagePhoto.getAttribute('src') !== finalUrl) {
+          stagePhoto.src = finalUrl;
+        }
+        return;
       }
+
+      // 2. Если это видеоролик
+      stagePhoto.style.display = 'none';
+      stageVideo.style.display = 'block';
+
+      let finalUrl = state.mediaUrl;
+      // Если URL пустой, используем локальный дефолтный ролик по индексу
+      if (!finalUrl) {
+        finalUrl = `video/${state.videoIndex}.mp4`;
+      }
+
+      if (currentlyLoadingMediaUrl === finalUrl) {
+        applyVideoPlaybackState();
+        return;
+      }
+      currentlyLoadingMediaUrl = finalUrl;
+      lastLoadedMediaUrl = finalUrl;
+
+      // Добавляем кверисет для обхода кэша CORS в Chrome/Yandex Browser
+      const cacheBuster = finalUrl.startsWith('http') ? (finalUrl.includes('?') ? '&' : '?') + 'cors=' + Date.now() : '';
+      stageVideo.src = finalUrl + cacheBuster;
+      stageVideo.load();
+      
+      applyVideoPlaybackState();
     }
 
     function applyVideoPlaybackState() {
-      if (state.videoFrozen) {
-        freezeFrame();
-        if (!state.videoPlaying) {
-          pauseVideo();
-        }
+      if (state.mediaType === 'photo') return;
+      
+      if (state.videoPlaying) {
+        playVideo();
       } else {
-        hideFreezeFrame();
-        const duration = stageVideo.duration;
-        const limit = getCaptureTime(duration);
-        if (stageVideo.currentTime < limit) {
-          frameCaptured = false;
-        }
-        if (state.videoPlaying) {
-          playVideo();
-        } else {
-          pauseVideo();
-        }
+        pauseVideo();
       }
     }
 
     function playVideo() {
-      hideFreezeFrame();
-      if (stageVideo.currentTime < 0.5) {
-        frameCaptured = false;
-      }
       stageVideo.play().catch(err => {
         console.warn('[Stage Screen] Не удалось запустить видео:', err);
       });
@@ -1312,44 +1290,6 @@
 
     function pauseVideo() {
       stageVideo.pause();
-    }
-
-    function captureFrameInBackground() {
-      try {
-        if (stageVideo.videoWidth > 0 && stageVideo.videoHeight > 0) {
-          stageVideoCanvas.width = stageVideo.videoWidth;
-          stageVideoCanvas.height = stageVideo.videoHeight;
-          
-          videoCtx.imageSmoothingEnabled = true;
-          videoCtx.imageSmoothingQuality = 'high';
-          
-          // Рисуем на холсте в фоне в оригинальном качестве
-          videoCtx.drawImage(stageVideo, 0, 0, stageVideo.videoWidth, stageVideo.videoHeight);
-          
-          // Повторяем захват через 50мс и 150мс на случай задержки декодирования в GPU
-          setTimeout(() => {
-            if (!state.videoFrozen) {
-              videoCtx.drawImage(stageVideo, 0, 0, stageVideo.videoWidth, stageVideo.videoHeight);
-            }
-          }, 50);
-          setTimeout(() => {
-            if (!state.videoFrozen) {
-              videoCtx.drawImage(stageVideo, 0, 0, stageVideo.videoWidth, stageVideo.videoHeight);
-            }
-          }, 150);
-        }
-      } catch (err) {
-        console.error('[Stage Screen] Ошибка при фоновом захвате кадра:', err);
-      }
-    }
-
-    function freezeFrame() {
-      // Показываем холст с заранее захваченным кадром
-      stageVideoCanvas.style.display = 'block';
-    }
-
-    function hideFreezeFrame() {
-      stageVideoCanvas.style.display = 'none';
     }
 
     function sendVideoStatusUpdate(playing, frozen) {
@@ -1370,37 +1310,27 @@
       });
     }
 
-    // Слушатель прогресса воспроизведения для захвата скриншота в фоне в идеальный момент
-    stageVideo.addEventListener('timeupdate', () => {
-      if (frameCaptured) return;
-      const duration = stageVideo.duration;
-      if (!duration || isNaN(duration)) return;
-      
-      const captureTime = getCaptureTime(duration);
-      
-      if (stageVideo.currentTime >= captureTime) {
-        const curTime = stageVideo.currentTime;
-        console.log(`[Stage Screen] Время скриншота (на ${curTime.toFixed(2)}с, целевое время: ${captureTime.toFixed(2)}с). Захватываем кадр в фоне.`);
-        frameCaptured = true;
-        captureFrameInBackground();
-      }
-    });
-
     stageVideo.addEventListener('ended', () => {
-      console.log('[Stage Screen] Видео полностью завершилось. Показываем скриншот.');
-      if (!frameCaptured) {
-        captureFrameInBackground();
-        frameCaptured = true;
-      }
-      freezeFrame();
+      console.log('[Stage Screen] Видео полностью завершилось.');
       stageVideo.pause();
-      sendVideoStatusUpdate(false, true);
+      sendVideoStatusUpdate(false, false);
     });
 
     // Применение состояния
     function applyState(newState) {
       state = { ...state, ...newState };
       console.log('[Stage Screen] Применение состояния:', state);
+
+      // 0. Кастомный фон для заставки
+      const welcomeBgEl = document.getElementById('welcome-custom-bg');
+      if (welcomeBgEl) {
+        if (state.mode === 'welcome' && state.welcomeBgUrl) {
+          welcomeBgEl.style.backgroundImage = `url('${state.welcomeBgUrl}')`;
+          welcomeBgEl.style.opacity = '0.55';
+        } else {
+          welcomeBgEl.style.opacity = '0';
+        }
+      }
 
       // 1. Применение режима (Mode)
       document.querySelectorAll('.mode-container').forEach(c => c.classList.remove('active'));
@@ -1454,18 +1384,13 @@
         }
       }
 
-      // 5. Управление видеоплеером
+      // 5. Управление медиаплеером (видео/фото)
       if (state.mode === 'video') {
-        if (state.videoIndex !== undefined) {
-          loadVideo(state.videoIndex);
-        }
-        // Если это видео уже загружено (т.е. загрузка завершена), применяем состояние немедленно
-        if (lastLoadedVideoIndex === state.videoIndex) {
-          applyVideoPlaybackState();
-        }
+        loadMedia();
       } else {
-        // Если ушли из режима видео - ставим видео на паузу
+        // Если ушли из режима видео - ставим видео на паузу и скрываем фото
         pauseVideo();
+        if (stagePhoto) stagePhoto.style.display = 'none';
       }
 
       // Загрузка статистики для режима Застолья
