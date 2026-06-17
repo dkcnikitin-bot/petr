@@ -519,9 +519,23 @@
       { id: 'default_14', type: 'video', title: "13-14: Универсальная заставка (Гранд-финал)", url: "", videoIndex: 14 }
     ];
 
-    // Загрузка плейлиста из LocalStorage
+    // Загрузка плейлиста из LocalStorage (с автоматическим сбросом к дефолту, если нет фото-шагов)
     let localSaved = localStorage.getItem('mediaPlaylist');
-    let mediaPlaylist = localSaved ? JSON.parse(localSaved) : DEFAULT_PLAYLIST;
+    let mediaPlaylist = null;
+    try {
+      if (localSaved) {
+        mediaPlaylist = JSON.parse(localSaved);
+        if (Array.isArray(mediaPlaylist) && !mediaPlaylist.some(item => item.type === 'photo')) {
+          mediaPlaylist = null; // сбросим, так как это старый кэш без фото-шагов
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    if (!mediaPlaylist) {
+      mediaPlaylist = DEFAULT_PLAYLIST;
+      localStorage.setItem('mediaPlaylist', JSON.stringify(DEFAULT_PLAYLIST));
+    }
 
     // Глобальное состояние VJ
     let state = {

@@ -1313,24 +1313,26 @@
     stageVideo.addEventListener('ended', () => {
       console.log('[Stage Screen] Видео полностью завершилось.');
       
-      // Автопереход к следующему элементу
+      // Автопереход к следующему элементу (только если это фото)
       if (state.mode === 'video' && state.mediaPlaylist && state.playlistItemId) {
         const idx = state.mediaPlaylist.findIndex(item => item.id === state.playlistItemId);
         if (idx !== -1 && idx + 1 < state.mediaPlaylist.length) {
           const nextItem = state.mediaPlaylist[idx + 1];
-          console.log('[Stage Screen] Автопереход к следующему элементу:', nextItem.title);
-          
-          state.mediaType = nextItem.type;
-          state.mediaUrl = nextItem.url;
-          state.mediaTitle = nextItem.title;
-          state.videoIndex = nextItem.videoIndex || 1;
-          state.playlistItemId = nextItem.id;
-          state.videoPlaying = true;
-          state.videoFrozen = false;
-          
-          loadMedia();
-          sendVideoStatusUpdate(true, false);
-          return;
+          if (nextItem.type === 'photo') {
+            console.log('[Stage Screen] Автопереход от видео к фото:', nextItem.title);
+            
+            state.mediaType = nextItem.type;
+            state.mediaUrl = nextItem.url;
+            state.mediaTitle = nextItem.title;
+            state.videoIndex = nextItem.videoIndex || 1;
+            state.playlistItemId = nextItem.id;
+            state.videoPlaying = false; // На фото стоп, воспроизведение не требуется
+            state.videoFrozen = false;
+            
+            loadMedia();
+            sendVideoStatusUpdate(false, false);
+            return;
+          }
         }
       }
       
