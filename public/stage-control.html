@@ -408,8 +408,9 @@
 
           <!-- Кнопки добавления медиаэлементов -->
           <div style="display: flex; gap: 8px; margin-bottom: 15px;">
-            <button class="vj-action-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;" onclick="addNewPlaylistItem('video')">🎬 + Добавить Видео</button>
-            <button class="vj-action-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;" onclick="addNewPlaylistItem('photo')">🖼️ + Добавить Фото</button>
+            <button class="vj-action-btn" style="flex: 2; padding: 6px; font-size: 0.75rem; background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff;" onclick="addNewPlaylistItem('video')">🎬 + Добавить Видео</button>
+            <button class="vj-action-btn" style="flex: 2; padding: 6px; font-size: 0.75rem; background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff;" onclick="addNewPlaylistItem('photo')">🖼️ + Добавить Фото</button>
+            <button class="vj-danger-btn" style="flex: 1; padding: 6px; font-size: 0.75rem; font-family: 'Alice', serif;" onclick="resetPlaylistToDefault()">🔄 Сброс</button>
           </div>
 
           <!-- Список плейлиста -->
@@ -501,7 +502,9 @@
     // Дефолтный плейлист
     const DEFAULT_PLAYLIST = [
       { id: 'default_1', type: 'video', title: "1: Универсальная заставка (Акт I)", url: "", videoIndex: 1 },
+      { id: 'default_photo_1', type: 'photo', title: "Пример фото-заставки 1", url: "photo_1.png", videoIndex: 1 },
       { id: 'default_2', type: 'video', title: "1-2-3: Сквозной монтаж", url: "", videoIndex: 2 },
+      { id: 'default_photo_2', type: 'photo', title: "Пример фото-заставки 2", url: "photo_2.png", videoIndex: 1 },
       { id: 'default_3', type: 'video', title: "4: Универсальная заставка (Акт II)", url: "", videoIndex: 3 },
       { id: 'default_4', type: 'video', title: "4-5: Silver (Переход)", url: "", videoIndex: 4 },
       { id: 'default_5', type: 'video', title: "5-6: Gold (Переход)", url: "", videoIndex: 5 },
@@ -798,6 +801,22 @@
       };
       
       state.mediaPlaylist.push(newItem);
+      savePlaylistLocally();
+      broadcastState();
+    };
+
+    // Сброс плейлиста к дефолтному (с видео и фото по очереди)
+    window.resetPlaylistToDefault = function() {
+      if (!confirm('Сбросить плейлист к настройкам по умолчанию (Видео - Фото - Видео)?')) return;
+      state.mediaPlaylist = JSON.parse(JSON.stringify(DEFAULT_PLAYLIST));
+      // Сбросим текущий выделенный элемент на первый элемент
+      if (state.mediaPlaylist.length > 0) {
+        state.playlistItemId = state.mediaPlaylist[0].id;
+        state.mediaType = state.mediaPlaylist[0].type;
+        state.mediaUrl = state.mediaPlaylist[0].url;
+        state.mediaTitle = state.mediaPlaylist[0].title;
+        state.videoIndex = state.mediaPlaylist[0].videoIndex || 1;
+      }
       savePlaylistLocally();
       broadcastState();
       initVideoPlaylist();
