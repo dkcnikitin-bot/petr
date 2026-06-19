@@ -101,29 +101,17 @@
         
         <!-- Левая часть: Загрузка файлов -->
         <div class="admin-card">
-          <h2>Импорт таблиц Excel</h2>
-          <p style="font-size: 0.85rem; margin-bottom: 15px;">Загрузите выгрузки. Алгоритм автоматически сопоставит гостей по ФИО.</p>
+          <h2>Импорт списка гостей</h2>
+          <p style="font-size: 0.85rem; margin-bottom: 15px;">Загрузите Excel-файл со списком гостей. Таблица должна содержать колонки: <b>№ стола</b>, <b>Фамилия и имя</b>, <b>Статус</b>, <b>Город</b>.</p>
           
-          <input type="file" id="file-tables" accept=".xlsx, .xls, .csv" style="display: none;">
-          <input type="file" id="file-payments" accept=".xlsx, .xls, .csv" style="display: none;">
+          <input type="file" id="file-consolidated" accept=".xlsx, .xls, .csv" style="display: none;">
 
-          <div class="file-upload-block" id="dropzone-tables">
-            <h3>1. Таблица со столами</h3>
-            <p style="font-size: 0.8rem;">Колонки "1 стол", "2 стол" и т.д., а в строках имена.</p>
-            <button class="add-vip-btn" onclick="document.getElementById('file-tables').click()" style="margin: 0 auto; padding: 8px 15px; font-size: 0.85rem;">Выбрать файл</button>
-            <div id="status-tables" style="margin-top: 10px; font-size: 0.8rem; color: #28a745; font-weight: bold; display: none;">✓ Файл успешно загружен</div>
+          <div class="file-upload-block" id="dropzone-consolidated" style="padding: 30px 20px;">
+            <h3>Список гостей (Excel)</h3>
+            <p style="font-size: 0.8rem; margin-bottom: 15px; color: #6c757d;">Колонки: № стола, Фамилия и имя, Статус, Город</p>
+            <button class="add-vip-btn" onclick="document.getElementById('file-consolidated').click()" style="margin: 0 auto; padding: 10px 20px; font-size: 0.9rem; font-weight: bold;">Выбрать файл</button>
+            <div id="status-consolidated" style="margin-top: 15px; font-size: 0.85rem; color: #28a745; font-weight: bold; display: none;">✓ Файл успешно загружен</div>
           </div>
-
-          <div class="file-upload-block" id="dropzone-payments">
-            <h3>2. Таблица оплат и статусов</h3>
-            <p style="font-size: 0.8rem;">Колонки: ФИО, Статус, Город, Сумма оплаты.</p>
-            <button class="add-vip-btn" onclick="document.getElementById('file-payments').click()" style="margin: 0 auto; padding: 8px 15px; font-size: 0.85rem;">Выбрать файл</button>
-            <div id="status-payments" style="margin-top: 10px; font-size: 0.8rem; color: #28a745; font-weight: bold; display: none;">✓ Файл успешно загружен</div>
-          </div>
-
-          <button class="reset-db-btn" id="btn-merge" style="width: 100%; margin: 10px 0 0 0; padding: 14px; font-weight: bold; background: linear-gradient(135deg, #c39b52, #ffd700); color: #000; border: none; cursor: pointer; border-radius: 6px; font-size: 1rem; box-shadow: 0 4px 10px rgba(195,155,82,0.3);">
-            🔄 ОБЪЕДИНИТЬ ДАННЫЕ
-          </button>
           <button class="add-vip-btn" id="btn-init-db" style="width: 100%; margin: 10px 0 0 0; padding: 14px; font-weight: bold; border: none; cursor: pointer; border-radius: 6px; font-size: 1rem;">
             ИНИЦИАЛИЗИРОВАТЬ БАЗУ ДАННЫХ
           </button>
@@ -477,32 +465,40 @@
     // ==========================================
     // ЛОГИКА ОБЪЕДИНЕНИЯ И СПИСКОВ
     // ==========================================
-    let tablesData = [];
-    let paymentsData = [];
-    let mergedData = []; // Оригинальный объединенный массив
+    let mergedData = []; // Список импортированных гостей
     let displayData = []; // Массив для отображения (с учетом сортировки/поиска)
     
     let currentSortColumn = '';
     let sortAscending = true;
 
-    const fileTables = document.getElementById('file-tables');
-    const filePayments = document.getElementById('file-payments');
+    const fileConsolidated = document.getElementById('file-consolidated');
 
-    fileTables.addEventListener('change', (e) => {
-      if(e.target.files.length > 0) {
-        document.getElementById('status-tables').style.display = 'block';
-        document.getElementById('dropzone-tables').classList.add('active');
-        parseTablesExcel(e.target.files[0]);
-      }
-    });
+    if (fileConsolidated) {
+      fileConsolidated.addEventListener('change', (e) => {
+        if(e.target.files.length > 0) {
+          parseConsolidatedExcel(e.target.files[0]);
+        }
+      });
+    }
 
-    filePayments.addEventListener('change', (e) => {
-      if(e.target.files.length > 0) {
-        document.getElementById('status-payments').style.display = 'block';
-        document.getElementById('dropzone-payments').classList.add('active');
-        parsePaymentsExcel(e.target.files[0]);
-      }
-    });
+    // Drag-and-drop поддержка
+    const dropzone = document.getElementById('dropzone-consolidated');
+    if (dropzone) {
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('active');
+      });
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('active');
+      });
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('active');
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          parseConsolidatedExcel(e.dataTransfer.files[0]);
+        }
+      });
+    }
 
     // Хелпер нормализации городов
     function cleanCityName(city) {
@@ -539,290 +535,114 @@
       return '0';
     }
 
-    // Парсер сеточной разметки рассадки гостей
-    function parseSeatingGrid(rows) {
-      const guests = [];
-      const anchors = [];
-      
-      for (let r = 0; r < rows.length; r++) {
-        const row = rows[r];
-        if (!row) continue;
-        for (let c = 0; c < row.length; c++) {
-          const val = row[c];
-          if (val === undefined || val === null) continue;
-          const str = String(val).trim();
-          if (/стол/i.test(str)) {
-            anchors.push({ r, c, val: str });
-          }
-        }
-      }
-      
-      if (anchors.length === 0) return null;
-      
-      anchors.sort((a, b) => a.r - b.r || a.c - b.c);
-      
-      anchors.forEach(anchor => {
-        const rStart = anchor.r;
-        const cStart = anchor.c;
-        
-        const match = anchor.val.match(/\d+/);
-        const tableNum = match ? match[0] : anchor.val;
-        
-        let cEnd = rows[rStart].length;
-        anchors.forEach(other => {
-          if (other.c > cStart && Math.abs(other.r - rStart) < 6 && other.c < cEnd) {
-            cEnd = other.c;
-          }
-        });
-        
-        let rEnd = rows.length;
-        anchors.forEach(other => {
-          if (other.r > rStart && other.c >= cStart && other.c < cEnd && other.r < rEnd) {
-            rEnd = other.r;
-          }
-        });
-        
-        let nameCol = cStart;
-        let paymentCol = -1;
-        
-        for (let c = cStart; c < cEnd; c++) {
-          let numberCount = 0;
-          let totalCount = 0;
-          for (let r = rStart + 1; r < rEnd; r++) {
-            if (!rows[r]) continue;
-            const val = rows[r][c];
-            if (val !== undefined && val !== null && val !== "") {
-              totalCount++;
-              const num = Number(val);
-              if (!isNaN(num) && num >= 100) {
-                numberCount++;
-              }
-            }
-          }
-          if (totalCount > 0 && numberCount / totalCount > 0.5) {
-            paymentCol = c;
-          }
-        }
-        
-        let isFirstInBlock = true;
-        for (let r = rStart + 1; r < rEnd; r++) {
-          const row = rows[r];
-          if (!row) continue;
-          
-          const nameVal = row[nameCol];
-          if (nameVal === undefined || nameVal === null) continue;
-          
-          const nameStr = String(nameVal).trim();
-          if (nameStr === "" || /^\d+$/.test(nameStr) || nameStr.length < 3) continue;
-          if (/стол/i.test(nameStr)) break;
-          
-          let payment = 0;
-          if (paymentCol !== -1 && row[paymentCol] !== undefined && row[paymentCol] !== null) {
-            const pVal = parseFloat(String(row[paymentCol]).replace(/[^\d.]/g, ''));
-            if (!isNaN(pVal)) payment = pVal;
-          }
-          
-          let finalName = nameStr;
-          if (isFirstInBlock) {
-            finalName = nameStr + " (Ответственный)";
-            isFirstInBlock = false;
-          }
-          
-          guests.push({
-            fullName: finalName,
-            tableNumber: tableNum,
-            status: '0',
-            city: 'Санкт-Петербург',
-            payment: payment
-          });
-        }
-      });
-      
-      return guests;
-    }
-
-    // Чтение side-by-side списков для гости.xlsx (умная классификация колонок по данным)
-    function parseGosti(rows) {
-      const guests = [];
-      const headerRow = rows[0] || [];
-      const listBlocks = [];
-      
-      headerRow.forEach((val, c) => {
-        if (val && typeof val === 'string') {
-          const str = val.trim().toLowerCase();
-          if (str.includes('список') || str.includes('фио') || str.includes('имя')) {
-            listBlocks.push(c);
-          }
-        }
-      });
-
-      const maxCols = Math.max(...rows.map(r => r ? r.length : 0));
-      const knownCities = ['спб', 'спб.', 'питер', 'санкт-петербург', 'санкт петербург', 'москва', 'воронеж', 'уфа', 'вологда', 'липецк', 'кировоград', 'грязовец', 'каменск-ураль', 'пенза', 'щелкова', 'белокуриха', 'екатеринбург', 'чебоксары', 'белгород', 'новочебоксарск', 'йошкар-ола', 'казань', 'выборг', 'нарьян-мар', 'калуга', 'челябинск', 'тольятти'];
-
-      listBlocks.forEach((cStart, idx) => {
-        const cEnd = idx < listBlocks.length - 1 ? listBlocks[idx + 1] : maxCols;
-        
-        let nameCol = cStart;
-        let statusCol = -1;
-        let paymentCol = -1;
-        let cityCol = -1;
-        
-        for (let c = cStart; c < cEnd; c++) {
-          const val = headerRow[c];
-          if (!val) continue;
-          const str = String(val).trim().toLowerCase();
-          if (str.includes('список') || str.includes('фио') || str.includes('имя')) {
-            nameCol = c;
-          } else if (str.includes('статус') || str.includes('status')) {
-            statusCol = c;
-          } else if (str.includes('оплат') || str.includes('сумма')) {
-            paymentCol = c;
-          } else if (str.includes('город') || str.includes('city')) {
-            cityCol = c;
-          }
-        }
-        
-        const colStats = [];
-        for (let c = cStart; c < cEnd; c++) {
-          if (c === nameCol) continue;
-          
-          let total = 0;
-          let statusMatches = 0;
-          let cityMatches = 0;
-          let paymentMatches = 0;
-          
-          for (let r = 1; r < rows.length; r++) {
-            if (!rows[r]) continue;
-            const val = rows[r][c];
-            if (val !== undefined && val !== null && val !== '') {
-              total++;
-              const str = String(val).trim().toLowerCase();
-              
-              const normStat = normalizeStatus(str);
-              if (normStat !== 'guest' && !/^\d+$/.test(str)) {
-                statusMatches++;
-              }
-              
-              const isKnownCity = knownCities.some(kc => str.includes(kc));
-              if (isKnownCity) {
-                cityMatches++;
-              }
-              
-              const num = Number(val);
-              if (!isNaN(num) && num >= 100) {
-                paymentMatches++;
-              }
-            }
-          }
-          
-          colStats.push({
-            col: c,
-            total,
-            statusScore: total > 0 ? statusMatches / total : 0,
-            cityScore: total > 0 ? cityMatches / total : 0,
-            paymentScore: total > 0 ? paymentMatches / total : 0
-          });
-        }
-        
-        colStats.forEach(stat => {
-          if (stat.cityScore > 0.3) {
-            cityCol = stat.col;
-          } else if (stat.statusScore > 0.3) {
-            statusCol = stat.col;
-          } else if (stat.paymentScore > 0.3) {
-            paymentCol = stat.col;
-          }
-        });
-
-        for (let r = 1; r < rows.length; r++) {
-          const row = rows[r];
-          if (!row) continue;
-          const nameVal = row[nameCol];
-          if (nameVal === undefined || nameVal === null) continue;
-          
-          const name = String(nameVal).trim();
-          if (name === "" || /^\d+$/.test(name) || name.length < 3) continue;
-          
-          let status = statusCol !== -1 && row[statusCol] !== undefined && row[statusCol] !== null ? String(row[statusCol]).trim() : '0';
-          let city = cityCol !== -1 && row[cityCol] !== undefined && row[cityCol] !== null ? String(row[cityCol]).trim() : 'Санкт-Петербург';
-          let payment = paymentCol !== -1 && row[paymentCol] !== undefined && row[paymentCol] !== null ? parseFloat(String(row[paymentCol]).replace(/[^\d.]/g, '')) || 0 : 0;
-          
-          guests.push({
-            name,
-            status: cleanImportStatus(status),
-            city: cleanCityName(city),
-            payment
-          });
-        }
-      });
-      
-      return guests;
-    }
-
-    function parseTablesExcel(file) {
+    function parseConsolidatedExcel(file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
-        
-        // 1. Пробуем распарсить как сетку рассадки
-        const gridGuests = parseSeatingGrid(json);
-        if (gridGuests && gridGuests.length > 0) {
-          tablesData = gridGuests.map(g => ({ name: g.fullName, table: g.tableNumber, payment: g.payment }));
-          paymentsData = gridGuests.map(g => ({ name: g.fullName, status: g.status, city: g.city, payment: g.payment }));
-          alert(`Обнаружен сеточный формат столов! Распознано гостей: ${gridGuests.length}. Список оплат и рассадка считаны автоматически.`);
-          document.getElementById('status-tables').style.display = 'block';
-          document.getElementById('dropzone-tables').classList.add('active');
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, {type: 'array'});
+          const sheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
           
-          // Сразу запускаем объединение
-          document.getElementById('btn-merge').click();
-          return;
-        }
-        
-        // 2. Иначе парсим обычную плоскую таблицу
-        tablesData = [];
-        if(json.length > 0) {
-          const headers = json[0];
-          for(let r = 1; r < json.length; r++) {
+          if (json.length < 2) {
+            alert("Таблица пуста или содержит недостаточно данных.");
+            return;
+          }
+
+          // Поиск индексов колонок по первой строке (заголовкам)
+          const headers = json[0] || [];
+          let tableCol = -1;
+          let nameCol = -1;
+          let statusCol = -1;
+          let cityCol = -1;
+
+          headers.forEach((h, idx) => {
+            if (!h) return;
+            const str = String(h).trim().toLowerCase();
+            if (str.includes('стол') || str.includes('table') || str.includes('№')) {
+              tableCol = idx;
+            } else if (str.includes('имя') || str.includes('фамили') || str.includes('фио') || str.includes('name') || str.includes('гость')) {
+              nameCol = idx;
+            } else if (str.includes('статус') || str.includes('status')) {
+              statusCol = idx;
+            } else if (str.includes('город') || str.includes('city')) {
+              cityCol = idx;
+            }
+          });
+
+          // Фолбеки на случай нестандартных названий
+          if (tableCol === -1) tableCol = 0;
+          if (nameCol === -1) nameCol = 1;
+          if (statusCol === -1) statusCol = 2;
+          if (cityCol === -1) cityCol = 3;
+
+          mergedData = [];
+          let baseId = 1;
+
+          for (let r = 1; r < json.length; r++) {
             const row = json[r];
-            for(let c = 0; c < headers.length; c++) {
-              if(row[c] && typeof row[c] === 'string' && row[c].trim().length > 0) {
-                let tableNum = headers[c];
-                if(typeof tableNum === 'string') {
-                  const match = tableNum.match(/\d+/);
-                  if(match) tableNum = match[0];
-                }
-                tablesData.push({ name: row[c].trim(), table: String(tableNum) });
-              }
+            if (!row || row.length === 0) continue;
+
+            // Проверяем, не является ли строка итоговой
+            const firstCell = row[tableCol] !== undefined && row[tableCol] !== null ? String(row[tableCol]).trim() : '';
+            const secondCell = nameCol !== -1 && row[nameCol] !== undefined && row[nameCol] !== null ? String(row[nameCol]).trim() : '';
+            
+            if (firstCell.toLowerCase().includes('итог') || secondCell.toLowerCase().includes('итог')) {
+              continue;
             }
+
+            const nameVal = row[nameCol];
+            if (nameVal === undefined || nameVal === null) continue;
+            const name = String(nameVal).trim();
+            if (name === "" || /^d+$/.test(name) || name.length < 3) continue;
+
+            // Проверяем на фразы типа "1 стол" или "11 человек" в имени
+            if (name.toLowerCase().includes('стол') || name.toLowerCase().includes('человек') || name.toLowerCase().includes('человека')) {
+              continue;
+            }
+
+            let tableNum = "";
+            if (tableCol !== -1 && row[tableCol] !== undefined && row[tableCol] !== null) {
+              tableNum = String(row[tableCol]).trim();
+              // Извлекаем только число для номера стола
+              const match = tableNum.match(/d+/);
+              if (match) tableNum = match[0];
+            }
+
+            let status = "0";
+            if (statusCol !== -1 && row[statusCol] !== undefined && row[statusCol] !== null) {
+              status = String(row[statusCol]).trim();
+            }
+
+            let city = "Санкт-Петербург";
+            if (cityCol !== -1 && row[cityCol] !== undefined && row[cityCol] !== null) {
+              city = String(row[cityCol]).trim();
+            }
+
+            mergedData.push({
+              id: baseId++,
+              fullName: name,
+              tableNumber: tableNum,
+              status: cleanImportStatus(status),
+              city: cleanCityName(city),
+              payment: 0,
+              isArrived: false
+            });
           }
+
+          assignTableCaptains();
+          applyFiltersAndSort();
+          
+          document.getElementById('status-consolidated').style.display = 'block';
+          document.getElementById('dropzone-consolidated').classList.add('active');
+          
+          alert(`Таблица успешно импортирована! Распознано гостей: ${mergedData.length}`);
+        } catch (err) {
+          console.error(err);
+          alert("Произошла ошибка при парсинге Excel: " + err.message);
         }
-        alert(`Таблица столов успешно загружена! Распознано записей рассадки: ${tablesData.length}`);
       };
       reader.readAsArrayBuffer(file);
-    }
-
-    function parsePaymentsExcel(file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        const sheet = workbook.Sheets[workbook.SheetNames[0]];
-        const json = XLSX.utils.sheet_to_json(sheet, {header: 1});
-        paymentsData = parseGosti(json);
-        alert(`Таблица оплат и статусов успешно загружена! Распознано гостей: ${paymentsData.length}`);
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    function normalizeName(name) {
-      if (!name) return '';
-      const clean = name.replace(/\(.*?\)/g, '').trim();
-      return clean.toLowerCase()
-                  .replace(/ё/g, 'е')
-                  .replace(/[^а-яa-z0-9]/g, '');
     }
 
     function assignTableCaptains() {
@@ -843,61 +663,6 @@
         }
       }
     }
-
-    document.getElementById('btn-merge').addEventListener('click', () => {
-      if(tablesData.length === 0 && paymentsData.length === 0) {
-        alert("Загрузите хотя бы одну таблицу.");
-        return;
-      }
-      mergedData = [];
-      const usedTables = new Set();
-      
-      let baseId = 1;
-      paymentsData.forEach(p => {
-        const normNameP = normalizeName(p.name);
-        let table = "";
-        let tablePayment = 0;
-        for(let i=0; i<tablesData.length; i++) {
-          const t = tablesData[i];
-          const normNameT = normalizeName(t.name);
-          if(normNameT === normNameP || normNameP.includes(normNameT) || normNameT.includes(normNameP)) {
-            table = t.table;
-            tablePayment = t.payment || 0;
-            usedTables.add(i);
-            break;
-          }
-        }
-        const finalPay = p.payment > 0 ? p.payment : tablePayment;
-        mergedData.push({
-          id: baseId++,
-          fullName: p.name,
-          tableNumber: table,
-          status: cleanImportStatus(p.status),
-          city: cleanCityName(p.city),
-          payment: finalPay,
-          isArrived: false
-        });
-      });
-
-      tablesData.forEach((t, i) => {
-        if(!usedTables.has(i)) {
-          mergedData.push({
-            id: baseId++,
-            fullName: t.name,
-            tableNumber: t.table,
-            status: '0',
-            city: 'Санкт-Петербург',
-            payment: t.payment || 0,
-            isArrived: false
-          });
-        }
-      });
-
-      assignTableCaptains();
-      applyFiltersAndSort();
-      document.getElementById('btn-sync-db').style.display = 'block';
-      document.getElementById('btn-export-excel').style.display = 'block';
-    });
 
     document.getElementById('merge-search').addEventListener('input', () => {
       applyFiltersAndSort();

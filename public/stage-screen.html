@@ -1580,10 +1580,39 @@
     }
     animateFX();
 
-    // Загрузка
-    window.onload = () => {
+    async function loadStateFromSupabase() {
+      try {
+        const { data, error } = await sb.from('stage_state').select('state').eq('id', 1).single();
+        if (error) {
+          console.warn('[Supabase] Не удалось загрузить состояние для экрана:', error);
+          return;
+        }
+        if (data && data.state && Object.keys(data.state).length > 0) {
+          console.log('[Supabase] Состояние экрана загружено успешно:', data.state);
+          applyState(data.state);
+        }
+      } catch (e) {
+        console.error('[Supabase] Ошибка при загрузке состояния для экрана:', e);
+      }
+    }
+
+    // Подписка на изменения в таблице stage_state в Supabase Realtime
+    sb.channel('stage-state-db-changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'stage_state', filter: 'id=eq.1' },
+        payload => {
+          if (payload.new && payload.new.state) {
+            applyState(payload.new.state);
+          }
+        }
+      )
+      .subscribe();
+
+    window.onload = async () => {
       initGallery();
       updateClock();
+      await loadStateFromSupabase();
     };
   </script>
 </body>

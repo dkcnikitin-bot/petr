@@ -1564,18 +1564,36 @@
           // Обычный плоский импорт
           for (let i = 1; i < importedRows.length; i++) {
             const row = importedRows[i];
+            if (!row || row.length === 0) continue;
             if (!row[nameIdx]) continue;
             
             const fullName = String(row[nameIdx] || '').trim();
             if (fullName === "" || /^\d+$/.test(fullName) || fullName.length < 3) continue;
-            const city = String(row[cityIdx] || '').trim() || 'Санкт-Петербург';
+            
+            const firstCell = row[0] !== undefined && row[0] !== null ? String(row[0]).trim().toLowerCase() : '';
             const tableNumber = tableIdx !== -1 && row[tableIdx] ? String(row[tableIdx]).trim() : '';
             const status = statusIdx !== -1 && row[statusIdx] ? String(row[statusIdx]).trim() : '0';
-            
+            const city = cityIdx !== -1 && row[cityIdx] ? String(row[cityIdx]).trim() : 'Санкт-Петербург';
+
+            // Пропуск итоговых строк
+            if (firstCell.includes('итог') || 
+                fullName.toLowerCase().includes('итог') || 
+                fullName.toLowerCase().includes('стол') || 
+                fullName.toLowerCase().includes('человек') || 
+                fullName.toLowerCase().includes('человека') ||
+                tableNumber.toLowerCase().includes('итог') || 
+                status.toLowerCase().includes('человек')) {
+              continue;
+            }
+
+            let cleanTable = tableNumber;
+            const match = tableNumber.match(/\d+/);
+            if (match) cleanTable = match[0];
+
             tempImportList.push({
               fullName: fullName,
               city: cleanCityName(city),
-              tableNumber: tableNumber,
+              tableNumber: cleanTable,
               status: cleanImportStatus(status),
               isArrived: false
             });

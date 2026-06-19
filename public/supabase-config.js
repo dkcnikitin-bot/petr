@@ -117,6 +117,27 @@ CREATE POLICY "Public access to videos" ON storage.objects FOR SELECT USING (buc
 -- Разрешаем публичную загрузку, обновление и удаление объектов в бакете videos
 DROP POLICY IF EXISTS "Public insert/update to videos" ON storage.objects;
 CREATE POLICY "Public insert/update to videos" ON storage.objects FOR ALL USING (bucket_id = 'videos') WITH CHECK (bucket_id = 'videos');
+
+-- Таблица состояния сцены (VJ)
+CREATE TABLE IF NOT EXISTS public.stage_state (
+  id INT PRIMARY KEY DEFAULT 1,
+  state JSONB DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+ALTER TABLE public.stage_state ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Public access to stage_state" ON public.stage_state;
+CREATE POLICY "Public access to stage_state" ON public.stage_state FOR ALL USING (true) WITH CHECK (true);
+DO $$
+BEGIN
+  BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.stage_state;
+  EXCEPTION
+    WHEN duplicate_object THEN NULL;
+    WHEN duplicate_table THEN NULL;
+  END;
+END;
+$$;
+INSERT INTO public.stage_state (id, state) VALUES (1, '{}'::jsonb) ON CONFLICT (id) DO NOTHING;
 `;
 
 console.log('[Суперbase] Клиент инициализирован:', SUPABASE_URL);
