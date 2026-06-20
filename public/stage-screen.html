@@ -1083,8 +1083,6 @@
       <img id="stage-photo" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; display: none; filter: contrast(1.1) brightness(0.9) saturate(1.15);">
       <!-- Затемняющий виньеточный оверлей для выделения золотого текста по центру-снизу -->
       <div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0) 35%, rgba(0,0,0,0.72) 100%); pointer-events: none; z-index: 3;"></div>
-      <!-- Плотный затемняющий оверлей в правом нижнем углу для скрытия смазывания/водяных знаков -->
-      <div style="position: absolute; bottom: 0; right: 0; width: 35%; height: 25%; background: linear-gradient(135deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.75) 75%, rgba(0,0,0,0.98) 100%); pointer-events: none; z-index: 3;"></div>
     </div>
 
     <!-- БЕГУЩАЯ СТРОКА ВНИЗУ (TICKER) -->
@@ -1608,6 +1606,23 @@
         }
       )
       .subscribe();
+
+    // Функция мгновенного восстановления сокетов при потере фокуса или переподключении сети
+    function reconnectRealtime() {
+      console.log('[Realtime] Восстановление сокетов для экрана...');
+      sb.realtime.disconnect();
+      sb.realtime.connect();
+    }
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        reconnectRealtime();
+      }
+    });
+
+    window.addEventListener('focus', () => {
+      reconnectRealtime();
+    });
 
     window.onload = async () => {
       initGallery();
